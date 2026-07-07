@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id                  Int                   @id @default(autoincrement())
+  company_name        String                @db.VarChar(150)
+  is_active           Boolean               @default(true)
+  created_at          DateTime              @default(now()) @db.Timestamp(6)
+  Users               User[]
+  Divisions           Division[]
+  Employees           Employee[]
+  FingerprintDevices  FingerprintDevice[]
+  Shifts              Shift[]
+  EmployeeSchedules   EmployeeSchedule[]
+  Holidays            Holiday[]
+  AttendanceRaws      AttendanceRaw[]
+  AttendanceDailies   AttendanceDaily[]
+  LeaveRequests       LeaveRequest[]
+  OvertimeRequests    OvertimeRequest[]
+  SalaryComponents    SalaryComponent[]
+  PayrollRuns         PayrollRun[]
+  PayrollDetails      PayrollDetail[]
+  Notifications       Notification[]
+
+  @@map("tenants")
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(50)
+  Users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id               Int               @id @default(autoincrement())
+  tenant_id        Int               @default(1)
+  role_id          Int?
+  email            String            @unique @db.VarChar(150)
+  password_hash    String            @db.VarChar(255)
+  is_active        Boolean           @default(true)
+  created_at       DateTime          @default(now()) @db.Timestamp(6)
+  Tenant           Tenant            @relation(fields: [tenant_id], references: [id])
+  Role             Role?             @relation(fields: [role_id], references: [id])
+  Employees        Employee[]
+  LeaveRequests    LeaveRequest[]    @relation("LeaveApprovedBy")
+  OvertimeRequests OvertimeRequest[] @relation("OvertimeApprovedBy")
+  Notifications    Notification[]
+
+  @@map("users")
+}
+
+model Division {
+  id        Int        @id @default(autoincrement())
+  tenant_id Int        @default(1)
+  name      String     @db.VarChar(100)
+  Tenant    Tenant     @relation(fields: [tenant_id], references: [id])
+  Employees Employee[]
+
+  @@map("divisions")
+}
+
+model Employee {
+  id                  Int                @id @default(autoincrement())
+  tenant_id           Int                @default(1)
+  user_id             Int?
+  fingerprint_user_id String?            @unique @db.VarChar(50)
+  nip                 String?            @unique @db.VarChar(50)
+  full_name           String             @db.VarChar(150)
+  division_id         Int?
+  position            String?            @db.VarChar(100)
+  join_date           DateTime?          @db.Date
+  photo_url           String?            @db.VarChar(255)
+  is_active           Boolean            @default(true)
+  created_at          DateTime           @default(now()) @db.Timestamp(6)
+  Tenant              Tenant             @relation(fields: [tenant_id], references: [id])
+  User                User?              @relation(fields: [user_id], references: [id])
+  Division            Division?          @relation(fields: [division_id], references: [id])
+  EmployeeSchedules   EmployeeSchedule[]
+  AttendanceDailies   AttendanceDaily[]
+  LeaveRequests       LeaveRequest[]
+  OvertimeRequests    OvertimeRequest[]
+  SalaryComponents    SalaryComponent[]
+  PayrollDetails      PayrollDetail[]
+
+  @@map("employees")
+}
+
+model FingerprintDevice {
+  id             Int             @id @default(autoincrement())
+  tenant_id      Int             @default(1)
+  name           String?         @db.VarChar(100)
+  serial_number  String          @unique @db.VarChar(100)
+  ip_address     String?         @db.VarChar(50)
+  port           Int?            @default(4370)
+  location       String?         @db.VarChar(150)
+  is_active      Boolean         @default(true)
+  last_sync_at   DateTime?       @db.Timestamp(6)
+  last_online_at DateTime?       @db.Timestamp(6)
+  Tenant         Tenant          @relation(fields: [tenant_id], references: [id])
+  AttendanceRaws AttendanceRaw[]
+
+  @@map("fingerprint_devices")
+}
+
+model Shift {
+  id                    Int                @id @default(autoincrement())
+  tenant_id             Int                @default(1)
+  name                  String             @db.VarChar(50)
+  clock_in_time         DateTime           @db.Time
+  clock_out_time        DateTime           @db.Time
+  late_tolerance_minutes Int?              @default(0)
+  is_overnight          Boolean            @default(false)
+  Tenant                Tenant             @relation(fields: [tenant_id], references: [id])
+  EmployeeSchedules     EmployeeSchedule[]
+  AttendanceDailies     AttendanceDaily[]
+
+  @@map("shifts")
+}
+
+model EmployeeSchedule {
+  id          Int      @id @default(autoincrement())
+  tenant_id   Int      @default(1)
+  employee_id Int
+  shift_id    Int
+  date        DateTime @db.Date
+  Tenant      Tenant   @relation(fields: [tenant_id], references: [id])
+  Employee    Employee @relation(fields: [employee_id], references: [id])
+  Shift       Shift    @relation(fields: [shift_id], references: [id])
+
+  @@unique([employee_id, date])
+  @@map("employee_schedules")
+}
+
+model Holiday {
+  id          Int       @id @default(autoincrement())
+  tenant_id   Int       @default(1)
+  date        DateTime? @db.Date
+  description String?   @db.VarChar(150)
+  Tenant      Tenant    @relation(fields: [tenant_id], references: [id])
+
+  @@unique([tenant_id, date])
+  @@map("holidays")
+}
+
+model AttendanceRaw {
+  id                  Int               @id @default(autoincrement())
+  tenant_id           Int               @default(1)
+  device_id           Int?
+  fingerprint_user_id String            @db.VarChar(50)
+  scan_time           DateTime          @db.Timestamp(6)
+  raw_status          Int?
+  synced_at           DateTime?         @default(now()) @db.Timestamp(6)
+  Tenant              Tenant            @relation(fields: [tenant_id], references: [id])
+  FingerprintDevice   FingerprintDevice? @relation(fields: [device_id], references: [id])
+
+  @@unique([device_id, fingerprint_user_id, scan_time])
+  @@map("attendance_raw")
+}
+
+model AttendanceDaily {
+  id               Int       @id @default(autoincrement())
+  tenant_id        Int       @default(1)
+  employee_id      Int
+  date             DateTime  @db.Date
+  shift_id         Int?
+  clock_in_actual  DateTime? @db.Timestamp(6)
+  clock_out_actual DateTime? @db.Timestamp(6)
+  late_minutes     Int?      @default(0)
+  overtime_minutes Int?      @default(0)
+  status           String?   @default("hadir") @db.VarChar(20)
+  Tenant           Tenant    @relation(fields: [tenant_id], references: [id])
+  Employee         Employee  @relation(fields: [employee_id], references: [id])
+  Shift            Shift?    @relation(fields: [shift_id], references: [id])
+
+  @@unique([employee_id, date])
+  @@map("attendance_daily")
+}
+
+model LeaveRequest {
+  id             Int       @id @default(autoincrement())
+  tenant_id      Int       @default(1)
+  employee_id    Int
+  type           String    @db.VarChar(20)
+  start_date     DateTime  @db.Date
+  end_date       DateTime  @db.Date
+  reason         String?
+  attachment_url String?   @db.VarChar(255)
+  status         String?   @default("pending") @db.VarChar(20)
+  approved_by    Int?
+  approved_at    DateTime? @db.Timestamp(6)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  Tenant         Tenant    @relation(fields: [tenant_id], references: [id])
+  Employee       Employee  @relation(fields: [employee_id], references: [id])
+  ApprovedByUser User?     @relation("LeaveApprovedBy", fields: [approved_by], references: [id])
+
+  @@map("leave_requests")
+}
+
+model OvertimeRequest {
+  id                      Int       @id @default(autoincrement())
+  tenant_id               Int       @default(1)
+  employee_id             Int
+  date                    DateTime  @db.Date
+  planned_start           DateTime? @db.Time
+  planned_end             DateTime? @db.Time
+  reason                  String?
+  status                  String?   @default("pending") @db.VarChar(20)
+  approved_by             Int?
+  approved_at             DateTime? @db.Timestamp(6)
+  actual_overtime_minutes Int?
+  created_at              DateTime? @default(now()) @db.Timestamp(6)
+  Tenant                  Tenant    @relation(fields: [tenant_id], references: [id])
+  Employee                Employee  @relation(fields: [employee_id], references: [id])
+  ApprovedByUser          User?     @relation("OvertimeApprovedBy", fields: [approved_by], references: [id])
+
+  @@map("overtime_requests")
+}
+
+model SalaryComponent {
+  id                        Int      @id @default(autoincrement())
+  tenant_id                 Int      @default(1)
+  employee_id               Int
+  base_salary               Decimal  @db.Decimal(14, 2)
+  allowance                 Decimal? @default(0) @db.Decimal(14, 2)
+  overtime_rate_per_hour    Decimal? @default(0) @db.Decimal(14, 2)
+  late_deduction_per_minute Decimal? @default(0) @db.Decimal(14, 2)
+  effective_date            DateTime @db.Date
+  Tenant                    Tenant   @relation(fields: [tenant_id], references: [id])
+  Employee                  Employee @relation(fields: [employee_id], references: [id])
+
+  @@map("salary_components")
+}
+
+model PayrollRun {
+  id             Int             @id @default(autoincrement())
+  tenant_id      Int             @default(1)
+  period_month   Int
+  period_year    Int
+  status         String?         @default("draft") @db.VarChar(20)
+  generated_at   DateTime?       @default(now()) @db.Timestamp(6)
+  Tenant         Tenant          @relation(fields: [tenant_id], references: [id])
+  PayrollDetails PayrollDetail[]
+
+  @@map("payroll_runs")
+}
+
+model PayrollDetail {
+  id                      Int         @id @default(autoincrement())
+  tenant_id               Int         @default(1)
+  payroll_run_id          Int?
+  employee_id             Int?
+  base_salary             Decimal?    @db.Decimal(14, 2)
+  total_allowance         Decimal?    @db.Decimal(14, 2)
+  total_overtime_pay      Decimal?    @db.Decimal(14, 2)
+  total_late_deduction    Decimal?    @db.Decimal(14, 2)
+  total_absence_deduction Decimal?    @db.Decimal(14, 2)
+  net_salary              Decimal?    @db.Decimal(14, 2)
+  slip_pdf_url            String?     @db.VarChar(255)
+  Tenant                  Tenant      @relation(fields: [tenant_id], references: [id])
+  PayrollRun              PayrollRun? @relation(fields: [payroll_run_id], references: [id])
+  Employee                Employee?   @relation(fields: [employee_id], references: [id])
+
+  @@map("payroll_details")
+}
+
+model Notification {
+  id         Int       @id @default(autoincrement())
+  tenant_id  Int       @default(1)
+  user_id    Int?
+  title      String?   @db.VarChar(150)
+  message    String?
+  is_read    Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  Tenant     Tenant    @relation(fields: [tenant_id], references: [id])
+  User       User?     @relation(fields: [user_id], references: [id])
+
+  @@map("notifications")
+}
