@@ -34,3 +34,12 @@ Semua bisa diubah lewat Pengaturan Aturan. Yang dibutuhkan di sini hanya nilai a
 17. Di mana hosting (cloud atau server sendiri), berapa anggarannya, dan bagaimana kualitas internet tiap cabang?
 18. Apakah ada cabang di luar zona WIB?
 19. Bagaimana persetujuan karyawan atas data biometrik (UU PDP)?
+
+## Tampilan dan brand
+
+Konteks: [design-system.md](design-system.md).
+
+20. Bisakah klien memberikan file logo vektor (SVG), termasuk versi putih? Situs hanya menyediakan WebP.
+21. Apakah klien punya panduan brand resmi selain situs takkasteel.com?
+22. Nama aplikasi apa yang tampil di header dan judul tab?
+23. Apakah mode gelap dibutuhkan di versi pertama?
