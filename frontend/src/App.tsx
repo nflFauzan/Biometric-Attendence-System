@@ -1,21 +1,78 @@
-import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { Navigate, Route, Routes } from 'react-router'
 
-type ServerStatus = 'memeriksa' | 'terhubung' | 'tidak terhubung'
+import { useAuth } from '@/auth/AuthContext'
+import { AppLayout } from '@/components/AppLayout'
+import type { Role } from '@/lib/types'
+import { homePathFor } from '@/navigation'
+import { AuditLogPage } from '@/pages/AuditLogPage'
+import { BranchesPage } from '@/pages/BranchesPage'
+import { CategoriesPage } from '@/pages/CategoriesPage'
+import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { DevicesPage } from '@/pages/DevicesPage'
+import { EmployeesPage } from '@/pages/EmployeesPage'
+import { LoginPage } from '@/pages/LoginPage'
+import { ProfilePage } from '@/pages/ProfilePage'
+import { UsersPage } from '@/pages/UsersPage'
+
+const MANAGERS: Role[] = ['OWNER', 'HR_FINANCE']
+
+/** Harus login; kalau wajib ganti password, arahkan ke halaman ganti password dulu. */
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { me, loading } = useAuth()
+  if (loading) {
+    return <p className="p-6 text-sm">Memuat…</p>
+  }
+  if (!me) {
+    return <Navigate to="/login" replace />
+  }
+  if (me.mustChangePassword) {
+    return <Navigate to="/ganti-password" replace />
+  }
+  return children
+}
+
+function RequireRole({ roles, children }: { roles: Role[]; children: ReactNode }) {
+  const { me } = useAuth()
+  if (!me || !roles.includes(me.role)) {
+    return <Navigate to={me ? homePathFor(me.role) : '/login'} replace />
+  }
+  return children
+}
+
+function ChangePasswordRoute() {
+  const { me, loading } = useAuth()
+  if (loading) {
+    return null
+  }
+  return me ? <ChangePasswordPage /> : <Navigate to="/login" replace />
+}
 
 function App() {
-  const [status, setStatus] = useState<ServerStatus>('memeriksa')
-
-  useEffect(() => {
-    fetch('/actuator/health')
-      .then((res) => setStatus(res.ok ? 'terhubung' : 'tidak terhubung'))
-      .catch(() => setStatus('tidak terhubung'))
-  }, [])
-
+  const managers = (page: ReactNode) => <RequireRole roles={MANAGERS}>{page}</RequireRole>
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Biometric Attendance System</h1>
-      <p>Status server: {status}</p>
-    </main>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/ganti-password" element={<ChangePasswordRoute />} />
+      <Route
+        element={
+          <RequireAuth>
+            <AppLayout />
+          </RequireAuth>
+        }
+      >
+        <Route index element={managers(<DashboardPage />)} />
+        <Route path="karyawan" element={managers(<EmployeesPage />)} />
+        <Route path="cabang" element={managers(<BranchesPage />)} />
+        <Route path="kategori" element={managers(<CategoriesPage />)} />
+        <Route path="mesin" element={managers(<DevicesPage />)} />
+        <Route path="akun" element={managers(<UsersPage />)} />
+        <Route path="audit-log" element={<RequireRole roles={['OWNER']}><AuditLogPage /></RequireRole>} />
+        <Route path="profil" element={<RequireRole roles={['EMPLOYEE']}><ProfilePage /></RequireRole>} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 
