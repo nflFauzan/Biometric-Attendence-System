@@ -21,6 +21,30 @@ Saat backend pertama kali jalan, akun Owner dibuat otomatis dari `OWNER_USERNAME
 
 Development lokal (hot reload):
 
+### Cara Cepat (Windows)
+
+Tersedia skrip batch otomatis di root direktori yang bisa langsung di-double click atau dijalankan via terminal:
+
+1. **`start-dev.bat`** (Mulai Semua Service):
+   - Memastikan Docker Desktop sedang aktif.
+   - Otomatis membuat dan membaca file `.env` jika belum ada.
+   - Menjalankan container database PostgreSQL di Docker (`docker compose up -d db`).
+   - Otomatis menjalankan `npm install` jika `frontend/node_modules` belum ada.
+   - Menjalankan Backend Spring Boot (`./mvnw spring-boot:run`) dan Frontend (`npm run dev`) di jendela terminal terpisah agar log mudah dipantau.
+   - **URL Akses:**
+     - Frontend Web: http://localhost:5173
+     - Backend API: http://localhost:8080 (Health check: http://localhost:8080/actuator/health)
+     - Database PostgreSQL: `localhost:5432`
+
+2. **`stop-dev.bat`** (Hentikan Semua Service):
+   - Menghentikan proses Frontend (port 5173).
+   - Menghentikan proses Backend (port 8080).
+   - Menghentikan container database Docker secara bersih.
+
+---
+
+### Cara Manual (Terminal / Linux / macOS)
+
 ```bash
 docker compose up db                                     # database saja
 cd backend && ./mvnw spring-boot:run                     # butuh DB_USERNAME, DB_PASSWORD, OWNER_USERNAME, OWNER_INITIAL_PASSWORD di environment
