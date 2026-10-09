@@ -1,4 +1,5 @@
-import { ActiveBadge, CrudPage, toId } from '@/components/CrudPage'
+import { ActiveBadge, CrudPage } from '@/components/CrudPage'
+import { toId } from '@/lib/form'
 import type { Device } from '@/lib/types'
 import { useBranchOptions } from '@/pages/options'
 

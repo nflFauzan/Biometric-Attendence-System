@@ -1,4 +1,5 @@
-import { ActiveBadge, CrudPage, emptyToNull } from '@/components/CrudPage'
+import { ActiveBadge, CrudPage } from '@/components/CrudPage'
+import { emptyToNull } from '@/lib/form'
 import type { Branch } from '@/lib/types'
 
 export function BranchesPage() {

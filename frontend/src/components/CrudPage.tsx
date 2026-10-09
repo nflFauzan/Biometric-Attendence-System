@@ -119,11 +119,3 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
   )
 }
 
-/** Mengubah string kosong dari form menjadi null untuk dikirim ke API. */
-export function emptyToNull(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() !== '' ? value.trim() : null
-}
-
-export function toId(value: unknown): number | null {
-  return typeof value === 'string' && value !== '' ? Number(value) : null
-}

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
 import { useAuth } from '@/auth/AuthContext'
-import { ActiveBadge, CrudPage, toId } from '@/components/CrudPage'
+import { ActiveBadge, CrudPage } from '@/components/CrudPage'
+import { toId } from '@/lib/form'
 import { FormDialog } from '@/components/FormDialog'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'

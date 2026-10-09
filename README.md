@@ -15,11 +15,15 @@ cp .env.example .env          # lalu isi password database
 docker compose up --build     # web: http://localhost:3000, API: http://localhost:8080
 ```
 
+## Login pertama
+
+Saat backend pertama kali jalan, akun Owner dibuat otomatis dari `OWNER_USERNAME` dan `OWNER_INITIAL_PASSWORD` di `.env`. Login dengan akun itu di http://localhost:3000, lalu ganti password (wajib). Setelah itu Owner bisa membuat akun HR/Finance dan karyawan di menu **Akun**.
+
 Development lokal (hot reload):
 
 ```bash
 docker compose up db                                     # database saja
-cd backend && ./mvnw spring-boot:run                     # butuh DB_USERNAME dan DB_PASSWORD di environment
+cd backend && ./mvnw spring-boot:run                     # butuh DB_USERNAME, DB_PASSWORD, OWNER_USERNAME, OWNER_INITIAL_PASSWORD di environment
 cd frontend && npm install && npm run dev                # http://localhost:5173
 ```
 

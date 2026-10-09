@@ -15,3 +15,8 @@ Format: setiap keputusan berisi tanggal, status (**Disepakati** / **Usulan** / *
 | K-009 | 2026-10-09 | Eksperimen lama (`backend/` NestJS) diarsipkan dengan git tag di commit `26bed0a` sebelum dihapus | Disepakati | Riwayat repo sederhana: satu branch dan working tree bersih |
 | K-010 | 2026-10-09 | Build tool Maven; seluruh sistem bisa dijalankan dengan Docker Compose (database, backend, frontend) | Disepakati | Pilihan tim |
 | K-011 | 2026-10-09 | Pengerjaan langsung di branch `main`, tanpa branch fitur | Disepakati | Permintaan tim agar tidak berpindah-pindah branch |
+| K-012 | 2026-10-09 | Login memakai **username** (bukan email/HP); username tidak membedakan huruf besar/kecil | Disepakati | Tidak semua karyawan (misalnya supir/kenek) punya email |
+| K-013 | 2026-10-09 | Tampilan web memakai Tailwind CSS + shadcn/ui | Disepakati | Pilihan tim; alternatif Ant Design dan MUI tidak dipilih |
+| K-014 | 2026-10-09 | Sesi login memakai session cookie yang disimpan di PostgreSQL (Spring Session JDBC) + proteksi CSRF; sesi berlaku 8 jam | Disepakati | Web dan API berada di domain yang sama; sesi tetap ada walau server restart. JWT tidak dipilih karena pencabutan aksesnya lebih rumit |
+| K-015 | 2026-10-09 | Akun Owner pertama dibuat otomatis dari `.env` (`OWNER_USERNAME`, `OWNER_INITIAL_PASSWORD`); semua akun baru atau yang di-reset wajib ganti password, dan API lain diblokir sampai password diganti | Disepakati | Tidak ada password bawaan di kode |
+| K-016 | 2026-10-09 | HR/Finance hanya boleh mengelola akun role Karyawan; kelola akun Owner/HR dan melihat audit log hanya untuk Owner; minimal harus ada satu Owner aktif | Disepakati | Agar perubahan oleh HR/Finance tetap bisa diawasi Owner |

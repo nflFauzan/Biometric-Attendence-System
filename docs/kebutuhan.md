@@ -22,7 +22,7 @@ Mesin hanya mengirim data scan ke server. **Server adalah pusat validasi dan per
 | Mengajukan izin/cuti + surat pendukung, melihat statusnya | — | — | ✓ |
 | Melihat riwayat absensi sendiri | — | — | ✓ (belum dikonfirmasi) |
 
-HR dan Finance adalah **satu role** dengan akses yang sama (disepakati). Pembagian hak "kelola akun" dan "audit log" hanya untuk Owner masih berstatus **usulan**.
+HR dan Finance adalah **satu role** dengan akses yang sama (K-002). HR/Finance hanya boleh mengelola akun Karyawan; kelola akun Owner/HR dan audit log hanya untuk Owner (K-016).
 
 ## Fitur per menu
 

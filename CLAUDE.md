@@ -37,3 +37,10 @@ Rencana → persetujuan → implementasi → test → perbarui dokumen.
 - Jangan pernah melaporkan test lulus tanpa benar-benar menjalankannya.
 - Perbarui `docs/keputusan.md` untuk setiap keputusan baru.
 - Dokumentasi ditulis dalam Bahasa Indonesia.
+
+## Konvensi kode
+
+- Backend: paket per modul domain (`branch`, `employee`, `account`, `audit`, ...), masing-masing berisi entity, repository, DTO (record), service, controller. Setiap perubahan data dicatat lewat `AuditService` di transaksi yang sama.
+- Hak akses per URL diatur terpusat di `config/SecurityConfig`; setiap endpoint baru wajib masuk ke test matrix `AccessControlTests`.
+- Error API berformat ProblemDetail; pesan untuk pengguna dalam Bahasa Indonesia.
+- Frontend: komponen shadcn ada di `src/components/ui` (jangan diedit kecuali perlu); halaman daftar + form memakai `CrudPage`; panggilan API lewat `src/lib/api.ts` (menangani cookie sesi dan CSRF).

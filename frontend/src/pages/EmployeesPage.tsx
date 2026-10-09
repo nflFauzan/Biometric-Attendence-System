@@ -1,4 +1,5 @@
-import { ActiveBadge, CrudPage, emptyToNull, toId } from '@/components/CrudPage'
+import { ActiveBadge, CrudPage } from '@/components/CrudPage'
+import { emptyToNull, toId } from '@/lib/form'
 import type { Employee } from '@/lib/types'
 import { useBranchOptions, useCategoryOptions } from '@/pages/options'
 

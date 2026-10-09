@@ -23,6 +23,8 @@ services:
       DB_URL: jdbc:postgresql://db:5432/${DB_NAME}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      OWNER_USERNAME: ${OWNER_USERNAME}
+      OWNER_INITIAL_PASSWORD: ${OWNER_INITIAL_PASSWORD}
       TZ: Asia/Jakarta
     depends_on:
       db:

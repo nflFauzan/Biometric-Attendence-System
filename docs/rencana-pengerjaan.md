@@ -1,6 +1,6 @@
 # Rencana Pengerjaan
 
-**Status: disetujui 2026-10-09.** Fase 0 selesai; Fase 1 menunggu persetujuan.
+**Status: disetujui 2026-10-09.** Fase 0 dan Fase 1 selesai; Fase 2 menunggu persetujuan.
 
 Prinsip urutan:
 - Bagian yang paling menentukan benar-tidaknya gaji (aturan dan perhitungan) dikerjakan dan diuji lebih dulu.
