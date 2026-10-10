@@ -1,27 +1,53 @@
+import {
+  Building2,
+  Fingerprint,
+  LayoutDashboard,
+  ScrollText,
+  Tags,
+  UserCog,
+  UserRound,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
+
 import type { Role } from '@/lib/types'
+
+export type MenuGroup = 'Operasional' | 'Master data' | 'Sistem' | 'Saya'
 
 export interface MenuItem {
   path: string
   label: string
   roles: Role[]
+  icon: LucideIcon
+  group: MenuGroup
+  /** Tampil langsung di bottom navigation HP; menu lain masuk ke "Lainnya". */
+  mobile?: boolean
 }
 
 const MANAGERS: Role[] = ['OWNER', 'HR_FINANCE']
 
+/** Urutan kelompok di sidebar (docs/design-system.md §6.9). */
+export const MENU_GROUPS: MenuGroup[] = ['Operasional', 'Master data', 'Sistem', 'Saya']
+
 /** Menu per role sesuai docs/kebutuhan.md. Backend tetap menjadi penentu akses yang sebenarnya. */
 export const MENU: MenuItem[] = [
-  { path: '/', label: 'Dashboard', roles: MANAGERS },
-  { path: '/karyawan', label: 'Karyawan', roles: MANAGERS },
-  { path: '/cabang', label: 'Cabang', roles: MANAGERS },
-  { path: '/kategori', label: 'Kategori Karyawan', roles: MANAGERS },
-  { path: '/mesin', label: 'Mesin Absensi', roles: MANAGERS },
-  { path: '/akun', label: 'Akun', roles: MANAGERS },
-  { path: '/audit-log', label: 'Audit Log', roles: ['OWNER'] },
-  { path: '/profil', label: 'Profil Saya', roles: ['EMPLOYEE'] },
+  { path: '/', label: 'Dashboard', roles: MANAGERS, icon: LayoutDashboard, group: 'Operasional', mobile: true },
+  { path: '/karyawan', label: 'Karyawan', roles: MANAGERS, icon: Users, group: 'Master data', mobile: true },
+  { path: '/cabang', label: 'Cabang', roles: MANAGERS, icon: Building2, group: 'Master data' },
+  { path: '/kategori', label: 'Kategori Karyawan', roles: MANAGERS, icon: Tags, group: 'Master data' },
+  { path: '/mesin', label: 'Mesin Absensi', roles: MANAGERS, icon: Fingerprint, group: 'Master data', mobile: true },
+  { path: '/akun', label: 'Akun', roles: MANAGERS, icon: UserCog, group: 'Master data' },
+  { path: '/audit-log', label: 'Audit Log', roles: ['OWNER'], icon: ScrollText, group: 'Sistem' },
+  { path: '/profil', label: 'Profil Saya', roles: ['EMPLOYEE'], icon: UserRound, group: 'Saya', mobile: true },
 ]
 
 export function menuFor(role: Role): MenuItem[] {
   return MENU.filter((item) => item.roles.includes(role))
+}
+
+/** Item menu untuk path yang sedang dibuka, dipakai sebagai judul halaman di header. */
+export function menuItemFor(pathname: string): MenuItem | undefined {
+  return MENU.find((item) => item.path === pathname)
 }
 
 export function homePathFor(role: Role): string {

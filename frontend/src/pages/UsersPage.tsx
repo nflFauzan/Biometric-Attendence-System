@@ -1,11 +1,13 @@
+import { KeyRound } from 'lucide-react'
 import { useState } from 'react'
 
 import { useAuth } from '@/auth/AuthContext'
 import { ActiveBadge, CrudPage } from '@/components/CrudPage'
-import { toId } from '@/lib/form'
 import { FormDialog } from '@/components/FormDialog'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
+import { toId } from '@/lib/form'
+import { formatDateTime } from '@/lib/format'
 import { ROLE_LABELS, type Role, type UserAccount } from '@/lib/types'
 import { useEmployeeOptions } from '@/pages/options'
 
@@ -28,11 +30,11 @@ export function UsersPage() {
         }
         endpoint="/api/users"
         columns={[
-          { header: 'Username', cell: (u) => u.username },
+          { header: 'Username', cell: (u) => u.username, role: 'primary' },
           { header: 'Role', cell: (u) => ROLE_LABELS[u.role] },
           { header: 'Karyawan', cell: (u) => u.employeeName ?? '—' },
-          { header: 'Login terakhir', cell: (u) => (u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('id-ID') : '—') },
-          { header: 'Status', cell: (u) => <ActiveBadge active={u.active} /> },
+          { header: 'Login terakhir', cell: (u) => formatDateTime(u.lastLoginAt) },
+          { header: 'Status', cell: (u) => <ActiveBadge active={u.active} />, role: 'status' },
         ]}
         fields={(editing) =>
           editing
@@ -57,6 +59,7 @@ export function UsersPage() {
         }
         rowActions={(u) => (
           <Button variant="ghost" size="sm" onClick={() => setResetting(u)}>
+            <KeyRound />
             Reset password
           </Button>
         )}

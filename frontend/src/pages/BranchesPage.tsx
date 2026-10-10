@@ -9,10 +9,10 @@ export function BranchesPage() {
       description="Cabang tidak dihapus; nonaktifkan bila sudah tidak dipakai."
       endpoint="/api/branches"
       columns={[
-        { header: 'Kode', cell: (b) => b.code },
-        { header: 'Nama', cell: (b) => b.name },
+        { header: 'Nama', cell: (b) => b.name, role: 'primary' },
+        { header: 'Kode', cell: (b) => b.code, mono: true },
         { header: 'Zona waktu', cell: (b) => b.timezone },
-        { header: 'Status', cell: (b) => <ActiveBadge active={b.active} /> },
+        { header: 'Status', cell: (b) => <ActiveBadge active={b.active} />, role: 'status' },
       ]}
       fields={() => [
         { name: 'code', label: 'Kode', required: true },

@@ -11,10 +11,10 @@ export function DevicesPage() {
       description="Pendaftaran mesin. Koneksi mesin ke server ditambahkan di Fase 3."
       endpoint="/api/devices"
       columns={[
-        { header: 'Nama', cell: (d) => d.name },
-        { header: 'Serial number', cell: (d) => d.serialNumber },
+        { header: 'Nama', cell: (d) => d.name, role: 'primary' },
+        { header: 'Serial number', cell: (d) => d.serialNumber, mono: true },
         { header: 'Cabang', cell: (d) => d.branchName },
-        { header: 'Status', cell: (d) => <ActiveBadge active={d.active} /> },
+        { header: 'Status', cell: (d) => <ActiveBadge active={d.active} />, role: 'status' },
       ]}
       fields={() => [
         { name: 'name', label: 'Nama', required: true },

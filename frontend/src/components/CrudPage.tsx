@@ -1,16 +1,23 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { CheckCircle2, MinusCircle, Pencil, Plus } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
+import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { FormDialog, type FieldDef, type FormValues } from '@/components/FormDialog'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 export interface Column<T> {
   header: string
   cell: (row: T) => ReactNode
+  /** `primary` = judul kartu di HP, `status` = badge di pojok kartu. */
+  role?: 'primary' | 'status'
+  /** Kode/serial ditampilkan dengan font mono. */
+  mono?: boolean
 }
 
 interface CrudPageProps<T extends { id: number }> {
@@ -26,10 +33,23 @@ interface CrudPageProps<T extends { id: number }> {
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {
-  return <Badge variant={active ? 'secondary' : 'outline'}>{active ? 'Aktif' : 'Nonaktif'}</Badge>
+  return active ? (
+    <Badge variant="success">
+      <CheckCircle2 />
+      Aktif
+    </Badge>
+  ) : (
+    <Badge variant="neutral">
+      <MinusCircle />
+      Nonaktif
+    </Badge>
+  )
 }
 
-/** Halaman daftar + tambah/ubah yang dipakai bersama oleh menu master data. */
+/**
+ * Halaman daftar + tambah/ubah yang dipakai bersama oleh menu master data.
+ * Desktop/tablet: tabel kerapatan nyaman. HP: daftar kartu (docs/design-system.md §6.4).
+ */
 export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
   const queryClient = useQueryClient()
   const { data, isPending, error } = useQuery({
@@ -49,61 +69,122 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
     await queryClient.invalidateQueries({ queryKey: [props.endpoint] })
   }
 
+  const openCreate = () => setDialog({ editing: null })
+  const primary = props.columns.find((column) => column.role === 'primary') ?? props.columns[0]
+  const status = props.columns.find((column) => column.role === 'status')
+  const details = props.columns.filter((column) => column !== primary && column !== status)
+
+  const actions = (row: T) => (
+    <>
+      {props.rowActions?.(row)}
+      <Button variant="ghost" size="sm" onClick={() => setDialog({ editing: row })}>
+        <Pencil />
+        Ubah
+      </Button>
+    </>
+  )
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">{props.title}</h1>
-          {props.description && <p className="text-sm text-muted-foreground">{props.description}</p>}
-        </div>
-        <Button onClick={() => setDialog({ editing: null })}>Tambah</Button>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={props.title}
+        description={props.description}
+        actions={
+          <Button
+            onClick={openCreate}
+            className="max-md:fixed max-md:right-4 max-md:bottom-[calc(5rem+env(safe-area-inset-bottom))] max-md:z-20 max-md:shadow-lg"
+          >
+            <Plus />
+            Tambah
+          </Button>
+        }
+      />
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
-      )}
+      {error && <ErrorAlert message={error.message} />}
 
-      <div className="rounded-lg border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {props.columns.map((column) => (
-                <TableHead key={column.header}>{column.header}</TableHead>
+      <section className="overflow-hidden rounded-lg border bg-card">
+        {data && (
+          <p className="border-b px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{data.length} data</p>
+        )}
+        {isPending && <SkeletonLines />}
+        {data?.length === 0 && (
+          <EmptyState
+            message={`Belum ada data ${props.title.toLowerCase()}.`}
+            action={
+              <Button variant="secondary" size="sm" onClick={openCreate}>
+                <Plus />
+                Tambah {props.title.toLowerCase()}
+              </Button>
+            }
+          />
+        )}
+
+        {data && data.length > 0 && (
+          <>
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-steel-50 hover:bg-steel-50 dark:bg-secondary dark:hover:bg-secondary">
+                    {props.columns.map((column) => (
+                      <TableHead key={column.header} scope="col" className="label-caps h-11 px-4 text-muted-foreground">
+                        {column.header}
+                      </TableHead>
+                    ))}
+                    <TableHead className="w-0 px-4">
+                      <span className="sr-only">Aksi</span>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((row) => (
+                    <TableRow key={row.id} className="hover:bg-accent/60">
+                      {props.columns.map((column) => (
+                        <TableCell
+                          key={column.header}
+                          className={cn(
+                            'h-[52px] px-4',
+                            column === primary && 'font-semibold',
+                            column.mono && 'font-mono text-[13px]',
+                          )}
+                        >
+                          {column.cell(row)}
+                        </TableCell>
+                      ))}
+                      <TableCell className="px-4">
+                        <div className="flex justify-end gap-1">{actions(row)}</div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <ul className="divide-y md:hidden">
+              {data.map((row) => (
+                <li key={row.id} className="flex flex-col gap-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 font-semibold break-words">{primary.cell(row)}</p>
+                    {status?.cell(row)}
+                  </div>
+                  {details.length > 0 && (
+                    <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+                      {details.map((column) => (
+                        <div key={column.header} className="contents">
+                          <dt className="text-muted-foreground">{column.header}</dt>
+                          <dd className={cn('min-w-0 break-words', column.mono && 'font-mono text-[13px]')}>
+                            {column.cell(row)}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                  <div className="-ml-3 flex flex-wrap gap-1">{actions(row)}</div>
+                </li>
               ))}
-              <TableHead className="w-0" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isPending && (
-              <TableRow>
-                <TableCell colSpan={props.columns.length + 1}>Memuat…</TableCell>
-              </TableRow>
-            )}
-            {data?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={props.columns.length + 1} className="text-muted-foreground">
-                  Belum ada data.
-                </TableCell>
-              </TableRow>
-            )}
-            {data?.map((row) => (
-              <TableRow key={row.id}>
-                {props.columns.map((column) => (
-                  <TableCell key={column.header}>{column.cell(row)}</TableCell>
-                ))}
-                <TableCell className="flex justify-end gap-2">
-                  {props.rowActions?.(row)}
-                  <Button variant="outline" size="sm" onClick={() => setDialog({ editing: row })}>
-                    Ubah
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </ul>
+          </>
+        )}
+      </section>
 
       {dialog && (
         <FormDialog
@@ -118,4 +199,3 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
     </div>
   )
 }
-

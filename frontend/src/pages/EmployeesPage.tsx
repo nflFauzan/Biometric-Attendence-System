@@ -1,5 +1,6 @@
 import { ActiveBadge, CrudPage } from '@/components/CrudPage'
 import { emptyToNull, toId } from '@/lib/form'
+import { formatDate } from '@/lib/format'
 import type { Employee } from '@/lib/types'
 import { useBranchOptions, useCategoryOptions } from '@/pages/options'
 
@@ -12,12 +13,12 @@ export function EmployeesPage() {
       description="Data karyawan tidak dihapus. Untuk karyawan keluar, isi tanggal keluar lalu nonaktifkan."
       endpoint="/api/employees"
       columns={[
-        { header: 'No. karyawan', cell: (e) => e.employeeNumber },
-        { header: 'Nama', cell: (e) => e.fullName },
+        { header: 'Nama', cell: (e) => e.fullName, role: 'primary' },
+        { header: 'No. karyawan', cell: (e) => e.employeeNumber, mono: true },
         { header: 'Cabang', cell: (e) => e.branchName },
         { header: 'Kategori', cell: (e) => e.categoryName },
-        { header: 'Tgl masuk', cell: (e) => e.joinDate },
-        { header: 'Status', cell: (e) => <ActiveBadge active={e.active} /> },
+        { header: 'Tgl masuk', cell: (e) => formatDate(e.joinDate) },
+        { header: 'Status', cell: (e) => <ActiveBadge active={e.active} />, role: 'status' },
       ]}
       fields={() => [
         { name: 'employeeNumber', label: 'No. karyawan', required: true },

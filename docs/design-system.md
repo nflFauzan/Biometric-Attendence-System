@@ -2,7 +2,7 @@
 
 Panduan tampilan web absensi dan penggajian: token warna, tipografi, layout responsif, dan aturan setiap komponen. Isinya menentukan gaya mana yang dipakai di elemen mana.
 
-**Status: Usulan (K-017).** Belum disetujui klien atau tim. Jangan diterapkan ke kode sebelum disetujui.
+**Status: Disepakati (K-017), 2026-10-10.** Sudah diterapkan ke halaman Fase 1. Lihat [§14](#14-penerapan) untuk bagian yang belum diterapkan.
 
 Sumber identitas brand: audit CSS, logo, dan teks situs [takkasteel.com](https://takkasteel.com) pada 2026-10-10. Katalog 35 gaya beserta pratinjaunya ada di halaman "Takka Absensi Design Directions" (artifact pribadi pemilik proyek).
 
@@ -407,7 +407,15 @@ Pertanyaan ini juga dicatat di [pertanyaan-terbuka.md](pertanyaan-terbuka.md).
 
 ## 14. Penerapan
 
-Penerapan dilakukan setelah dokumen ini disetujui, sebagai tugas di fase yang disepakati di [rencana-pengerjaan.md](rencana-pengerjaan.md).
+**Sudah diterapkan (2026-10-10)** ke semua halaman Fase 1:
+
+- Token warna, font Poppins + Open Sans (subset latin, `@fontsource`), radius, utilitas `motif-spandek`, `strip-hazard`, dan `label-caps`.
+- Kerangka aplikasi: sidebar navy (penuh di desktop, ringkas di tablet), bottom navigation + menu "Lainnya" di HP.
+- `CrudPage`: tabel kerapatan nyaman di tablet/desktop, daftar kartu di HP, empty state, dan skeleton.
+- `FormDialog`: bottom sheet di HP, label "(wajib)", dan error per field dengan ikon.
+- Login (Steel Premium + kartu glass), Ganti password, Dashboard (Bento), Profil, dan Audit log (tabel padat).
+
+**Belum diterapkan:** mode gelap (token sudah ada, tombol pilihannya belum), header dan kolom lengket pada tabel padat, logo resmi (masih tanda sementara di `components/Brand.tsx`), dan komponen untuk fase berikutnya (badge status absensi, rekap bulanan, penggajian, strip hazard pada peringatan).
 
 **File yang berubah:**
 

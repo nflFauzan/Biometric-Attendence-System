@@ -5,6 +5,14 @@ import { BrowserRouter } from 'react-router'
 
 import App from '@/App'
 import { AuthProvider } from '@/auth/AuthContext'
+// Font brand Takka Steel di-self-host, subset latin saja (docs/design-system.md §4.4).
+import '@fontsource/open-sans/latin-400.css'
+import '@fontsource/open-sans/latin-600.css'
+import '@fontsource/open-sans/latin-700.css'
+import '@fontsource/poppins/latin-500.css'
+import '@fontsource/poppins/latin-600.css'
+import '@fontsource/poppins/latin-700.css'
+import '@fontsource/poppins/latin-800.css'
 import './index.css'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000 } } })

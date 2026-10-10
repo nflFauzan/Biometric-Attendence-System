@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
 
@@ -53,8 +53,9 @@ describe('App', () => {
       'GET /api/devices': () => ({ status: 200, body: [] }),
     })
     renderApp('/')
-    expect(await screen.findByRole('link', { name: 'Audit Log' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Karyawan' })).toBeInTheDocument()
+    const sidebar = await screen.findByRole('navigation', { name: 'Menu utama' })
+    expect(within(sidebar).getByRole('link', { name: 'Audit Log' })).toBeInTheDocument()
+    expect(within(sidebar).getByRole('link', { name: 'Karyawan' })).toBeInTheDocument()
   })
 
   it('Karyawan diarahkan ke profil dan tidak melihat menu master data', async () => {
@@ -68,6 +69,10 @@ describe('App', () => {
     renderApp('/karyawan')
     expect(await screen.findByText('K-01')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Karyawan' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Profil Saya' })).toBeInTheDocument()
+    const sidebar = screen.getByRole('navigation', { name: 'Menu utama' })
+    expect(within(sidebar).getByRole('link', { name: 'Profil Saya' })).toBeInTheDocument()
+    // Di HP, menu yang sama tersedia di bottom navigation.
+    const bottomNav = screen.getByRole('navigation', { name: 'Menu bawah' })
+    expect(within(bottomNav).getByRole('link', { name: 'Profil Saya' })).toBeInTheDocument()
   })
 })

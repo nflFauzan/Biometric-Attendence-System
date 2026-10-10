@@ -2,9 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Wordmark } from '@/components/Brand'
+import { ErrorAlert } from '@/components/feedback'
+import { fieldClass } from '@/components/FormDialog'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError, api } from '@/lib/api'
@@ -35,42 +36,46 @@ export function ChangePasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Ganti password</CardTitle>
-          {me?.mustChangePassword && (
-            <p className="text-sm text-muted-foreground">Anda wajib mengganti password sebelum melanjutkan.</p>
+    <div className="flex min-h-dvh flex-col items-center bg-background px-4 py-10">
+      <div aria-hidden="true" className="fixed inset-x-0 top-0 h-1 bg-gold-500" />
+      <Wordmark className="mb-8" />
+      <div className="w-full max-w-md rounded-xl border bg-card p-6 sm:p-8">
+        <h1 className="text-2xl font-bold text-steel-800 dark:text-foreground">Ganti password</h1>
+        {me?.mustChangePassword && (
+          <p className="mt-3 rounded-md border border-warning/25 bg-warning-bg px-3 py-2 text-sm text-warning">
+            Anda wajib mengganti password sebelum melanjutkan.
+          </p>
+        )}
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+          {error && <ErrorAlert message={error} />}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="current" className="font-semibold">
+              Password lama
+            </Label>
+            <Input id="current" type="password" autoComplete="current-password" className={fieldClass} value={current} onChange={(e) => setCurrent(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="next" className="font-semibold">
+              Password baru (min. 8 karakter)
+            </Label>
+            <Input id="next" type="password" autoComplete="new-password" className={fieldClass} value={next} onChange={(e) => setNext(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="confirm" className="font-semibold">
+              Ulangi password baru
+            </Label>
+            <Input id="confirm" type="password" autoComplete="new-password" className={fieldClass} value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+          </div>
+          <Button type="submit" size="lg" className="mt-2 w-full">
+            Simpan
+          </Button>
+          {!me?.mustChangePassword && (
+            <Button type="button" variant="ghost" className="w-full" onClick={() => navigate(-1)}>
+              Batal
+            </Button>
           )}
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="current">Password lama</Label>
-              <Input id="current" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="next">Password baru (min. 8 karakter)</Label>
-              <Input id="next" type="password" value={next} onChange={(e) => setNext(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="confirm">Ulangi password baru</Label>
-              <Input id="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-            </div>
-            <Button type="submit">Simpan</Button>
-            {!me?.mustChangePassword && (
-              <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
-                Batal
-              </Button>
-            )}
-          </form>
-        </CardContent>
-      </Card>
+        </form>
+      </div>
     </div>
   )
 }
