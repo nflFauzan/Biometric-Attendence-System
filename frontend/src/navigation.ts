@@ -45,9 +45,9 @@ export function menuFor(role: Role): MenuItem[] {
   return MENU.filter((item) => item.roles.includes(role))
 }
 
-/** Item menu untuk path yang sedang dibuka, dipakai sebagai judul halaman di header. */
+/** Item menu untuk path yang sedang dibuka (termasuk sub-halaman seperti /karyawan/12), untuk judul di header. */
 export function menuItemFor(pathname: string): MenuItem | undefined {
-  return MENU.find((item) => item.path === pathname)
+  return MENU.find((item) => item.path === pathname || (item.path !== '/' && pathname.startsWith(`${item.path}/`)))
 }
 
 export function homePathFor(role: Role): string {

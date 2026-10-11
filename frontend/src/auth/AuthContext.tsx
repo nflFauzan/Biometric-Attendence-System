@@ -1,12 +1,14 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { createContext, useContext, type ReactNode } from 'react'
+import { hashKey, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
-import { ApiError, api } from '@/lib/api'
+import { ApiError, api, onUnauthorized } from '@/lib/api'
 import type { Me } from '@/lib/types'
 
 interface AuthState {
   me: Me | null
   loading: boolean
+  /** True jika sesi berakhir saat sedang dipakai; halaman login menampilkan pemberitahuan. */
+  sessionExpired: boolean
   login: (username: string, password: string) => Promise<Me>
   logout: () => Promise<void>
   refresh: () => Promise<unknown>
@@ -15,6 +17,7 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null)
 
 const ME_KEY = ['auth', 'me']
+const ME_HASH = hashKey(ME_KEY)
 
 async function fetchMe(): Promise<Me | null> {
   try {
@@ -27,25 +30,49 @@ async function fetchMe(): Promise<Me | null> {
   }
 }
 
+/**
+ * Ganti pengguna sesi: buang data milik sesi lama, kecuali query "me" yang sedang diamati
+ * AuthProvider. queryClient.clear() ikut membuang query itu sehingga observer tidak pernah
+ * melihat nilai barunya (login sukses tapi tetap terlempar ke /login).
+ */
+function resetSession(queryClient: QueryClient, me: Me | null) {
+  queryClient.removeQueries({ predicate: (query) => query.queryHash !== ME_HASH })
+  queryClient.setQueryData(ME_KEY, me)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const { data, isPending, refetch } = useQuery({ queryKey: ME_KEY, queryFn: fetchMe, retry: false })
+  const [sessionExpired, setSessionExpired] = useState(false)
+
+  // Sesi berakhir atau dicabut di tengah pemakaian: buang data lama dan kembali ke halaman login.
+  useEffect(
+    () =>
+      onUnauthorized(() => {
+        if (queryClient.getQueryData(ME_KEY)) {
+          setSessionExpired(true)
+        }
+        resetSession(queryClient, null)
+      }),
+    [queryClient],
+  )
 
   const login = async (username: string, password: string) => {
     const me = await api<Me>('/api/auth/login', { method: 'POST', body: { username, password } })
-    queryClient.clear()
-    queryClient.setQueryData(ME_KEY, me)
+    resetSession(queryClient, me)
+    setSessionExpired(false)
     return me
   }
 
   const logout = async () => {
     await api('/api/auth/logout', { method: 'POST' })
-    queryClient.clear()
-    queryClient.setQueryData(ME_KEY, null)
+    resetSession(queryClient, null)
   }
 
   return (
-    <AuthContext.Provider value={{ me: data ?? null, loading: isPending, login, logout, refresh: refetch }}>
+    <AuthContext.Provider
+      value={{ me: data ?? null, loading: isPending, sessionExpired, login, logout, refresh: refetch }}
+    >
       {children}
     </AuthContext.Provider>
   )

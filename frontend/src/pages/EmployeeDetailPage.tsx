@@ -1,0 +1,139 @@
+import { useQuery } from '@tanstack/react-query'
+import { AlertTriangle, ArrowLeft, KeyRound, UserRound } from 'lucide-react'
+import { Link, useParams } from 'react-router'
+
+import { ActiveBadge } from '@/components/CrudPage'
+import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
+import { PageHeader } from '@/components/PageHeader'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { ApiError, api } from '@/lib/api'
+import { formatDate, formatDateTime } from '@/lib/format'
+import type { Employee, UserAccount } from '@/lib/types'
+
+/**
+ * Detail satu karyawan untuk Owner dan HR/Finance: data kepegawaian dan status akun web.
+ * Mengubah data tetap lewat dialog di halaman daftar karyawan.
+ */
+export function EmployeeDetailPage() {
+  const { id } = useParams()
+  const employee = useQuery({
+    queryKey: ['/api/employees', id],
+    queryFn: () => api<Employee>(`/api/employees/${id}`),
+    retry: false,
+  })
+  // HR/Finance hanya menerima akun karyawan dari backend; itu cukup untuk mencari akun milik karyawan ini.
+  const accounts = useQuery({ queryKey: ['/api/users'], queryFn: () => api<UserAccount[]>('/api/users') })
+  const account = accounts.data?.find((user) => String(user.employeeId) === id)
+
+  const back = (
+    <Button variant="outline" asChild>
+      <Link to="/karyawan">
+        <ArrowLeft />
+        Kembali ke daftar
+      </Link>
+    </Button>
+  )
+
+  if (employee.error instanceof ApiError && employee.error.status === 404) {
+    return (
+      <section className="rounded-lg border bg-card">
+        <EmptyState message="Karyawan tidak ditemukan." action={back} />
+      </section>
+    )
+  }
+
+  const data = employee.data
+  const rows: [string, string | null | undefined][] = [
+    ['No. karyawan', data?.employeeNumber],
+    ['Cabang', data?.branchName],
+    ['Kategori', data?.categoryName],
+    ['Jabatan', data?.position],
+    ['No. HP', data?.phone],
+    ['Tanggal masuk', data ? formatDate(data.joinDate) : null],
+    ['Tanggal keluar', data?.endDate ? formatDate(data.endDate) : null],
+  ]
+
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={data?.fullName ?? 'Detail karyawan'}
+        description={data ? <ActiveBadge active={data.active} /> : undefined}
+        actions={back}
+      />
+
+      {employee.error && <ErrorAlert message={employee.error.message} />}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <section className="rounded-lg border bg-card lg:col-span-2" aria-labelledby="data-karyawan">
+          <h2 id="data-karyawan" className="flex items-center gap-2 border-b px-5 py-3.5 text-base font-semibold">
+            <UserRound className="size-4 text-muted-foreground" aria-hidden="true" />
+            Data kepegawaian
+          </h2>
+          {employee.isPending && <SkeletonLines count={4} />}
+          {data && (
+            <dl className="divide-y">
+              {rows.map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-4 px-5 py-3">
+                  <dt className="text-sm text-muted-foreground">{label}</dt>
+                  <dd className="text-right text-sm font-semibold break-words">{value || '—'}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </section>
+
+        <section className="rounded-lg border bg-card" aria-labelledby="akun-web">
+          <h2 id="akun-web" className="flex items-center gap-2 border-b px-5 py-3.5 text-base font-semibold">
+            <KeyRound className="size-4 text-muted-foreground" aria-hidden="true" />
+            Akun web
+          </h2>
+          {accounts.isPending && <SkeletonLines count={2} />}
+          {accounts.error && <ErrorAlert className="m-4" message={accounts.error.message} />}
+          {accounts.data && !account && (
+            <EmptyState
+              message="Karyawan ini belum punya akun web."
+              action={
+                <Button variant="secondary" size="sm" asChild>
+                  <Link to="/akun">Buat di menu Akun</Link>
+                </Button>
+              }
+            />
+          )}
+          {account && (
+            <dl className="divide-y">
+              <div className="flex items-center justify-between gap-4 px-5 py-3">
+                <dt className="text-sm text-muted-foreground">Username</dt>
+                <dd className="font-mono text-[13px]">{account.username}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-4 px-5 py-3">
+                <dt className="text-sm text-muted-foreground">Status</dt>
+                <dd>
+                  <ActiveBadge active={account.active} />
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-4 px-5 py-3">
+                <dt className="text-sm text-muted-foreground">Login terakhir</dt>
+                <dd className="text-sm tabular-nums">{formatDateTime(account.lastLoginAt)}</dd>
+              </div>
+              {account.mustChangePassword && (
+                <div className="px-5 py-3">
+                  <Badge variant="warning">
+                    <KeyRound />
+                    Wajib ganti password saat login
+                  </Badge>
+                </div>
+              )}
+            </dl>
+          )}
+          {data && !data.active && account?.active && (
+            <p className="m-4 flex gap-2 rounded-md border border-warning/25 bg-warning-bg px-3 py-2 text-sm text-warning">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              Karyawan sudah nonaktif, tetapi akun webnya masih aktif. Nonaktifkan di menu Akun jika perlu.
+            </p>
+          )}
+        </section>
+      </div>
+    </div>
+  )
+}

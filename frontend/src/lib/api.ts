@@ -32,6 +32,19 @@ async function csrfToken(): Promise<string> {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
+/**
+ * Dipanggil ketika backend membalas 401 untuk request yang membutuhkan login, misalnya karena
+ * sesi berakhir (8 jam) atau dicabut setelah password di-reset / akun dinonaktifkan / role diubah.
+ * Login dan pengecekan sesi awal tidak ikut, karena 401 di sana adalah hasil normal.
+ */
+const unauthorizedListeners = new Set<() => void>()
+const SESSION_CHECK_PATHS = ['/api/auth/login', '/api/auth/me']
+
+export function onUnauthorized(listener: () => void): () => void {
+  unauthorizedListeners.add(listener)
+  return () => unauthorizedListeners.delete(listener)
+}
+
 export async function api<T>(path: string, options: { method?: Method; body?: unknown } = {}): Promise<T> {
   const method = options.method ?? 'GET'
   const headers: Record<string, string> = { Accept: 'application/json' }
@@ -50,6 +63,9 @@ export async function api<T>(path: string, options: { method?: Method; body?: un
   })
 
   if (!response.ok) {
+    if (response.status === 401 && !SESSION_CHECK_PATHS.includes(path)) {
+      unauthorizedListeners.forEach((listener) => listener())
+    }
     const problem = await response.json().catch(() => null)
     throw new ApiError(
       response.status,

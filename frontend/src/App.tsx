@@ -11,6 +11,7 @@ import { CategoriesPage } from '@/pages/CategoriesPage'
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DevicesPage } from '@/pages/DevicesPage'
+import { EmployeeDetailPage } from '@/pages/EmployeeDetailPage'
 import { EmployeesPage } from '@/pages/EmployeesPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { ProfilePage } from '@/pages/ProfilePage'
@@ -64,6 +65,7 @@ function App() {
       >
         <Route index element={managers(<DashboardPage />)} />
         <Route path="karyawan" element={managers(<EmployeesPage />)} />
+        <Route path="karyawan/:id" element={managers(<EmployeeDetailPage />)} />
         <Route path="cabang" element={managers(<BranchesPage />)} />
         <Route path="kategori" element={managers(<CategoriesPage />)} />
         <Route path="mesin" element={managers(<DevicesPage />)} />

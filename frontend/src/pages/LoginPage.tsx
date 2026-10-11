@@ -13,7 +13,7 @@ import { homePathFor } from '@/navigation'
 
 /** Halaman login bergaya Steel Premium dengan satu kartu glass (docs/design-system.md §7). */
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, sessionExpired } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -59,6 +59,11 @@ export function LoginPage() {
           <h2 className="text-2xl font-bold text-steel-800">Masuk</h2>
           <p className="mt-1 text-sm text-muted-foreground">Gunakan username dan password dari HR/Finance.</p>
           <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+            {sessionExpired && !error && (
+              <p role="status" className="rounded-md border border-info/25 bg-info-bg px-3 py-2 text-sm text-info">
+                Sesi Anda sudah berakhir. Silakan masuk kembali.
+              </p>
+            )}
             {error && <ErrorAlert message={error} />}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="username" className="font-semibold">
