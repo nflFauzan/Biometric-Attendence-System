@@ -19,6 +19,17 @@ docker compose up --build     # web: http://localhost:3000, API: http://localhos
 
 Saat backend pertama kali jalan, akun Owner dibuat otomatis dari `OWNER_USERNAME` dan `OWNER_INITIAL_PASSWORD` di `.env`. Login dengan akun itu di http://localhost:3000, lalu ganti password (wajib). Setelah itu Owner bisa membuat akun HR/Finance dan karyawan di menu **Akun**.
 
+Sesi login berlaku 8 jam. Sesi langsung dicabut jika password akun di-reset, akun dinonaktifkan, atau role-nya diubah (K-044); pengguna harus login ulang.
+
+## Variabel environment lain
+
+| Variabel | Development | Production |
+| --- | --- | --- |
+| `SESSION_COOKIE_SECURE` | `false` (http://localhost) | **`true`** (wajib HTTPS) |
+| `OPENAPI_ENABLED` | `true` bila perlu Swagger UI di http://localhost:8080/swagger-ui/index.html | **`false`** |
+
+Saat `OPENAPI_ENABLED=true`, dokumentasi API tetap hanya bisa dibuka setelah login sebagai Owner atau HR/Finance (K-045).
+
 Development lokal (hot reload):
 
 ### Cara Cepat (Windows)
@@ -58,4 +69,6 @@ cd backend && ./mvnw test      # butuh Docker (Testcontainers)
 cd frontend && npm test
 ```
 
-Eksperimen lama (backend NestJS untuk mesin milik dosen) diarsipkan di git tag `archive/zkteco-adms-experiment`.
+Backend wajib dibangun dengan JDK 21. Jika JDK lain menjadi default di mesin Anda, set `JAVA_HOME` ke JDK 21 sebelum menjalankan `./mvnw`.
+
+Eksperimen lama (backend NestJS untuk mesin milik dosen) tersimpan di riwayat git pada commit `26bed0a`. Tag arsip `archive/zkteco-adms-experiment` (K-009) belum dibuat; lihat `docs/technical-task-breakdown.md` (B-01).

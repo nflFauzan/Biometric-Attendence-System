@@ -64,6 +64,8 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-041 | 2026-10-11 | Kewenangan dan persetujuan pembukaan kembali payroll perlu diperinci | Menunggu Konfirmasi |
 | K-042 | 2026-10-11 | Empat laporan payroll aktual menjadi baseline pengujian | Disepakati |
 | K-043 | 2026-10-11 | Pengujian regresi wajib mencakup tarif historis dan payroll yang dibuka kembali | Disepakati |
+| K-044 | 2026-10-11 | Sesi login langsung dicabut setelah password di-reset, akun dinonaktifkan, atau role diubah | Disepakati, memperjelas K-014/K-015/K-016 |
+| K-045 | 2026-10-11 | Dokumentasi API memakai springdoc/OpenAPI, mati secara default dan hanya untuk Owner/HR-Finance | Disepakati |
 
 ---
 
@@ -166,6 +168,20 @@ Backend wajib menolak tindakan yang melanggar ketentuan ini.
 **Keputusan:** tampilan mengikuti brand Takka Steel dengan palet biru steel dan gold, font Poppins serta Open Sans, gaya Corporate Clean, tabel Enterprise Data-Dense, dan mode gelap Blueprint.
 
 Rincian visual terdapat di [`design-system.md`](./design-system.md).
+
+### K-044 — Pencabutan Sesi
+
+**Keputusan (B-03 di `technical-task-breakdown.md`):** semua sesi login milik sebuah akun langsung tidak berlaku ketika password akun itu di-reset, akun dinonaktifkan, atau role-nya diubah. Ketika pengguna mengganti password sendiri, sesi yang sedang dipakai tetap berlaku dan sesi di perangkat lain dicabut.
+
+**Alasan:** tanpa pencabutan, sesi lama tetap bisa dipakai sampai 8 jam dengan hak akses lama, bertentangan dengan K-015 dan K-016.
+
+**Implementasi:** baris sesi Spring Session JDBC dihapus berdasarkan username di transaksi yang sama dengan perubahan akun. Pengguna yang terdampak harus login ulang.
+
+### K-045 — Dokumentasi API
+
+**Keputusan (B-04):** dokumentasi API memakai springdoc-openapi. Dokumentasi mati secara default (`OPENAPI_ENABLED=false`) dan hanya dinyalakan untuk development. Saat menyala, `/v3/api-docs` dan Swagger UI tetap hanya bisa dibuka oleh Owner dan HR/Finance yang sudah login.
+
+**Alasan:** NFR-MAINT-003 membutuhkan kontrak API yang terdokumentasi, tetapi daftar endpoint tidak perlu terbuka di production.
 
 ---
 
