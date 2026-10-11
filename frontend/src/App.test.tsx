@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
 
@@ -42,6 +42,41 @@ describe('App', () => {
   it('memaksa ganti password bila akun baru', async () => {
     mockFetch({ 'GET /api/auth/me': () => ({ status: 200, body: me('OWNER', true) }) })
     renderApp('/')
+    expect(await screen.findByText('Anda wajib mengganti password sebelum melanjutkan.')).toBeInTheDocument()
+  })
+
+  it('kembali ke halaman login dengan pemberitahuan saat sesi berakhir di tengah pemakaian', async () => {
+    let sessionAlive = true
+    mockFetch({
+      'GET /api/auth/me': () => (sessionAlive ? { status: 200, body: me('HR_FINANCE') } : { status: 401 }),
+      'GET /api/branches': () => {
+        // Sesi dicabut di backend (mis. password di-reset) sebelum halaman sempat memuat data.
+        sessionAlive = false
+        return { status: 401, body: { status: 401, detail: 'Silakan login terlebih dahulu' } }
+      },
+    })
+    renderApp('/cabang')
+    expect(await screen.findByRole('button', { name: 'Masuk' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Sesi Anda sudah berakhir. Silakan masuk kembali.')
+  })
+
+  it('login pertama tanpa sesi tidak menampilkan pemberitahuan sesi berakhir', async () => {
+    mockFetch({ 'GET /api/auth/me': () => ({ status: 401 }) })
+    renderApp('/')
+    expect(await screen.findByRole('button', { name: 'Masuk' })).toBeInTheDocument()
+    expect(screen.queryByText(/Sesi Anda sudah berakhir/)).not.toBeInTheDocument()
+  })
+
+  it('setelah login berhasil langsung pindah ke halaman berikutnya tanpa muat ulang', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 401 }),
+      'GET /api/auth/csrf': () => ({ status: 204 }),
+      'POST /api/auth/login': () => ({ status: 200, body: me('OWNER', true) }),
+    })
+    renderApp('/login')
+    fireEvent.change(await screen.findByLabelText('Username'), { target: { value: 'owner' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'rahasia-123' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Masuk' }))
     expect(await screen.findByText('Anda wajib mengganti password sebelum melanjutkan.')).toBeInTheDocument()
   })
 

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.biometricattendance.IntegrationTest;
+import com.biometricattendance.employee.EmployeeRepository;
 import com.jayway.jsonpath.JsonPath;
 
 class UserAccountTests extends IntegrationTest {
@@ -34,6 +36,9 @@ class UserAccountTests extends IntegrationTest {
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+
+	@Autowired
+	private EmployeeRepository employees;
 
 	@Test
 	void hrFinanceCanCreateEmployeeAccountButNotOwnerOrHrAccounts() throws Exception {
@@ -99,6 +104,84 @@ class UserAccountTests extends IntegrationTest {
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"newPassword\":\"sementara-123\"}"))
 			.andExpect(status().isNoContent());
+
+		UserAccount reset = accounts.findById(id).orElseThrow();
+		assertThat(reset.isMustChangePassword()).isTrue();
+		assertThat(passwordEncoder.matches("sementara-123", reset.getPasswordHash())).isTrue();
+	}
+
+	@Test
+	void hrFinanceCannotUpdateOrResetOwnerAndHrAccounts() throws Exception {
+		for (Role role : new Role[] { Role.OWNER, Role.HR_FINANCE }) {
+			UserAccount target = saveAccount(role, null);
+			mockMvc.perform(put("/api/users/" + target.getId()).with(HR).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(String.format("{\"role\":\"%s\",\"active\":false}", role.name())))
+				.andExpect(status().isForbidden());
+			mockMvc.perform(post("/api/users/" + target.getId() + "/reset-password").with(HR).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"newPassword\":\"sementara-123\"}"))
+				.andExpect(status().isForbidden());
+
+			UserAccount unchanged = accounts.findById(target.getId()).orElseThrow();
+			assertThat(unchanged.isActive()).isTrue();
+			assertThat(passwordEncoder.matches("password-awal", unchanged.getPasswordHash())).isTrue();
+		}
+	}
+
+	@Test
+	void hrFinanceCannotPromoteEmployeeAccount() throws Exception {
+		UserAccount target = saveAccount(Role.EMPLOYEE, createEmployee());
+		for (String role : new String[] { "HR_FINANCE", "OWNER" }) {
+			mockMvc.perform(put("/api/users/" + target.getId()).with(HR).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(String.format("{\"role\":\"%s\",\"active\":true}", role)))
+				.andExpect(status().isForbidden());
+		}
+		assertThat(accounts.findById(target.getId()).orElseThrow().getRole()).isEqualTo(Role.EMPLOYEE);
+	}
+
+	@Test
+	void hrFinanceCanDeactivateEmployeeAccount() throws Exception {
+		long employeeId = createEmployee();
+		UserAccount target = saveAccount(Role.EMPLOYEE, employeeId);
+		mockMvc.perform(put("/api/users/" + target.getId()).with(HR).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(String.format("{\"role\":\"EMPLOYEE\",\"employeeId\":%d,\"active\":false}", employeeId)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.active").value(false));
+	}
+
+	@Test
+	void ownerCannotChangeOwnRole() throws Exception {
+		UserAccount self = saveAccount(Role.OWNER, null);
+		mockMvc.perform(put("/api/users/" + self.getId()).with(user(self.getUsername()).roles("OWNER")).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"role\":\"HR_FINANCE\",\"active\":true}"))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void ownerCanChangeHrAccountToEmployee() throws Exception {
+		long employeeId = createEmployee();
+		UserAccount target = saveAccount(Role.HR_FINANCE, null);
+		mockMvc.perform(put("/api/users/" + target.getId()).with(OWNER).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(String.format("{\"role\":\"EMPLOYEE\",\"employeeId\":%d,\"active\":true}", employeeId)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.role").value("EMPLOYEE"))
+			.andExpect(jsonPath("$.employeeId").value(employeeId));
+	}
+
+	private UserAccount saveAccount(Role role, Long employeeId) {
+		UserAccount account = new UserAccount();
+		account.setUsername(unique("akun-"));
+		account.setPasswordHash(passwordEncoder.encode("password-awal"));
+		account.setRole(role);
+		if (employeeId != null) {
+			account.setEmployee(employees.getReferenceById(employeeId));
+		}
+		return accounts.save(account);
 	}
 
 	private ResultActions createUser(RequestPostProcessor actor, String username, String role, Long employeeId)

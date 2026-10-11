@@ -45,6 +45,27 @@ class AuthFlowTests extends IntegrationTest {
 	}
 
 	@Test
+	void loginIgnoresUsernameCaseAndSurroundingSpaces() throws Exception {
+		String username = createAccount(false);
+		mockMvc.perform(loginRequest("  " + username.toUpperCase() + " ", INITIAL_PASSWORD))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.username").value(username));
+	}
+
+	@Test
+	void unknownUsernameGetsSameMessageAsWrongPassword() throws Exception {
+		mockMvc.perform(loginRequest(unique("tidak-ada-"), INITIAL_PASSWORD))
+			.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.detail").value("Username atau password salah"));
+	}
+
+	@Test
+	void passwordIsStoredAsBcryptHash() {
+		String username = createAccount(false);
+		assertThat(accounts.findByUsername(username).orElseThrow().getPasswordHash()).startsWith("{bcrypt}");
+	}
+
+	@Test
 	void loginWithoutCsrfTokenIsRejected() throws Exception {
 		String username = createAccount(false);
 		mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)

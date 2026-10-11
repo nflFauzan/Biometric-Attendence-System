@@ -1,3 +1,5 @@
+import { Link } from 'react-router'
+
 import { ActiveBadge, CrudPage } from '@/components/CrudPage'
 import { emptyToNull, toId } from '@/lib/form'
 import { formatDate } from '@/lib/format'
@@ -13,7 +15,15 @@ export function EmployeesPage() {
       description="Data karyawan tidak dihapus. Untuk karyawan keluar, isi tanggal keluar lalu nonaktifkan."
       endpoint="/api/employees"
       columns={[
-        { header: 'Nama', cell: (e) => e.fullName, role: 'primary' },
+        {
+          header: 'Nama',
+          cell: (e) => (
+            <Link to={`/karyawan/${e.id}`} className="text-steel-700 underline-offset-4 hover:underline dark:text-foreground">
+              {e.fullName}
+            </Link>
+          ),
+          role: 'primary',
+        },
         { header: 'No. karyawan', cell: (e) => e.employeeNumber, mono: true },
         { header: 'Cabang', cell: (e) => e.branchName },
         { header: 'Kategori', cell: (e) => e.categoryName },
