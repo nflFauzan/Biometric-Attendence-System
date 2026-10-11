@@ -1,137 +1,413 @@
-# Catatan Keputusan Sistem
+# Catatan Keputusan Proyek
 
-Dokumen ini mencatat keputusan produk, bisnis, arsitektur, keamanan, dan proses pengembangan Biometric Attendance & HR Management System.
+## 1. Tujuan
 
-## 1. Tujuan dan Aturan Pencatatan
+Dokumen ini menjadi catatan resmi keputusan bisnis, arsitektur, teknologi, keamanan, dan implementasi untuk **Biometric Attendance & HR Management System**.
 
-Setiap keputusan memiliki ID unik, tanggal, status, alasan, dan alternatif yang tidak dipilih jika relevan.
+Keputusan yang telah disepakati tidak boleh dihapus. Jika sebuah keputusan berubah, buat entri baru yang menjelaskan perubahan tersebut dan merujuk ke keputusan sebelumnya.
 
-Status keputusan:
+### Status Keputusan
 
-- **Disepakati:** keputusan yang telah ditetapkan dan menjadi acuan implementasi.
-- **Usulan:** rekomendasi yang belum mendapat persetujuan final.
-- **Dibatalkan:** keputusan yang tidak lagi berlaku, tetapi tetap disimpan sebagai histori.
+- **Disepakati:** sudah ditetapkan dan menjadi acuan implementasi.
+- **Usulan:** direkomendasikan, tetapi belum menjadi keputusan final.
+- **Menunggu Konfirmasi:** membutuhkan persetujuan atau informasi tambahan dari klien.
+- **Digantikan:** tidak lagi menjadi keputusan aktif karena telah digantikan oleh keputusan baru.
 
-Ketentuan:
+Tanggal menggunakan format `YYYY-MM-DD`.
 
-1. Keputusan yang sudah disepakati tidak dihapus.
-2. Jika keputusan berubah, buat keputusan baru yang secara eksplisit menggantikan keputusan sebelumnya.
-3. Dokumen ini harus konsisten dengan `PRD.md`, `aturan-bisnis.md`, `kebutuhan.md`, dan dokumen teknis terkait.
-4. Jangan menganggap keputusan teknis sebagai persetujuan klien terhadap aturan bisnis yang belum dikonfirmasi.
-5. Detail yang masih terbuka harus dicatat di `pertanyaan-terbuka.md`.
+---
 
 ## 2. Daftar Keputusan
 
-### A. Arsitektur dan Teknologi
+| ID | Tanggal | Keputusan | Status |
+|---|---|---|---|
+| K-001 | 2026-10-09 | Stack Spring Boot, React, PostgreSQL, modular monolith | Disepakati |
+| K-002 | 2026-10-09 | Tiga role awal: Owner, HR/Finance, Karyawan | Disepakati |
+| K-003 | 2026-10-09 | Perhitungan lembur berdasarkan waktu kerja setelah jam pulang normal, tanpa pengajuan awal sebagai prasyarat | Disepakati, diperjelas K-026 |
+| K-004 | 2026-10-09 | Aturan kerja dan gaji dapat diatur Owner dengan tanggal berlaku | Disepakati |
+| K-005 | 2026-10-09 | Sistem mengusulkan upah harian; pihak berwenang menentukan kelayakannya | Disepakati |
+| K-006 | 2026-10-09 | Sistem digunakan untuk satu perusahaan, tanpa `tenant_id` pada versi awal | Disepakati |
+| K-007 | 2026-10-09 | Integritas scan dan penyimpanan hasil harus dijaga | Disepakati, diperjelas K-019, K-020 |
+| K-008 | 2026-10-09 | Pengembangan menggunakan simulator sampai prototipe mesin siap | Disepakati |
+| K-009 | 2026-10-09 | Eksperimen backend NestJS lama diarsipkan sebelum dihapus | Disepakati |
+| K-010 | 2026-10-09 | Maven sebagai build tool backend; Docker Compose untuk lingkungan lokal | Disepakati |
+| K-011 | 2026-10-09 | Tim bekerja langsung pada branch `main` | Disepakati |
+| K-012 | 2026-10-09 | Login menggunakan username yang tidak membedakan huruf besar/kecil | Disepakati |
+| K-013 | 2026-10-09 | UI menggunakan Tailwind CSS dan shadcn/ui | Disepakati |
+| K-014 | 2026-10-09 | Autentikasi menggunakan session cookie, Spring Session JDBC, CSRF, dan sesi 8 jam | Disepakati |
+| K-015 | 2026-10-09 | Akun Owner awal dibuat melalui konfigurasi environment; akun baru wajib mengganti password | Disepakati |
+| K-016 | 2026-10-09 | Pengelolaan akun dibatasi menurut role dan minimal satu Owner aktif dipertahankan | Disepakati |
+| K-017 | 2026-10-10 | Design system mengikuti brand Takka Steel | Disepakati |
+| K-018 | 2026-10-11 | Backend menjadi gateway antara perangkat, database, dan frontend | Disepakati |
+| K-019 | 2026-10-11 | Raw scan tidak ditimpa oleh koreksi absensi | Disepakati |
+| K-020 | 2026-10-11 | ACK sukses hanya diberikan setelah data scan tersimpan secara persisten | Disepakati |
+| K-021 | 2026-10-11 | Offline queue, retry, dan RTC bergantung pada kemampuan perangkat | Menunggu Konfirmasi |
+| K-022 | 2026-10-11 | Nilai uang menggunakan tipe data desimal dengan presisi yang memadai | Disepakati |
+| K-023 | 2026-10-11 | Backend wajib memvalidasi hak akses setiap tindakan yang dilindungi | Disepakati |
+| K-024 | 2026-10-11 | Data payroll, kasbon, akun, dan biometrik memerlukan pembatasan akses | Disepakati |
+| K-025 | 2026-10-11 | Custom role dan pembatasan akses per cabang belum diputuskan | Menunggu Konfirmasi |
+| K-026 | 2026-10-11 | Kandidat lembur hari kerja normal dimulai setelah pukul 17.00 | Disepakati |
+| K-027 | 2026-10-11 | Lembur dihitung dari scan dan dapat diverifikasi atau dikoreksi secara terkontrol | Disepakati |
+| K-028 | 2026-10-11 | Aturan kerja dapat berlaku global maupun khusus karyawan | Disepakati |
+| K-029 | 2026-10-11 | Koreksi absensi disimpan terpisah dan diaudit | Disepakati |
+| K-030 | 2026-10-11 | Detail kalender kerja, istirahat, pembulatan, dan scan tidak lengkap harus divalidasi | Menunggu Konfirmasi |
+| K-031 | 2026-10-11 | Payroll mingguan untuk supir/kenek dan bulanan untuk staf lainnya | Disepakati |
+| K-032 | 2026-10-11 | Gaji pokok bulanan dipisahkan dari komponen upah harian | Disepakati |
+| K-033 | 2026-10-11 | Tarif memiliki tanggal efektif agar riwayat dapat dipertahankan | Disepakati |
+| K-034 | 2026-10-11 | Payroll final dapat dibuka kembali melalui prosedur terkontrol | Disepakati |
+| K-035 | 2026-10-11 | Payroll final menyimpan snapshot aturan, tarif, input, dan hasil | Disepakati |
+| K-036 | 2026-10-11 | Reopen dan finalisasi ulang mempertahankan riwayat versi sebelumnya | Disepakati |
+| K-037 | 2026-10-11 | Kasbon menggunakan ledger transaksi, bukan saldo yang diedit langsung | Disepakati |
+| K-038 | 2026-10-11 | Bonus ditetapkan Owner; tidak ada rumus bonus otomatis pada versi pertama | Disepakati |
+| K-039 | 2026-10-11 | BPJS, PPh 21, dan potongan lain diterapkan setelah kebijakan dikonfirmasi | Disepakati |
+| K-040 | 2026-10-11 | Hasil payroll harus dapat ditelusuri kembali ke data sumber dan aturan | Disepakati |
+| K-041 | 2026-10-11 | Kewenangan dan persetujuan pembukaan kembali payroll perlu diperinci | Menunggu Konfirmasi |
+| K-042 | 2026-10-11 | Empat laporan payroll aktual menjadi baseline pengujian | Disepakati |
+| K-043 | 2026-10-11 | Pengujian regresi wajib mencakup tarif historis dan payroll yang dibuka kembali | Disepakati |
 
-| ID | Tanggal | Keputusan | Status | Alasan dan alternatif |
-|---|---|---|---|---|
-| K-001 | 2026-10-09 | Stack utama menggunakan Java LTS, Spring Boot, React, dan PostgreSQL dengan arsitektur modular monolith. | Disepakati | Tim menguasai Java dan JavaScript. Modular monolith dipilih agar sistem lebih sederhana untuk dikembangkan dan dirawat dibandingkan microservices. |
-| K-006 | 2026-10-09 | Sistem ditujukan untuk satu perusahaan dan tidak menggunakan `tenant_id` pada setiap tabel sebagai mekanisme multi-tenant. | Disepakati | Belum ada kebutuhan SaaS atau multi-perusahaan. Jika kebutuhan tersebut muncul, arsitektur harus dievaluasi kembali. |
-| K-008 | 2026-10-09 | Pengembangan web dan backend menggunakan simulator perangkat absensi sampai prototipe hardware tersedia. | Disepakati | Komponen dan protokol hardware belum final. Pengembangan software tidak boleh bergantung pada kesiapan hardware. |
-| K-009 | 2026-10-09 | Eksperimen backend lama berbasis NestJS diarsipkan melalui Git tag pada commit `26bed0a` sebelum folder backend lama dihapus dari implementasi aktif. | Disepakati | Menjaga referensi historis tanpa mencampurkan eksperimen lama dengan arsitektur baru. |
-| K-010 | 2026-10-09 | Maven digunakan sebagai build tool backend. Lingkungan pengembangan disiapkan agar database, backend, dan frontend dapat dijalankan menggunakan Docker Compose. | Disepakati | Mempermudah setup lingkungan pengembangan dan konsistensi antaranggota tim. |
-| K-018 | 2026-10-11 | Backend menjadi perantara tunggal antara perangkat absensi, database, dan aplikasi web. Perangkat tidak berkomunikasi langsung dengan frontend. | Disepakati | Memusatkan autentikasi, validasi, penyimpanan, dan pengolahan data di backend. |
-| K-019 | 2026-10-11 | Data scan asli harus dipisahkan dari hasil interpretasi absensi dan koreksi manual. | Disepakati | Menjaga data sumber tetap dapat diaudit ketika terjadi koreksi atau perubahan aturan perhitungan. |
-| K-020 | 2026-10-11 | Pengiriman ulang scan harus aman terhadap duplikasi. Backend hanya memberikan acknowledgment berhasil setelah data tersimpan secara persisten. | Disepakati | Menghindari scan ganda dan mencegah perangkat menganggap data berhasil diterima ketika penyimpanan gagal. |
-| K-021 | 2026-10-11 | Kemampuan perangkat untuk antrean offline, retry, RTC, dan sinkronisasi ulang harus diverifikasi terhadap spesifikasi hardware sebelum dinyatakan sebagai fitur yang tersedia. | Disepakati | Mencegah asumsi software yang tidak didukung firmware atau kapasitas perangkat. |
-| K-022 | 2026-10-11 | Nominal uang dihitung menggunakan tipe desimal dengan presisi yang sesuai, bukan floating-point biasa. | Disepakati | Menjaga konsistensi hasil perhitungan gaji, tarif, lembur, bonus, dan piutang. |
+---
 
-### B. Pengguna, Akun, dan Keamanan
+## 3. Detail Keputusan Teknis
 
-| ID | Tanggal | Keputusan | Status | Alasan dan alternatif |
-|---|---|---|---|---|
-| K-002 | 2026-10-09 | Tiga template peran utama adalah Owner, HR/Finance sebagai satu role, dan Karyawan. | Disepakati | Mengikuti kebutuhan awal klien. Kebutuhan pembuatan role khusus tetap perlu dikonfirmasi secara terpisah. |
-| K-012 | 2026-10-09 | Login menggunakan username, bukan email atau nomor telepon. Username tidak membedakan huruf besar dan kecil. | Disepakati | Tidak semua karyawan, khususnya supir dan kenek, memiliki email atau nomor telepon yang dapat digunakan untuk login. |
-| K-014 | 2026-10-09 | Sesi login menggunakan session cookie yang disimpan di PostgreSQL melalui Spring Session JDBC, dilengkapi proteksi CSRF. Masa berlaku sesi adalah delapan jam. | Disepakati | Aplikasi web dan API direncanakan berada pada domain yang sama. Pendekatan session-based dipilih dibandingkan JWT untuk mempermudah pencabutan sesi. |
-| K-015 | 2026-10-09 | Akun Owner pertama dibuat menggunakan konfigurasi lingkungan `OWNER_USERNAME` dan `OWNER_INITIAL_PASSWORD`. Akun baru dan akun yang di-reset wajib mengganti password sebelum mengakses API lain yang dilindungi. | Disepakati | Tidak ada password bawaan yang ditanamkan di source code. |
-| K-016 | 2026-10-09 | HR/Finance hanya boleh mengelola akun Karyawan. Pengelolaan akun Owner/HR dan akses audit log khusus Owner. Sistem harus mempertahankan minimal satu Owner aktif. | Disepakati | Membatasi perubahan hak akses dan mempertahankan pengawasan oleh Owner. |
-| K-023 | 2026-10-11 | Pemeriksaan otorisasi dilakukan di backend. Menyembunyikan menu di frontend tidak dianggap sebagai mekanisme keamanan yang cukup. | Disepakati | API harus menolak tindakan yang tidak diizinkan, terlepas dari antarmuka yang digunakan. |
-| K-024 | 2026-10-11 | Data payroll, piutang, akun, dan informasi biometrik dibatasi berdasarkan kebutuhan akses. | Disepakati | Data tersebut bersifat sensitif dan tidak boleh otomatis terlihat oleh semua pengguna. |
-| K-025 | 2026-10-11 | Kebutuhan role khusus, permission per fitur, dan pembatasan akses berdasarkan cabang belum ditetapkan sebagai fitur final. | Usulan | Mempertahankan tiga role dasar sambil menunggu validasi kebutuhan operasional klien. |
+### K-001 — Stack Teknologi
 
-### C. Aturan Kerja dan Absensi
+**Keputusan:** sistem menggunakan Java LTS dengan Spring Boot untuk backend, React dengan Vite dan TypeScript untuk frontend, serta PostgreSQL sebagai database. Arsitektur aplikasi menggunakan modular monolith.
 
-| ID | Tanggal | Keputusan | Status | Alasan dan alternatif |
-|---|---|---|---|---|
-| K-003 | 2026-10-09 | Aturan lembur awal menggunakan perhitungan otomatis berdasarkan data absensi, tanpa mewajibkan pengajuan lembur terlebih dahulu. | Diperbarui oleh K-026 | Keputusan awal perlu diselaraskan dengan batas lembur pukul 17.00, verifikasi manual, dan aturan nominal yang berlaku. |
-| K-004 | 2026-10-09 | Owner mengelola aturan kerja dan tarif melalui modul pengaturan dengan tanggal efektif. | Disepakati | Aturan dapat berubah dan tidak boleh ditanamkan sebagai nilai tetap di kode program. |
-| K-005 | 2026-10-09 | Sistem mengusulkan upah harian berdasarkan hari yang memenuhi aturan kehadiran. Pihak berwenang menentukan apakah upah tersebut dibayarkan sesuai kebijakan perusahaan. | Disepakati | Mempertahankan keputusan awal; detail kriteria hari yang dibayar harus dirumuskan di aturan bisnis. |
-| K-026 | 2026-10-11 | Batas mulai perhitungan lembur adalah setelah pukul 17.00, bukan setelah karyawan menyelesaikan delapan jam kerja. | Disepakati | Mengikuti klarifikasi kebutuhan klien. Contoh: masuk pukul 15.00 dan pulang pukul 18.00 menghasilkan satu jam kandidat lembur, dengan asumsi tidak ada pengurangan istirahat. |
-| K-027 | 2026-10-11 | Perhitungan lembur menggunakan scan perangkat sebagai sumber data awal dan mendukung verifikasi atau koreksi manual yang dapat diaudit. | Disepakati | Data otomatis membantu perhitungan, tetapi perlu pemeriksaan untuk kondisi scan yang tidak lengkap atau tidak sesuai aktivitas sebenarnya. |
-| K-028 | 2026-10-11 | Aturan kerja dapat diterapkan secara global maupun khusus untuk karyawan tertentu. | Disepakati | Mengikuti kebutuhan Owner untuk mengatur aturan secara umum dan melakukan pengecualian sesuai kebutuhan. |
-| K-029 | 2026-10-11 | Data scan asli tidak boleh ditimpa oleh koreksi absensi manual. Koreksi disimpan sebagai perubahan terpisah beserta alasan, pelaku, dan waktu. | Disepakati | Memastikan data awal tetap dapat ditelusuri dan mengurangi risiko perubahan tanpa jejak. |
-| K-030 | 2026-10-11 | Aturan hari kerja, istirahat, hari libur, pembulatan, dan penanganan scan tidak lengkap tidak boleh difinalisasi berdasarkan asumsi. | Disepakati | Detail tersebut masih memerlukan konfirmasi klien sebelum formula produksi dikunci. |
+**Alasan:**
+- Stack sesuai kemampuan tim.
+- Backend dan frontend dapat dikembangkan secara terstruktur.
+- Modular monolith menjaga pemisahan modul tanpa kompleksitas microservices sejak awal.
+- PostgreSQL sesuai kebutuhan transaksi absensi, konfigurasi, dan payroll.
 
-### D. Penggajian, Tarif Historis, dan Piutang
+**Alternatif yang tidak dipilih:** NestJS sebagai backend utama pada implementasi baru.
 
-| ID | Tanggal | Keputusan | Status | Alasan dan alternatif |
-|---|---|---|---|---|
-| K-031 | 2026-10-11 | Supir dan kenek menggunakan periode penggajian mingguan; karyawan lainnya menggunakan periode penggajian bulanan. | Disepakati | Mengikuti proses penggajian yang berjalan di perusahaan. Tanggal batas setiap periode masih perlu dikonfirmasi. |
-| K-032 | 2026-10-11 | Pada skema bulanan, gaji pokok dan upah harian merupakan komponen yang terpisah. | Disepakati | Mengikuti format penggajian perusahaan. Aturan kelayakan dan perhitungan setiap komponen harus dijelaskan di `aturan-bisnis.md`. |
-| K-033 | 2026-10-11 | Tarif harian, tarif lembur, dan aturan yang memiliki tanggal efektif harus mempertahankan nilai historis sesuai periode yang dihitung. | Disepakati | Perubahan tarif untuk periode mendatang tidak boleh mengubah nominal pada periode terdahulu. |
-| K-034 | 2026-10-11 | Periode payroll yang telah difinalisasi dapat dibuka kembali melalui proses terkontrol. Pembukaan kembali tidak boleh mengganti tarif historis yang digunakan pada periode tersebut. | Disepakati | Mengakomodasi kebutuhan koreksi sambil mempertahankan konsistensi hasil penggajian lama. |
-| K-035 | 2026-10-11 | Perhitungan payroll harus menyimpan snapshot atau versi yang setara atas tarif, aturan, komponen, input, dan hasil perhitungan yang digunakan. | Disepakati | Memungkinkan audit, reproduksi perhitungan, dan perbandingan sebelum serta sesudah koreksi. |
-| K-036 | 2026-10-11 | Pembukaan kembali, koreksi, dan finalisasi ulang payroll harus memiliki jejak audit. Snapshot hasil lama tetap dipertahankan. | Disepakati | Mencegah perubahan diam-diam pada hasil penggajian yang sudah pernah disahkan. |
-| K-037 | 2026-10-11 | Piutang/kasbon karyawan dikelola sebagai ledger transaksi, bukan sekadar kolom saldo atau input potongan bebas. | Disepakati | Saldo harus dapat ditelusuri melalui transaksi, pembayaran, dan potongan payroll. |
-| K-038 | 2026-10-11 | Bonus/insentif merupakan komponen terpisah yang nominalnya ditentukan Owner. Tidak ada formula bonus otomatis pada versi awal. | Disepakati | Mengikuti klarifikasi bahwa bonus merupakan keputusan Owner. |
-| K-039 | 2026-10-11 | Perhitungan BPJS, PPh 21, dan potongan lain hanya diimplementasikan setelah komponen, tarif, dan kebijakan yang berlaku dikonfirmasi. | Disepakati | Menghindari asumsi yang dapat menyebabkan hasil payroll tidak sesuai ketentuan atau kebijakan perusahaan. |
-| K-040 | 2026-10-11 | Hasil payroll harus dapat ditelusuri ke data absensi, tarif, lembur, bonus, piutang, dan komponen lain yang digunakan. | Disepakati | Mendukung verifikasi dan rekonsiliasi terhadap formulir penggajian perusahaan. |
-| K-041 | 2026-10-11 | Kewenangan untuk membuka kembali periode final, batas koreksi, dan mekanisme persetujuan pembukaan kembali harus ditetapkan secara eksplisit sebelum fitur dikunci. | Usulan | Prinsip pembukaan kembali sudah disepakati, tetapi matriks otorisasi dan prosedurnya belum final. |
+### K-002 — Role Awal
 
-### E. UI/UX dan Proses Pengembangan
+**Keputusan:** tiga role awal adalah Owner, HR/Finance, dan Karyawan.
 
-| ID | Tanggal | Keputusan | Status | Alasan dan alternatif |
-|---|---|---|---|---|
-| K-011 | 2026-10-09 | Tim bekerja langsung pada branch `main`, tanpa branch fitur. | Disepakati | Mengikuti pilihan proses kerja tim. Risiko konflik dan kebutuhan review harus tetap diperhatikan. |
-| K-013 | 2026-10-09 | Frontend menggunakan Tailwind CSS dan shadcn/ui. | Disepakati | Pilihan tim untuk membangun antarmuka yang konsisten dan mudah dikustomisasi. Ant Design dan MUI tidak dipilih. |
-| K-017 | 2026-10-09 | Design system mengikuti brand Takka Steel dengan warna biru steel dan gold, Poppins dan Open Sans, gaya Corporate Clean, tabel padat untuk data operasional, serta mode gelap Blueprint. | Disepakati | Aplikasi digunakan setiap hari pada perangkat mobile hingga desktop. Detail visual dicatat di `design-system.md`. |
-| K-042 | 2026-10-11 | Empat formulir penggajian aktual perusahaan menjadi baseline untuk pengujian dan rekonsiliasi hasil payroll. | Disepakati | Sistem harus menghasilkan komponen dan total yang dapat dicocokkan dengan proses kerja perusahaan. |
-| K-043 | 2026-10-11 | Perhitungan payroll wajib memiliki regression test untuk tarif historis, lembur, upah harian, gaji pokok, bonus, piutang, dan pembukaan kembali periode. | Disepakati | Kesalahan perhitungan dapat berdampak langsung pada pembayaran karyawan. |
+Hak akses harus diperiksa pada backend. Role tidak boleh hanya digunakan untuk menyembunyikan menu pada frontend.
 
-## 3. Keputusan yang Digantikan atau Diperjelas
+Custom role dan pembatasan akses per cabang belum menjadi keputusan final.
 
-| Keputusan lama | Status baru | Penjelasan |
+### K-004 — Konfigurasi Aturan
+
+**Keputusan:** Owner dapat mengatur aturan kerja dan komponen gaji dengan tanggal mulai berlaku.
+
+Aturan harus mendukung konfigurasi global serta pengecualian khusus karyawan. Prioritas aturan harus didefinisikan secara konsisten.
+
+### K-006 — Satu Perusahaan
+
+**Keputusan:** versi awal digunakan untuk satu perusahaan dan tidak memerlukan `tenant_id`.
+
+Jika kebutuhan berubah menjadi produk multi-perusahaan, arsitektur perlu dievaluasi kembali sebelum perubahan dilakukan.
+
+### K-008 — Simulator Perangkat
+
+**Keputusan:** backend dan frontend dikembangkan menggunakan simulator sampai prototipe mesin tersedia.
+
+Simulator harus mengikuti kontrak integrasi yang dirancang dan tidak boleh dianggap sebagai bukti bahwa seluruh kemampuan hardware telah tersedia.
+
+### K-009 — Pengarsipan Backend Lama
+
+**Keputusan:** eksperimen backend NestJS lama diarsipkan menggunakan Git tag pada commit `26bed0a` sebelum folder lama dihapus.
+
+Implementasi baru mengikuti stack yang telah disepakati.
+
+### K-010 — Build dan Lingkungan Lokal
+
+**Keputusan:** backend menggunakan Maven dan lingkungan lokal disediakan melalui Docker Compose.
+
+Komponen yang direncanakan mencakup backend, frontend, dan PostgreSQL. Konfigurasi produksi, reverse proxy, dan TLS harus ditetapkan pada tahap deployment.
+
+### K-011 — Strategi Branch
+
+**Keputusan tim:** pengerjaan dilakukan langsung pada branch `main`, tanpa branch fitur.
+
+Konsekuensi: anggota tim wajib menjaga working tree, menguji perubahan, melakukan commit dengan jelas, dan berkoordinasi sebelum perubahan besar. Jika risiko konflik meningkat, strategi branch perlu dievaluasi ulang melalui keputusan baru.
+
+### K-012 — Login
+
+**Keputusan:** login menggunakan username, bukan email atau nomor telepon. Username tidak membedakan huruf besar/kecil.
+
+Normalisasi username harus diterapkan konsisten pada pembuatan akun, login, dan validasi keunikan.
+
+### K-013 — UI Framework
+
+**Keputusan:** frontend menggunakan Tailwind CSS dan shadcn/ui.
+
+Komponen antarmuka harus mengikuti `design-system.md`, menjaga keterbacaan tabel operasional, dan mendukung layout responsif.
+
+### K-014 — Sesi Autentikasi
+
+**Keputusan:** autentikasi menggunakan session cookie dengan Spring Session JDBC, proteksi CSRF, dan durasi sesi 8 jam.
+
+JWT tidak digunakan sebagai mekanisme autentikasi utama pada baseline ini karena pengelolaan pencabutan sesi lebih sederhana dengan pendekatan session.
+
+### K-015 — Akun Owner Awal
+
+**Keputusan:** akun Owner pertama dibuat melalui konfigurasi environment, yaitu `OWNER_USERNAME` dan `OWNER_INITIAL_PASSWORD`.
+
+Password tidak boleh ditanam sebagai kredensial tetap di source code. Akun baru atau akun yang password-nya di-reset wajib mengganti password sebelum dapat menggunakan API lain yang dilindungi, sesuai mekanisme autentikasi yang dirancang.
+
+Secret tidak boleh dimasukkan ke repository.
+
+### K-016 — Pengelolaan Akun
+
+**Keputusan:**
+- HR/Finance dapat mengelola akun Karyawan.
+- Pengelolaan akun Owner dan HR/Finance hanya untuk Owner.
+- Audit log dapat diakses Owner.
+- Sistem harus mempertahankan minimal satu Owner aktif.
+
+Backend wajib menolak tindakan yang melanggar ketentuan ini.
+
+### K-017 — Design System
+
+**Keputusan:** tampilan mengikuti brand Takka Steel dengan palet biru steel dan gold, font Poppins serta Open Sans, gaya Corporate Clean, tabel Enterprise Data-Dense, dan mode gelap Blueprint.
+
+Rincian visual terdapat di [`design-system.md`](./design-system.md).
+
+---
+
+## 4. Detail Keputusan Integrasi Perangkat
+
+### K-018 — Backend sebagai Gateway
+
+**Keputusan:** komunikasi perangkat dilakukan melalui backend, bukan langsung dari frontend atau database.
+
+Backend bertanggung jawab untuk validasi, autentikasi perangkat sesuai protokol, penyimpanan kejadian scan, pencegahan duplikasi, dan pemrosesan data absensi.
+
+### K-019 — Raw Scan Immutable
+
+**Keputusan:** scan asli tidak boleh ditimpa oleh koreksi absensi.
+
+Koreksi harus disimpan sebagai perubahan terpisah yang mencatat nilai sebelum dan sesudah, pelaku, waktu, serta alasan koreksi.
+
+### K-020 — ACK Setelah Penyimpanan
+
+**Keputusan:** backend hanya boleh memberikan respons sukses setelah kejadian scan tersimpan secara persisten.
+
+Jika penyimpanan gagal, backend tidak boleh memberikan ACK sukses. Mekanisme retry harus dirancang agar pengiriman ulang tidak membuat scan ganda.
+
+### K-021 — Offline dan Sinkronisasi
+
+**Status:** Menunggu Konfirmasi.
+
+Penyimpanan offline, retry otomatis, RTC, dan sinkronisasi setelah koneksi pulih bergantung pada spesifikasi perangkat serta firmware. Implementasi tidak boleh mengasumsikan kemampuan tersebut sebelum divalidasi.
+
+### K-023 — Otorisasi Backend
+
+**Keputusan:** semua tindakan yang memerlukan hak akses harus divalidasi pada backend.
+
+Penyembunyian menu atau tombol di frontend bukan mekanisme keamanan yang memadai.
+
+### K-024 — Data Sensitif
+
+**Keputusan:** data payroll, kasbon, akun, dan biometrik harus memiliki pembatasan akses yang sesuai.
+
+Detail penyimpanan template sidik jari, kebijakan retensi, dan prosedur penghapusan harus ditetapkan setelah desain hardware dan kebijakan privasi dikonfirmasi.
+
+### K-025 — Custom Role dan Akses Cabang
+
+**Status:** Menunggu Konfirmasi.
+
+Versi awal menggunakan tiga role. Kebutuhan membuat role khusus dan membatasi pengguna berdasarkan cabang perlu divalidasi sebelum desain otorisasi final dikunci.
+
+---
+
+## 5. Detail Keputusan Absensi dan Lembur
+
+### K-026 — Batas Mulai Lembur
+
+**Keputusan:** pada hari kerja normal, kandidat lembur dimulai setelah pukul 17.00, tanpa mensyaratkan delapan jam kerja normal telah terpenuhi.
+
+Contoh: jika karyawan bekerja pukul 15.00–18.00, kandidat durasi lemburnya adalah satu jam, sebelum penyesuaian lain yang mungkin berlaku.
+
+Keputusan ini menentukan batas waktu awal, bukan tarif atau nominal pembayaran lembur.
+
+### K-027 — Verifikasi Lembur
+
+**Keputusan:** sistem menghitung kandidat lembur dari catatan scan yang valid dan menyediakan proses verifikasi atau koreksi terkontrol.
+
+Nominal final mengikuti tarif yang berlaku serta aturan yang telah disetujui. Kebutuhan persetujuan sebelum lembur dilakukan belum menjadi prasyarat yang disepakati.
+
+### K-028 — Aturan Global dan Per Karyawan
+
+**Keputusan:** sistem mendukung aturan global dan pengecualian khusus karyawan.
+
+Setiap aturan harus memiliki tanggal efektif. Jika aturan khusus karyawan tersedia, prioritas terhadap aturan global harus diterapkan konsisten.
+
+### K-029 — Koreksi Absensi
+
+**Keputusan:** koreksi absensi tidak mengubah raw scan dan harus memiliki audit trail.
+
+Koreksi yang berdampak pada payroll final mengikuti prosedur pembukaan kembali atau penyesuaian yang diizinkan.
+
+### K-030 — Detail Perhitungan Absensi
+
+**Status:** Menunggu Konfirmasi.
+
+Hal yang belum dikunci:
+- Hari kerja dan kalender hari libur.
+- Jam serta perlakuan istirahat.
+- Pembulatan durasi.
+- Penanganan scan tidak lengkap.
+- Penentuan scan masuk dan pulang.
+- Dampak keterlambatan dan pulang cepat terhadap penghasilan.
+
+Nilai-nilai tersebut harus dicatat dalam konfigurasi atau keputusan bisnis yang disetujui, bukan ditebak oleh developer.
+
+---
+
+## 6. Detail Keputusan Payroll
+
+### K-031 — Periode Payroll
+
+**Keputusan:**
+- Supir dan kenek menggunakan payroll mingguan.
+- Karyawan lainnya menggunakan payroll bulanan.
+
+Tanggal mulai dan akhir periode serta tanggal pembayaran masih harus mengikuti kalender payroll perusahaan yang dikonfirmasi.
+
+### K-032 — Gaji Pokok dan Upah Harian
+
+**Keputusan:** gaji pokok bulanan dan upah harian adalah komponen berbeda.
+
+Sistem harus menyimpan keduanya secara terpisah dan menampilkan dasar perhitungan masing-masing. Dampak ketidakhadiran terhadap gaji pokok masih menunggu kebijakan perusahaan.
+
+### K-033 — Tarif dengan Tanggal Efektif
+
+**Keputusan:** perubahan tarif harus memiliki tanggal mulai berlaku.
+
+Perhitungan periode historis menggunakan tarif yang sesuai dengan periode tersebut. Perubahan tarif untuk periode baru tidak boleh mengubah hasil payroll historis secara otomatis.
+
+### K-034 — Pembukaan Kembali Payroll
+
+**Keputusan:** payroll final dapat dibuka kembali melalui prosedur terkontrol.
+
+Pembukaan kembali tidak boleh menghapus hasil final sebelumnya. Kewenangan, alasan wajib, dan persetujuan tambahan perlu ditentukan bersama klien.
+
+### K-035 — Snapshot Payroll
+
+**Keputusan:** setiap payroll yang difinalisasi harus menyimpan snapshot atau versi yang setara.
+
+Snapshot sekurang-kurangnya mencakup:
+- Periode dan identitas karyawan.
+- Komponen penghasilan serta potongan.
+- Tarif dan aturan yang digunakan.
+- Input absensi dan koreksi yang relevan.
+- Durasi serta nominal lembur yang disetujui.
+- Nominal bonus dan komponen tambahan.
+- Hasil perhitungan bruto, potongan, dan bersih.
+- Waktu finalisasi dan identitas pelaku.
+
+### K-036 — Riwayat Reopen dan Finalisasi Ulang
+
+**Keputusan:** pembukaan kembali dan finalisasi ulang harus mempertahankan riwayat versi sebelumnya.
+
+Contoh: tarif upah harian Rp80.000 berlaku pada September, kemudian Rp100.000 berlaku mulai Oktober. Payroll September yang dibuka kembali pada Oktober tetap menggunakan tarif historis September, kecuali terdapat koreksi retroaktif resmi yang disetujui dan tercatat.
+
+### K-037 — Ledger Kasbon
+
+**Keputusan:** kasbon menggunakan ledger transaksi.
+
+Saldo dihitung dari transaksi kasbon dan pelunasan. Sistem tidak boleh mengganti saldo secara langsung tanpa transaksi yang dapat diaudit.
+
+Batas cicilan dan aturan pemotongan payroll menunggu konfirmasi.
+
+### K-038 — Bonus
+
+**Keputusan:** nominal bonus ditetapkan oleh Owner. Pada versi pertama, sistem tidak menghitung bonus otomatis berdasarkan KPI atau rumus yang belum disepakati.
+
+### K-039 — Pajak dan Potongan
+
+**Keputusan:** BPJS, PPh 21, dan potongan lain hanya diterapkan setelah kebijakan perusahaan dikonfirmasi.
+
+Jangan menambahkan komponen potongan secara otomatis hanya karena lazim digunakan oleh sistem payroll lain.
+
+### K-040 — Keterlacakan Payroll
+
+**Keputusan:** setiap hasil payroll harus dapat ditelusuri kembali ke sumber input dan aturan yang digunakan.
+
+Pengguna berwenang harus dapat memeriksa dasar perhitungan tanpa mengubah snapshot historis.
+
+### K-041 — Kewenangan Pembukaan Kembali
+
+**Status:** Menunggu Konfirmasi.
+
+Perlu ditentukan:
+- Role yang dapat mengajukan pembukaan kembali.
+- Role yang dapat menyetujui.
+- Alasan wajib.
+- Perlakuan jika payroll sudah dibayarkan.
+- Mekanisme koreksi dan penyesuaian pada pembayaran berikutnya jika diperlukan.
+
+### K-042 — Laporan Baseline
+
+**Keputusan:** empat laporan aktual perusahaan menjadi baseline rekonsiliasi dan pengujian:
+
+1. Absensi dan payroll mingguan supir/kenek.
+2. Laporan lembur supir/kenek.
+3. Absensi dan payroll bulanan staf.
+4. Laporan lembur bulanan staf.
+
+### K-043 — Regression Test Payroll
+
+**Keputusan:** pengujian regresi wajib mencakup perubahan tarif, perhitungan ulang payroll historis, pembukaan kembali, dan finalisasi ulang.
+
+Perubahan pada konfigurasi periode baru tidak boleh mengubah snapshot payroll historis tanpa proses koreksi resmi.
+
+---
+
+## 7. Keputusan yang Masih Terbuka
+
+Hal-hal berikut tidak boleh dianggap sudah disepakati:
+
+| Topik | Yang perlu dipastikan | Dokumen acuan |
 |---|---|---|
-| K-003: lembur otomatis setelah jam pulang terjadwal | Diperjelas oleh K-026 dan K-027 | Batas lembur adalah pukul 17.00; scan menjadi sumber perhitungan awal dan hasil dapat diverifikasi manual. |
-| K-007: periode final dikunci | Diperjelas oleh K-034 sampai K-036 | Periode final tetap terlindungi, tetapi dapat dibuka kembali melalui prosedur terkontrol tanpa menghilangkan snapshot atau mengubah tarif historis. |
-| K-004: semua aturan kerja dan gaji diatur Owner | Tetap berlaku dengan batasan K-028 dan K-033 | Aturan memiliki tanggal efektif dan dapat diterapkan global maupun per karyawan. Perubahan tidak menimpa histori. |
+| Jadwal kerja | Hari kerja, jam istirahat, kalender hari libur | `pertanyaan-terbuka.md` |
+| Absensi | Penentuan scan masuk/pulang, pembulatan, scan tidak lengkap | `pertanyaan-terbuka.md` |
+| Lembur | Tarif, pembulatan, perlakuan hari libur | `pertanyaan-terbuka.md` |
+| Payroll | Cutoff, prorata, dampak ketidakhadiran | `pertanyaan-terbuka.md` |
+| Potongan | BPJS, PPh 21, cicilan kasbon | `pertanyaan-terbuka.md` |
+| Bonus | Komponen dan aturan selain nominal yang ditetapkan Owner | `pertanyaan-terbuka.md` |
+| Reopen payroll | Kewenangan, persetujuan, koreksi setelah pembayaran | `pertanyaan-terbuka.md` |
+| Role | Custom role dan akses per cabang | `pertanyaan-terbuka.md` |
+| Hardware | MCU, sensor, protokol, enrollment, penghapusan | `pertanyaan-terbuka.md` |
+| Offline | Antrean lokal, RTC, retry, sinkronisasi | `pertanyaan-terbuka.md` |
+| Privasi | Lokasi template biometrik, retensi, penghapusan | `pertanyaan-terbuka.md` |
+| Deployment | Hosting, jaringan cabang, TLS, zona waktu | `pertanyaan-terbuka.md` |
 
-Keputusan lama tetap dipertahankan untuk histori. Implementasi harus mengikuti keputusan terbaru yang secara eksplisit memperbarui atau memperjelasnya.
+---
 
-## 4. Hal yang Belum Menjadi Keputusan Final
+## 8. Prosedur Mengubah Keputusan
 
-Hal berikut tidak boleh diperlakukan sebagai keputusan yang sudah disepakati:
+Jika keputusan berubah:
 
-1. Hari kerja resmi dan kalender libur.
-2. Durasi serta perlakuan waktu istirahat.
-3. Toleransi keterlambatan dan aturan pulang lebih awal.
-4. Aturan pembulatan jam dan nominal rupiah.
-5. Tarif lembur untuk hari libur atau kategori karyawan tertentu.
-6. Kriteria hari yang berhak mendapatkan upah harian.
-7. Tanggal batas periode mingguan dan bulanan.
-8. Perlakuan gaji untuk izin, sakit, dan cuti.
-9. Komponen serta aturan BPJS, PPh 21, dan potongan lain.
-10. Skema cicilan piutang dan batas potongan payroll.
-11. Kewenangan final untuk membuka kembali payroll.
-12. Role khusus dan pembatasan akses berdasarkan cabang.
-13. Spesifikasi perangkat, protokol komunikasi, RTC, antrean offline, dan retry.
-14. Lokasi penyimpanan template sidik jari serta mekanisme pencocokan biometrik.
-15. Hosting, target ketersediaan, backup, dan retensi data.
-16. Kebijakan retensi, akses, dan penghapusan data biometrik.
+1. Jangan menghapus entri lama.
+2. Tambahkan ID keputusan baru.
+3. Tulis tanggal, status, alasan, dan alternatif yang dipertimbangkan.
+4. Cantumkan ID keputusan yang digantikan.
+5. Perbarui dokumen terkait, seperti `aturan-bisnis.md`, `alur.md`, `arsitektur.md`, atau `kebutuhan.md`.
+6. Perbarui test case yang terdampak.
+7. Pastikan implementasi dan dokumentasi konsisten sebelum perubahan dirilis.
 
-Pertanyaan tersebut dikelola di `pertanyaan-terbuka.md` dan diperbarui setelah memperoleh jawaban dari klien.
+Format yang disarankan:
 
-## 5. Aturan Pemeliharaan Dokumen
+| ID | Tanggal | Keputusan | Status | Alasan / alternatif |
+|---|---|---|---|---|
+| K-XXX | YYYY-MM-DD | Isi keputusan | Disepakati / Usulan / Menunggu Konfirmasi / Digantikan | Alasan, alternatif, dan referensi keputusan sebelumnya |
 
-Setiap perubahan kebutuhan harus mengikuti urutan berikut:
+---
 
-1. Catat perubahan kebutuhan dan alasan.
-2. Tentukan apakah perubahan sudah disetujui atau masih berupa usulan.
-3. Tambahkan keputusan baru jika mengubah keputusan sebelumnya.
-4. Perbarui `PRD.md` jika ruang lingkup atau kebutuhan produk berubah.
-5. Perbarui `aturan-bisnis.md`, `kebutuhan.md`, `alur.md`, atau `arsitektur.md` sesuai dampaknya.
-6. Perbarui `pertanyaan-terbuka.md` agar hanya berisi hal yang belum terjawab.
-7. Perbarui `rencana-pengerjaan.md` jika perubahan memengaruhi urutan implementasi atau pengujian.
+## 9. Dokumen Terkait
 
-**Prinsip utama:** jangan mengubah keputusan bisnis secara diam-diam hanya untuk menyesuaikan kode. Jika implementasi tidak sesuai keputusan, perbaiki implementasi atau ajukan perubahan keputusan secara eksplisit.
+- [`README.md`](./README.md)
+- [`PRD.md`](./PRD.md)
+- [`kebutuhan.md`](./kebutuhan.md)
+- [`aturan-bisnis.md`](./aturan-bisnis.md)
+- [`alur.md`](./alur.md)
+- [`arsitektur.md`](./arsitektur.md)
+- [`pertanyaan-terbuka.md`](./pertanyaan-terbuka.md)
+- [`rencana-pengerjaan.md`](./rencana-pengerjaan.md)
+- [`design-system.md`](./design-system.md)
