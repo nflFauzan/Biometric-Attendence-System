@@ -1,6 +1,5 @@
 # Environment & credential
 .env
-switch-git-account.ps1
 
 # Editor / OS
 .idea/
