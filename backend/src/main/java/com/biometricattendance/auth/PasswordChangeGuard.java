@@ -1,8 +1,9 @@
 package com.biometricattendance.auth;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+import com.biometricattendance.common.ProblemResponses;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,10 +26,7 @@ public class PasswordChangeGuard implements HandlerInterceptor {
 			throws Exception {
 		HttpSession session = request.getSession(false);
 		if (session != null && Boolean.TRUE.equals(session.getAttribute(SESSION_ATTRIBUTE))) {
-			response.setStatus(HttpStatus.FORBIDDEN.value());
-			response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-			response.getWriter()
-				.write("{\"status\":403,\"title\":\"Forbidden\",\"detail\":\"Ganti password terlebih dahulu\"}");
+			ProblemResponses.write(response, HttpStatus.FORBIDDEN, ProblemResponses.PASSWORD_CHANGE_REQUIRED);
 			return false;
 		}
 		return true;

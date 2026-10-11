@@ -13,6 +13,7 @@ import com.biometricattendance.account.UserAccountDtos.ResetPasswordRequest;
 import com.biometricattendance.account.UserAccountDtos.UpdateUserRequest;
 import com.biometricattendance.account.UserAccountDtos.UserResponse;
 import com.biometricattendance.audit.AuditService;
+import com.biometricattendance.auth.SessionRevoker;
 import com.biometricattendance.common.ApiException;
 import com.biometricattendance.common.CurrentUser;
 import com.biometricattendance.employee.Employee;
@@ -28,13 +29,15 @@ public class UserAccountService {
 	private final EmployeeRepository employees;
 	private final PasswordEncoder passwordEncoder;
 	private final AuditService audit;
+	private final SessionRevoker sessions;
 
 	public UserAccountService(UserAccountRepository repository, EmployeeRepository employees,
-			PasswordEncoder passwordEncoder, AuditService audit) {
+			PasswordEncoder passwordEncoder, AuditService audit, SessionRevoker sessions) {
 		this.repository = repository;
 		this.employees = employees;
 		this.passwordEncoder = passwordEncoder;
 		this.audit = audit;
+		this.sessions = sessions;
 	}
 
 	@Transactional(readOnly = true)
@@ -77,11 +80,18 @@ public class UserAccountService {
 			throw ApiException.badRequest("Harus ada minimal satu Owner yang aktif");
 		}
 		UserResponse before = UserResponse.from(account);
+		// Resolve sebelum entity diubah: query di dalamnya memicu auto-flush, dan flush dengan
+		// role EMPLOYEE tanpa employee_id melanggar CHECK user_accounts_employee_required.
+		Employee employee = resolveEmployee(request.role(), request.employeeId(), account.getId());
 		account.setRole(request.role());
-		account.setEmployee(resolveEmployee(request.role(), request.employeeId(), account.getId()));
+		account.setEmployee(employee);
 		account.setActive(request.active());
 		UserResponse after = UserResponse.from(repository.save(account));
 		audit.record("UPDATE", ENTITY, id, before, after);
+		// Hak akses lama di sesi yang sedang berjalan tidak boleh dipakai lagi (B-03).
+		if (before.role() != after.role() || (before.active() && !after.active())) {
+			sessions.revokeAll(account.getUsername());
+		}
 		return after;
 	}
 
@@ -93,6 +103,7 @@ public class UserAccountService {
 		account.setMustChangePassword(true);
 		repository.save(account);
 		audit.record("RESET_PASSWORD", ENTITY, id, null, null);
+		sessions.revokeAll(account.getUsername());
 	}
 
 	static String normalize(String username) {

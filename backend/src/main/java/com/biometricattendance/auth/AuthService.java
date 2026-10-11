@@ -19,11 +19,14 @@ public class AuthService {
 	private final UserAccountRepository accounts;
 	private final PasswordEncoder passwordEncoder;
 	private final AuditService audit;
+	private final SessionRevoker sessions;
 
-	public AuthService(UserAccountRepository accounts, PasswordEncoder passwordEncoder, AuditService audit) {
+	public AuthService(UserAccountRepository accounts, PasswordEncoder passwordEncoder, AuditService audit,
+			SessionRevoker sessions) {
 		this.accounts = accounts;
 		this.passwordEncoder = passwordEncoder;
 		this.audit = audit;
+		this.sessions = sessions;
 	}
 
 	@Transactional
@@ -38,8 +41,9 @@ public class AuthService {
 		return MeResponse.from(find(username));
 	}
 
+	/** Sesi yang sedang dipakai tetap berlaku; sesi lain milik akun ini (perangkat lain) dicabut. */
 	@Transactional
-	public void changePassword(String username, ChangePasswordRequest request) {
+	public void changePassword(String username, ChangePasswordRequest request, String currentSessionId) {
 		UserAccount account = find(username);
 		if (!passwordEncoder.matches(request.currentPassword(), account.getPasswordHash())) {
 			throw ApiException.badRequest("Password lama salah");
@@ -50,6 +54,7 @@ public class AuthService {
 		account.setPasswordHash(passwordEncoder.encode(request.newPassword()));
 		account.setMustChangePassword(false);
 		audit.record("CHANGE_PASSWORD", "USER_ACCOUNT", account.getId(), null, null);
+		sessions.revokeOthers(account.getUsername(), currentSessionId);
 	}
 
 	private UserAccount find(String username) {

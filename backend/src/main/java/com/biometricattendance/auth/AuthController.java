@@ -76,7 +76,7 @@ public class AuthController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	void changePassword(@Valid @RequestBody ChangePasswordRequest request, Authentication authentication,
 			HttpServletRequest httpRequest) {
-		authService.changePassword(authentication.getName(), request);
+		authService.changePassword(authentication.getName(), request, httpRequest.getSession().getId());
 		PasswordChangeGuard.setRequired(httpRequest.getSession(), false);
 	}
 
