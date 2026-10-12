@@ -43,6 +43,8 @@ export interface Employee {
   joinDate: string
   endDate: string | null
   active: boolean
+  /** PIN/User ID di mesin absensi (K-056). */
+  devicePin: string | null
 }
 
 export interface Device {
@@ -52,6 +54,21 @@ export interface Device {
   branchId: number
   branchName: string
   active: boolean
+  protocol: string
+  /** Scan yang lebih lama tidak disimpan (K-057). */
+  acceptScansFrom: string
+  ignoredScanCount: number
+  lastSeenAt: string | null
+  lastIp: string | null
+  firmware: string | null
+  online: boolean
+}
+
+export interface UnregisteredAttempt {
+  serialNumber: string
+  ip: string | null
+  lastAttemptAt: string
+  attempts: number
 }
 
 export interface UserAccount {
@@ -199,4 +216,101 @@ export interface DailyPreview {
   timezone: string
   holiday: boolean
   result: DailyResult
+}
+
+// ---- Fase 3: absensi, koreksi, dashboard ----
+
+export type ScanFlag = 'PIN_TIDAK_DIKENAL' | 'WAKTU_DI_MASA_DEPAN' | 'CABANG_BERBEDA'
+
+/** Scan asli dari mesin; deviceLocalTime persis seperti dikirim mesin. */
+export interface Scan {
+  id: number
+  scannedAt: string
+  deviceLocalTime: string
+  deviceId: number
+  deviceName: string
+  devicePin: string
+  employeeId: number | null
+  flags: ScanFlag[]
+  receivedAt: string
+}
+
+export interface Correction {
+  id: number
+  employeeId: number
+  workDate: string
+  checkIn: string | null
+  checkOut: string | null
+  reason: string
+  createdBy: string
+  createdAt: string
+  supersededAt: string | null
+}
+
+/** Rekap satu hari; result null bila aturan belum lengkap (ruleMissing berisi pesannya). */
+export interface DayRecord {
+  date: string
+  result: DailyResult | null
+  ruleMissing: string | null
+  scans: Scan[]
+  correction: Correction | null
+  scanFlags: ScanFlag[]
+}
+
+export interface DailyRow {
+  employeeId: number
+  employeeNumber: string
+  fullName: string
+  devicePin: string | null
+  branchId: number
+  branchName: string
+  categoryName: string
+  day: DayRecord
+}
+
+export interface DailyAttendance {
+  date: string
+  branchId: number | null
+  rows: DailyRow[]
+}
+
+export interface EmployeeAttendance {
+  employeeId: number
+  employeeNumber: string
+  fullName: string
+  branchName: string
+  timezone: string
+  devicePin: string | null
+  from: string
+  to: string
+  days: DayRecord[]
+  corrections: Correction[]
+}
+
+export interface AttendanceCounts {
+  totalEmployees: number
+  present: number
+  late: number
+  incomplete: number
+  overtimeCandidates: number
+  absent: number
+  needsReview: number
+  ruleMissing: number
+}
+
+export interface DashboardSummary {
+  date: string
+  totals: AttendanceCounts
+  branches: { branchId: number; branchName: string; counts: AttendanceCounts }[]
+  devices: Device[]
+  recentScans: {
+    id: number
+    scannedAt: string
+    devicePin: string
+    employeeId: number | null
+    employeeName: string | null
+    deviceName: string
+    flags: ScanFlag[]
+  }[]
+  unmatchedScans: number
 }

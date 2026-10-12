@@ -22,7 +22,7 @@ export interface FieldDef {
   name: string
   label: string
   /** `multi` = beberapa pilihan (options) sebagai kotak centang; nilainya dipisah koma, mis. "MONDAY,FRIDAY". */
-  type?: 'text' | 'password' | 'date' | 'time' | 'number' | 'select' | 'checkbox' | 'multi'
+  type?: 'text' | 'password' | 'date' | 'time' | 'datetime-local' | 'number' | 'select' | 'checkbox' | 'multi'
   options?: { value: string; label: string }[]
   required?: boolean
   placeholder?: string
