@@ -35,6 +35,8 @@ public class SecurityConfig {
 		http
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/actuator/health").permitAll()
+				// Endpoint mesin (adapter ZK-Push): tanpa login; mesin divalidasi dari nomor seri terdaftar (K-055).
+				.requestMatchers("/iclock/**").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 				.requestMatchers("/api/auth/**", "/api/me/**").authenticated()
@@ -49,8 +51,11 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/work-rules/**").hasAnyRole(OWNER, HR_FINANCE)
 				.requestMatchers("/api/work-rules/**").hasRole(OWNER)
 				.requestMatchers("/api/holidays/**", "/api/calculation/**").hasAnyRole(OWNER, HR_FINANCE)
+				// Fase 3: rekap, koreksi (K-059), dan dashboard real-time. Absensi mandiri karyawan (ATT-021) belum.
+				.requestMatchers("/api/attendance/**", "/api/dashboard/**").hasAnyRole(OWNER, HR_FINANCE)
 				.anyRequest().denyAll())
-			.csrf(csrf -> csrf.spa())
+			// Mesin tidak memakai cookie sesi, jadi CSRF tidak relevan untuk /iclock/**.
+			.csrf(csrf -> csrf.spa().ignoringRequestMatchers("/iclock/**"))
 			.securityContext(context -> context.securityContextRepository(securityContextRepository))
 			.exceptionHandling(ex -> ex
 				.authenticationEntryPoint((request, response, exception) -> ProblemResponses.write(response,
