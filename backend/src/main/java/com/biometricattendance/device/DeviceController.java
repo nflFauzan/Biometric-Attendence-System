@@ -32,6 +32,12 @@ public class DeviceController {
 		return service.list();
 	}
 
+	/** K-067: nomor seri yang mencoba terhubung tetapi belum terdaftar. */
+	@GetMapping("/unregistered-attempts")
+	List<UnregisteredDeviceTracker.Attempt> unregisteredAttempts() {
+		return service.unregisteredAttempts();
+	}
+
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	DeviceResponse create(@Valid @RequestBody DeviceRequest request) {

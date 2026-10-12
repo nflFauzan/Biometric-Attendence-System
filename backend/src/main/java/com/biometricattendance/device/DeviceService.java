@@ -1,5 +1,6 @@
 package com.biometricattendance.device;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -19,16 +20,26 @@ public class DeviceService {
 	private final DeviceRepository repository;
 	private final BranchRepository branches;
 	private final AuditService audit;
+	private final DeviceStatus status;
+	private final UnregisteredDeviceTracker unregistered;
 
-	public DeviceService(DeviceRepository repository, BranchRepository branches, AuditService audit) {
+	public DeviceService(DeviceRepository repository, BranchRepository branches, AuditService audit,
+			DeviceStatus status, UnregisteredDeviceTracker unregistered) {
 		this.repository = repository;
 		this.branches = branches;
 		this.audit = audit;
+		this.status = status;
+		this.unregistered = unregistered;
 	}
 
 	@Transactional(readOnly = true)
 	public List<DeviceResponse> list() {
-		return repository.findAllWithBranch().stream().map(DeviceResponse::from).toList();
+		Instant now = Instant.now();
+		return repository.findAllWithBranch().stream().map(d -> DeviceResponse.from(d, status.isOnline(d, now))).toList();
+	}
+
+	public List<UnregisteredDeviceTracker.Attempt> unregisteredAttempts() {
+		return unregistered.list();
 	}
 
 	@Transactional
@@ -37,9 +48,12 @@ public class DeviceService {
 			throw ApiException.conflict("Serial number sudah terdaftar");
 		}
 		Device device = new Device();
+		// K-057: tanpa tanggal batas, mesin baru hanya menerima scan sejak didaftarkan.
+		device.setAcceptScansFrom(request.acceptScansFrom() == null ? Instant.now() : request.acceptScansFrom());
 		apply(device, request);
-		DeviceResponse created = DeviceResponse.from(repository.save(device));
+		DeviceResponse created = response(repository.save(device));
 		audit.record("CREATE", ENTITY, created.id(), null, created);
+		unregistered.forget(device.getSerialNumber());
 		return created;
 	}
 
@@ -49,11 +63,19 @@ public class DeviceService {
 		if (repository.existsBySerialNumberIgnoreCaseAndIdNot(request.serialNumber().trim(), id)) {
 			throw ApiException.conflict("Serial number sudah terdaftar");
 		}
-		DeviceResponse before = DeviceResponse.from(device);
+		DeviceResponse before = response(device);
+		if (request.acceptScansFrom() != null) {
+			device.setAcceptScansFrom(request.acceptScansFrom());
+		}
 		apply(device, request);
-		DeviceResponse after = DeviceResponse.from(repository.save(device));
+		DeviceResponse after = response(repository.save(device));
 		audit.record("UPDATE", ENTITY, id, before, after);
+		unregistered.forget(device.getSerialNumber());
 		return after;
+	}
+
+	private DeviceResponse response(Device device) {
+		return DeviceResponse.from(device, status.isOnline(device, Instant.now()));
 	}
 
 	private void apply(Device device, DeviceRequest request) {
