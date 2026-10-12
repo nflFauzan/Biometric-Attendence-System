@@ -54,6 +54,9 @@ public class Employee {
 	@Column(nullable = false)
 	private boolean active = true;
 
+	/** PIN/User ID karyawan di mesin absensi, sama di semua mesin (K-056). */
+	private String devicePin;
+
 	@CreationTimestamp
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
@@ -136,6 +139,14 @@ public class Employee {
 
 	public void setActive(boolean active) {
 		this.active = active;
+	}
+
+	public String getDevicePin() {
+		return devicePin;
+	}
+
+	public void setDevicePin(String devicePin) {
+		this.devicePin = devicePin;
 	}
 
 }

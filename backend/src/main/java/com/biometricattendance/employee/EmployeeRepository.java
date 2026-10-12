@@ -1,6 +1,7 @@
 package com.biometricattendance.employee;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,6 +20,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 			""")
 	List<Employee> search(@Param("branchId") Long branchId, @Param("active") Boolean active,
 			@Param("search") String search);
+
+	@Query("select e from Employee e join fetch e.branch where e.devicePin = :pin")
+	Optional<Employee> findByDevicePin(@Param("pin") String pin);
+
+	boolean existsByDevicePin(String devicePin);
+
+	boolean existsByDevicePinAndIdNot(String devicePin, Long id);
 
 	boolean existsByEmployeeNumberIgnoreCase(String employeeNumber);
 

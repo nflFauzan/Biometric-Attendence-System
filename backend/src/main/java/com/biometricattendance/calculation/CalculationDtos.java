@@ -37,7 +37,7 @@ public final class CalculationDtos {
 			Long earlyLeaveSeconds, Long regularWorkSeconds, Long overtimeCandidateSeconds,
 			Long totalPresenceSeconds, Set<Flag> flags) {
 
-		static DailyResultResponse from(DailyResult result) {
+		public static DailyResultResponse from(DailyResult result) {
 			return new DailyResultResponse(result.date(), result.dayType(), result.status(), result.scanTimes(),
 					result.checkIn(), result.checkOut(), seconds(result.late()), seconds(result.earlyLeave()),
 					seconds(result.regularWork()), seconds(result.overtimeCandidate()),

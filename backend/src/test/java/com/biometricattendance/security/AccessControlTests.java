@@ -137,6 +137,54 @@ class AccessControlTests extends IntegrationTest {
 		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
 	}
 
+	private static final String CORRECTION = "{\"employeeId\":" + MISSING + ",\"date\":\"2026-10-05\","
+			+ "\"checkIn\":\"08:00\",\"reason\":\"Uji hak akses\"}";
+
+	/** Fase 3: rekap, koreksi (K-059), dan dashboard hanya untuk Owner dan HR/Finance. */
+	static Stream<Arguments> phase3ManagerEndpoints() {
+		return Stream.of(Arguments.of(HttpMethod.GET, "/api/attendance/employees/" + MISSING, null),
+				Arguments.of(HttpMethod.POST, "/api/attendance/corrections", CORRECTION));
+	}
+
+	@ParameterizedTest(name = "{0} {1}")
+	@MethodSource("phase3ManagerEndpoints")
+	void phase3ManagerEndpointMatrix(HttpMethod method, String url, String body) throws Exception {
+		managerEndpointMatrix(method, url, body);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "/api/attendance/daily?date=2026-10-05", "/api/attendance/unmatched-scans",
+			"/api/dashboard/summary?date=2026-10-05", "/api/devices/unregistered-attempts" })
+	void phase3ReadsForOwnerAndHrFinanceOnly(String url) throws Exception {
+		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void dashboardStreamRequiresManagerRole() throws Exception {
+		mockMvc.perform(get("/api/dashboard/stream").with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(get("/api/dashboard/stream")).andExpect(status().isUnauthorized());
+	}
+
+	/**
+	 * Endpoint mesin tanpa login dan tanpa CSRF (K-055): yang memutuskan adalah nomor seri terdaftar, jadi mesin
+	 * yang tidak dikenal mendapat 401 dari adapter, bukan 401/403 dari login atau CSRF.
+	 */
+	@Test
+	void deviceEndpointsAreOpenButRejectUnknownSerialNumbers() throws Exception {
+		mockMvc.perform(post("/iclock/cdata").param("SN", "TIDAK-TERDAFTAR").param("table", "ATTLOG").content("1"))
+			.andExpect(status().isUnauthorized())
+			.andExpect(content().string("UNKNOWN DEVICE"));
+		mockMvc.perform(get("/iclock/cdata").param("SN", "TIDAK-TERDAFTAR"))
+			.andExpect(content().string("UNKNOWN DEVICE"));
+		mockMvc.perform(get("/iclock/getrequest").param("SN", "TIDAK-TERDAFTAR"))
+			.andExpect(content().string("UNKNOWN DEVICE"));
+		mockMvc.perform(post("/iclock/devicecmd").param("SN", "TIDAK-TERDAFTAR"))
+			.andExpect(content().string("UNKNOWN DEVICE"));
+	}
+
 	/** Mengubah aturan kerja dan tarif hanya Owner (K-004, K-049). */
 	static Stream<Arguments> ownerOnlyRuleEndpoints() {
 		return Stream.of(Arguments.of(HttpMethod.POST, "/api/work-rules", "{}"),
