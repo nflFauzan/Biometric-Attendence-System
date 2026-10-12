@@ -45,6 +45,10 @@ public class SecurityConfig {
 				.requestMatchers("/api/branches/**", "/api/employee-categories/**", "/api/employees/**",
 						"/api/devices/**", "/api/users/**")
 				.hasAnyRole(OWNER, HR_FINANCE)
+				// Aturan kerja: HR/Finance hanya membaca; mengubah hanya Owner (K-049).
+				.requestMatchers(HttpMethod.GET, "/api/work-rules/**").hasAnyRole(OWNER, HR_FINANCE)
+				.requestMatchers("/api/work-rules/**").hasRole(OWNER)
+				.requestMatchers("/api/holidays/**", "/api/calculation/**").hasAnyRole(OWNER, HR_FINANCE)
 				.anyRequest().denyAll())
 			.csrf(csrf -> csrf.spa())
 			.securityContext(context -> context.securityContextRepository(securityContextRepository))

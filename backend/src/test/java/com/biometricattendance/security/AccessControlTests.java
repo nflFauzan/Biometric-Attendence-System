@@ -1,5 +1,6 @@
 package com.biometricattendance.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -103,6 +104,55 @@ class AccessControlTests extends IntegrationTest {
 			.andExpect(status().isUnauthorized())
 			.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
 			.andExpect(jsonPath("$.detail").value(ProblemResponses.UNAUTHORIZED));
+	}
+
+	private static final String WORK_RULE = "{\"scope\":\"GLOBAL\",\"effectiveFrom\":\"2099-01-01\","
+			+ "\"workStart\":\"08:00\"}";
+	private static final String HOLIDAY = "{\"date\":\"2099-01-01\",\"name\":\"X\"}";
+	private static final String PREVIEW = "{\"employeeId\":" + MISSING + ",\"date\":\"2026-10-12\","
+			+ "\"scanTimes\":[\"08:00\",\"17:00\"]}";
+
+	/** Fase 2: kalender libur, simulasi perhitungan, dan baca aturan untuk Owner dan HR/Finance (K-049). */
+	static Stream<Arguments> phase2ManagerEndpoints() {
+		return Stream.of(
+				Arguments.of(HttpMethod.GET, "/api/work-rules/effective?employeeId=" + MISSING + "&date=2026-10-12",
+						null),
+				Arguments.of(HttpMethod.PUT, "/api/holidays/" + MISSING, HOLIDAY),
+				Arguments.of(HttpMethod.DELETE, "/api/holidays/" + MISSING, null),
+				Arguments.of(HttpMethod.POST, "/api/calculation/daily-preview", PREVIEW));
+	}
+
+	@ParameterizedTest(name = "{0} {1}")
+	@MethodSource("phase2ManagerEndpoints")
+	void phase2ManagerEndpointMatrix(HttpMethod method, String url, String body) throws Exception {
+		managerEndpointMatrix(method, url, body);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "/api/work-rules?scope=GLOBAL", "/api/holidays?year=2026" })
+	void phase2ListsReadableByOwnerAndHrFinanceOnly(String url) throws Exception {
+		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+	}
+
+	/** Mengubah aturan kerja dan tarif hanya Owner (K-004, K-049). */
+	static Stream<Arguments> ownerOnlyRuleEndpoints() {
+		return Stream.of(Arguments.of(HttpMethod.POST, "/api/work-rules", "{}"),
+				Arguments.of(HttpMethod.PUT, "/api/work-rules/" + MISSING, WORK_RULE),
+				Arguments.of(HttpMethod.DELETE, "/api/work-rules/" + MISSING, null));
+	}
+
+	@ParameterizedTest(name = "{0} {1}")
+	@MethodSource("ownerOnlyRuleEndpoints")
+	void workRulesCanOnlyBeChangedByOwner(HttpMethod method, String url, String body) throws Exception {
+		// Owner lolos otorisasi: 400 (body kosong) atau 404 (ID tidak ada).
+		mockMvc.perform(build(method, url, body).with(OWNER))
+			.andExpect(result -> assertThat(result.getResponse().getStatus()).isIn(400, 404));
+		mockMvc.perform(build(method, url, body).with(HR_FINANCE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(method, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(method, url, body)).andExpect(status().isUnauthorized());
 	}
 
 	@ParameterizedTest
