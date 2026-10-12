@@ -187,8 +187,13 @@ export interface Holiday {
 }
 
 export type DayType = 'HARI_KERJA' | 'BUKAN_HARI_KERJA' | 'HARI_LIBUR'
-export type AttendanceStatus = 'LENGKAP' | 'TIDAK_LENGKAP' | 'TIDAK_HADIR' | 'TIDAK_ADA_SCAN'
-export type CalculationFlag = 'ISTIRAHAT_BELUM_DIATUR' | 'PERLU_TINJAUAN_HARI_LIBUR' | 'URUTAN_TIDAK_WAJAR'
+export type AttendanceStatus = 'LENGKAP' | 'TIDAK_LENGKAP' | 'TIDAK_HADIR' | 'TIDAK_ADA_SCAN' | 'IZIN'
+export type CalculationFlag =
+  | 'ISTIRAHAT_BELUM_DIATUR'
+  | 'PERLU_TINJAUAN_HARI_LIBUR'
+  | 'URUTAN_TIDAK_WAJAR'
+  | 'HADIR_SAAT_IZIN'
+  | 'IZIN_MENUNGGU'
 
 export interface TimeValue {
   time: string
@@ -255,6 +260,16 @@ export interface DayRecord {
   scans: Scan[]
   correction: Correction | null
   scanFlags: ScanFlag[]
+  /** Izin/cuti disetujui (diutamakan) atau menunggu yang mencakup tanggal ini (K-076). */
+  leave?: LeaveInfo | null
+}
+
+export interface LeaveInfo {
+  requestId: number
+  leaveTypeName: string
+  status: LeaveStatus
+  startDate: string
+  endDate: string
 }
 
 export interface DailyRow {
@@ -296,6 +311,8 @@ export interface AttendanceCounts {
   absent: number
   needsReview: number
   ruleMissing: number
+  /** Izin/cuti disetujui pada tanggal tersebut. */
+  onLeave?: number
 }
 
 export interface DashboardSummary {
@@ -313,4 +330,79 @@ export interface DashboardSummary {
     flags: ScanFlag[]
   }[]
   unmatchedScans: number
+  /** Pengajuan izin/cuti yang menunggu keputusan (semua tanggal). */
+  pendingLeaveRequests?: number
+}
+
+// ---- Fase 4: izin dan cuti ----
+
+export type LeaveStatus = 'MENUNGGU' | 'DISETUJUI' | 'DITOLAK' | 'DIBATALKAN'
+
+/** paid null = belum ditentukan (dipakai di Fase 5). */
+export interface LeaveType {
+  id: number
+  name: string
+  requiresDocument: boolean
+  paid: boolean | null
+  description: string | null
+  active: boolean
+}
+
+export interface LeaveAttachment {
+  id: number
+  originalName: string
+  contentType: string
+  sizeBytes: number
+  uploadedBy: string
+  uploadedAt: string
+}
+
+/** workingDays null = tidak dihitung (daftar) atau hari kerja belum diatur. */
+export interface LeaveRequest {
+  id: number
+  employeeId: number
+  employeeNumber: string
+  employeeName: string
+  position: string | null
+  branchId: number
+  branchName: string
+  leaveTypeId: number
+  leaveTypeName: string
+  requiresDocument: boolean
+  startDate: string
+  endDate: string
+  calendarDays: number
+  workingDays: number | null
+  reason: string
+  status: LeaveStatus
+  submittedBy: string
+  submittedAt: string
+  decidedBy: string | null
+  decidedAt: string | null
+  decisionNote: string | null
+  cancelledBy: string | null
+  cancelledAt: string | null
+  cancelReason: string | null
+  attachments: LeaveAttachment[]
+}
+
+export interface LeaveUsage {
+  employeeId: number
+  year: number
+  types: { leaveTypeId: number; leaveTypeName: string; requests: number; calendarDays: number; workingDays: number | null }[]
+  pendingRequests: number
+}
+
+export interface PendingLeaveSummary {
+  count: number
+  items: {
+    id: number
+    employeeId: number
+    employeeName: string
+    branchName: string
+    leaveTypeName: string
+    startDate: string
+    endDate: string
+    submittedAt: string
+  }[]
 }

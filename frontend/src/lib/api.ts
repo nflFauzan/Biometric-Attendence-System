@@ -61,7 +61,23 @@ export async function api<T>(path: string, options: { method?: Method; body?: un
     credentials: 'same-origin',
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   })
+  return handle<T>(path, response)
+}
 
+/** Unggah satu file (multipart, field "file"), mis. surat pendukung izin. Content-Type diisi browser. */
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const form = new FormData()
+  form.append('file', file)
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { Accept: 'application/json', [CSRF_HEADER]: await csrfToken() },
+    credentials: 'same-origin',
+    body: form,
+  })
+  return handle<T>(path, response)
+}
+
+async function handle<T>(path: string, response: Response): Promise<T> {
   if (!response.ok) {
     if (response.status === 401 && !SESSION_CHECK_PATHS.includes(path)) {
       unauthorizedListeners.forEach((listener) => listener())

@@ -17,7 +17,12 @@ import { DevicesPage } from '@/pages/DevicesPage'
 import { EmployeeDetailPage } from '@/pages/EmployeeDetailPage'
 import { EmployeesPage } from '@/pages/EmployeesPage'
 import { HolidaysPage } from '@/pages/HolidaysPage'
+import { LeaveDetailPage } from '@/pages/LeaveDetailPage'
+import { LeaveLetterPage } from '@/pages/LeaveLetterPage'
+import { LeaveRequestsPage } from '@/pages/LeaveRequestsPage'
+import { LeaveTypesPage } from '@/pages/LeaveTypesPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { MyLeavePage } from '@/pages/MyLeavePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { UnmatchedScansPage } from '@/pages/UnmatchedScansPage'
 import { UsersPage } from '@/pages/UsersPage'
@@ -62,6 +67,12 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/ganti-password" element={<ChangePasswordRoute />} />
+      {/* Surat siap cetak (K-082) tanpa kerangka aplikasi agar hasil cetak/PDF bersih. */}
+      <Route
+        path="/izin/:id/surat"
+        element={<RequireAuth>{managers(<LeaveLetterPage mode="manager" />)}</RequireAuth>}
+      />
+      <Route path="/izin-saya/:id/surat" element={<RequireAuth><LeaveLetterPage mode="mine" /></RequireAuth>} />
       <Route
         element={
           <RequireAuth>
@@ -73,6 +84,12 @@ function App() {
         <Route path="absensi" element={managers(<AttendancePage />)} />
         <Route path="absensi/karyawan/:id" element={managers(<AttendanceEmployeePage />)} />
         <Route path="absensi/scan-tak-dikenal" element={managers(<UnmatchedScansPage />)} />
+        <Route path="izin" element={managers(<LeaveRequestsPage />)} />
+        <Route path="izin/:id" element={managers(<LeaveDetailPage mode="manager" />)} />
+        <Route path="jenis-izin" element={<RequireRole roles={['OWNER']}><LeaveTypesPage /></RequireRole>} />
+        {/* Pengajuan sendiri: backend memastikan akun terhubung ke data karyawan. */}
+        <Route path="izin-saya" element={<MyLeavePage />} />
+        <Route path="izin-saya/:id" element={<LeaveDetailPage mode="mine" />} />
         <Route path="karyawan" element={managers(<EmployeesPage />)} />
         <Route path="karyawan/:id" element={managers(<EmployeeDetailPage />)} />
         <Route path="cabang" element={managers(<BranchesPage />)} />

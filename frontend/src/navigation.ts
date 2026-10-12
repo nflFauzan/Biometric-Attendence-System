@@ -1,7 +1,9 @@
 import {
   Building2,
   Calculator,
+  CalendarCheck,
   CalendarDays,
+  FileText,
   ClipboardCheck,
   ScanSearch,
   Fingerprint,
@@ -39,6 +41,8 @@ export const MENU: MenuItem[] = [
   { path: '/', label: 'Dashboard', roles: MANAGERS, icon: LayoutDashboard, group: 'Operasional', mobile: true },
   { path: '/absensi', label: 'Absensi Harian', roles: MANAGERS, icon: ClipboardCheck, group: 'Operasional', mobile: true },
   { path: '/absensi/scan-tak-dikenal', label: 'Scan Tak Dikenal', roles: MANAGERS, icon: ScanSearch, group: 'Operasional' },
+  // Di HP diakses lewat lonceng notifikasi di header atau menu "Lainnya", agar bottom navigation tidak penuh.
+  { path: '/izin', label: 'Izin & Cuti', roles: MANAGERS, icon: CalendarCheck, group: 'Operasional' },
   { path: '/karyawan', label: 'Karyawan', roles: MANAGERS, icon: Users, group: 'Master data', mobile: true },
   { path: '/cabang', label: 'Cabang', roles: MANAGERS, icon: Building2, group: 'Master data' },
   { path: '/kategori', label: 'Kategori Karyawan', roles: MANAGERS, icon: Tags, group: 'Master data' },
@@ -46,9 +50,11 @@ export const MENU: MenuItem[] = [
   { path: '/akun', label: 'Akun', roles: MANAGERS, icon: UserCog, group: 'Master data' },
   { path: '/aturan-kerja', label: 'Aturan Kerja', roles: MANAGERS, icon: SlidersHorizontal, group: 'Pengaturan' },
   { path: '/kalender-libur', label: 'Kalender Libur', roles: MANAGERS, icon: CalendarDays, group: 'Pengaturan' },
+  { path: '/jenis-izin', label: 'Jenis Izin/Cuti', roles: ['OWNER'], icon: FileText, group: 'Pengaturan' },
   { path: '/simulasi', label: 'Simulasi Perhitungan', roles: MANAGERS, icon: Calculator, group: 'Pengaturan' },
   { path: '/audit-log', label: 'Audit Log', roles: ['OWNER'], icon: ScrollText, group: 'Sistem' },
   { path: '/profil', label: 'Profil Saya', roles: ['EMPLOYEE'], icon: UserRound, group: 'Saya', mobile: true },
+  { path: '/izin-saya', label: 'Izin & Cuti Saya', roles: ['EMPLOYEE'], icon: CalendarCheck, group: 'Saya', mobile: true },
 ]
 
 export function menuFor(role: Role): MenuItem[] {

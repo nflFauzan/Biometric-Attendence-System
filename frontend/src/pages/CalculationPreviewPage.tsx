@@ -19,6 +19,7 @@ const STATUS_LABELS: Record<AttendanceStatus, string> = {
   TIDAK_LENGKAP: 'Tidak lengkap — perlu ditinjau',
   TIDAK_HADIR: 'Tidak hadir',
   TIDAK_ADA_SCAN: 'Tidak ada scan',
+  IZIN: 'Izin',
 }
 
 const DAY_TYPE_LABELS: Record<DayType, string> = {
@@ -32,6 +33,9 @@ const FLAG_LABELS: Record<CalculationFlag, string> = {
   PERLU_TINJAUAN_HARI_LIBUR:
     'Hadir di hari libur atau bukan hari kerja. Hanya total kehadiran yang dihitung; perlakuan lemburnya belum ditetapkan.',
   URUTAN_TIDAK_WAJAR: 'Jam pulang tidak setelah jam masuk.',
+  // Simulasi tidak memakai data izin; label ini hanya melengkapi tipe.
+  HADIR_SAAT_IZIN: 'Ada scan padahal izin disetujui.',
+  IZIN_MENUNGGU: 'Ada pengajuan izin yang belum diputus.',
 }
 
 function timeValue(value: TimeValue | null) {

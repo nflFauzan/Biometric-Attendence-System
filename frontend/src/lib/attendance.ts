@@ -5,6 +5,7 @@ export const STATUS_LABELS: Record<AttendanceStatus, string> = {
   TIDAK_LENGKAP: 'Tidak lengkap',
   TIDAK_HADIR: 'Tidak hadir',
   TIDAK_ADA_SCAN: 'Tidak ada scan',
+  IZIN: 'Izin',
 }
 
 export const SCAN_FLAG_LABELS: Record<ScanFlag, string> = {
@@ -17,12 +18,19 @@ export const CALCULATION_FLAG_LABELS: Record<CalculationFlag, string> = {
   ISTIRAHAT_BELUM_DIATUR: 'Istirahat belum diatur',
   PERLU_TINJAUAN_HARI_LIBUR: 'Hadir di hari libur, perlu ditinjau',
   URUTAN_TIDAK_WAJAR: 'Jam pulang tidak setelah jam masuk',
+  HADIR_SAAT_IZIN: 'Ada scan padahal izin disetujui, perlu ditinjau',
+  IZIN_MENUNGGU: 'Ada pengajuan izin yang belum diputus',
 }
 
 export type Tone = 'success' | 'warning' | 'danger' | 'neutral' | 'info'
 
 /** Status ringkas satu hari untuk badge (DASH-007: valid, belum lengkap, atau perlu pemeriksaan). */
 export function dayStatus(day: DayRecord): { label: string; tone: Tone } {
+  const approvedLeave = day.leave?.status === 'DISETUJUI' ? day.leave : null
+  // Izin disetujui tanpa kehadiran tetap tampil walau aturan kerja belum diatur (K-076).
+  if (approvedLeave && (day.result?.status === 'IZIN' || (!day.result && day.scans.length === 0 && !day.correction))) {
+    return { label: `Izin: ${approvedLeave.leaveTypeName}`, tone: 'info' }
+  }
   if (day.ruleMissing) {
     return { label: 'Aturan belum diatur', tone: 'danger' }
   }
@@ -41,5 +49,8 @@ export function reviewNotes(day: DayRecord): string[] {
   day.result?.flags
     .filter((flag) => flag !== 'ISTIRAHAT_BELUM_DIATUR')
     .forEach((flag) => notes.push(CALCULATION_FLAG_LABELS[flag]))
+  if (!day.result && day.leave?.status === 'MENUNGGU') {
+    notes.push(CALCULATION_FLAG_LABELS.IZIN_MENUNGGU)
+  }
   return notes
 }

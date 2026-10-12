@@ -10,16 +10,20 @@ describe('menu per role', () => {
       expect.arrayContaining(['Dashboard', 'Karyawan', 'Cabang', 'Mesin Absensi', 'Akun', 'Audit Log']),
     )
     expect(labels('OWNER')).not.toContain('Profil Saya')
+    expect(labels('OWNER')).toEqual(expect.arrayContaining(['Izin & Cuti', 'Jenis Izin/Cuti']))
   })
 
   it('HR/Finance sama seperti Owner kecuali audit log', () => {
     expect(labels('HR_FINANCE')).toContain('Karyawan')
     expect(labels('HR_FINANCE')).toContain('Akun')
     expect(labels('HR_FINANCE')).not.toContain('Audit Log')
+    expect(labels('HR_FINANCE')).toContain('Izin & Cuti')
+    // Jenis izin hanya diatur Owner (K-070).
+    expect(labels('HR_FINANCE')).not.toContain('Jenis Izin/Cuti')
   })
 
-  it('Karyawan hanya melihat profilnya sendiri', () => {
-    expect(labels('EMPLOYEE')).toEqual(['Profil Saya'])
+  it('Karyawan hanya melihat profil dan pengajuan izinnya sendiri', () => {
+    expect(labels('EMPLOYEE')).toEqual(['Profil Saya', 'Izin & Cuti Saya'])
   })
 
   it('halaman awal karyawan adalah profil, role lain dashboard', () => {

@@ -65,6 +65,7 @@ export function DashboardPage() {
         { label: 'Perlu ditinjau', value: data.totals.needsReview, to: '/absensi' },
         { label: 'Aturan kerja belum diatur', value: data.totals.ruleMissing, to: '/aturan-kerja' },
         { label: 'Scan dengan PIN tak dikenal', value: data.unmatchedScans, to: '/absensi/scan-tak-dikenal' },
+        { label: 'Pengajuan izin menunggu persetujuan', value: data.pendingLeaveRequests ?? 0, to: '/izin' },
       ]
     : []
 
@@ -95,7 +96,11 @@ export function DashboardPage() {
           label="Hadir hari ini"
           value={totals?.present}
           to="/absensi"
-          hint={totals ? `dari ${totals.totalEmployees} karyawan aktif` : 'Memuat…'}
+          hint={
+            totals
+              ? `dari ${totals.totalEmployees} karyawan aktif${totals.onLeave ? ` · ${totals.onLeave} izin/cuti` : ''}`
+              : 'Memuat…'
+          }
           highlight
         />
         <Tile label="Terlambat" value={totals?.late} to="/absensi" hint="Melewati jam masuk + toleransi" />

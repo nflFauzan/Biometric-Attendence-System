@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
 import { BrandMark, Wordmark } from '@/components/Brand'
+import { LeaveNotifications } from '@/components/LeaveNotifications'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { initials } from '@/lib/format'
@@ -82,6 +83,7 @@ export function AppLayout() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            {me.role !== 'EMPLOYEE' && <LeaveNotifications />}
             <div className="hidden text-right sm:block">
               <p className="text-sm leading-tight font-semibold">{displayName}</p>
               <p className="text-xs text-muted-foreground">{ROLE_LABELS[me.role]}</p>
