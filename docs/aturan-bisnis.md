@@ -162,6 +162,24 @@ Kewenangan koreksi dan kebutuhan persetujuan tambahan harus mengikuti matriks ak
 | Beberapa koreksi pada tanggal sama | Yang terbaru berlaku; yang lama tetap tersimpan sebagai riwayat. | K-066 |
 | Satu scan + koreksi sisi lainnya | Scan itu dipakai sebagai sisi yang tidak dikoreksi (mis. scan 08.00 + koreksi pulang 17.00 = lengkap). | §10.2, TC-08 |
 
+### 4.8 Izin dan Cuti (Disepakati, 2026-10-13, Fase 4)
+
+Jenis, kuota, dan dampak ke gaji belum diketahui (Q-013), sehingga yang ditetapkan di sini hanya alur dan efeknya ke rekap; tidak ada jenis atau kuota yang ditanam di kode.
+
+| Aturan | Ketentuan | Keputusan |
+|---|---|---|
+| Jenis izin/cuti | Diatur Owner (nama, wajib surat, dibayar/belum ditentukan, aktif). Contoh awal: Sakit, Cuti, Izin. | K-070 |
+| Satuan | Rentang tanggal hari penuh. Izin per jam belum didukung. | K-071 |
+| Kuota | Belum ada; pemakaian per jenis per tahun hanya ditampilkan. | K-072 |
+| Pengaju dan penyetuju | Karyawan mengajukan sendiri, atau Owner/HR mencatat atas nama karyawan. Disetujui/ditolak oleh Owner atau HR/Finance, tetapi tidak untuk pengajuan miliknya sendiri. | K-073, K-079 |
+| Status | Menunggu → Disetujui / Ditolak (alasan wajib). Pengaju membatalkan selama Menunggu; Owner/HR membatalkan yang Menunggu atau Disetujui dengan alasan. | K-074 |
+| Tumpang tindih | Satu karyawan tidak boleh punya dua pengajuan Menunggu/Disetujui yang tanggalnya beririsan. | K-075 |
+| Efek ke rekap | Hanya hari kerja. Disetujui + tanpa scan → status **Izin**. Disetujui + ada scan → rekap dari scan, ditandai "hadir saat izin". Menunggu → status tidak berubah, hanya ditandai (LEAVE-006). | K-076 |
+| Surat pendukung | PDF/JPG/PNG maks. 5 MB, maks. 5 file. Jenis wajib surat baru bisa disetujui setelah surat diunggah. | K-077, K-078 |
+| Tanggal lampau | Boleh; batas waktunya menunggu Q-033. Rentang maks. 366 hari. | K-080 |
+| Notifikasi | Owner/HR mendapat notifikasi langsung di aplikasi saat ada pengajuan baru. | K-081 |
+| Surat pengajuan | Bisa dicetak atau disimpan sebagai PDF dari halaman pengajuan. | K-082 |
+
 ---
 
 ## 5. Aturan Lembur
@@ -504,6 +522,7 @@ Hal-hal berikut tidak boleh ditetapkan hanya berdasarkan asumsi developer:
 13. Kewenangan, alasan, dan persetujuan untuk membuka kembali payroll.
 14. Prosedur koreksi apabila payroll sudah dibayarkan.
 15. Format final dan hasil yang diharapkan dari empat formulir payroll perusahaan.
+16. Jenis dan kuota izin/cuti, jenis yang wajib surat, dampaknya ke gaji, izin per jam, dan batas pengajuan tanggal lampau (Q-013, Q-033).
 
 Daftar pertanyaan terperinci dan status konfirmasi dikelola dalam [`pertanyaan-terbuka.md`](./pertanyaan-terbuka.md). Keputusan yang sudah disepakati harus dicatat dalam [`keputusan.md`](./keputusan.md).
 

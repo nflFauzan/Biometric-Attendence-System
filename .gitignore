@@ -53,3 +53,5 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
  
+# Surat pendukung izin/cuti (data pribadi, K-078) saat backend dijalankan lokal
+uploads/

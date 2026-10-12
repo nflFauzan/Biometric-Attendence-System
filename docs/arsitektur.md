@@ -274,6 +274,14 @@ Tanggung jawab:
 
 Dampak setiap jenis izin terhadap kehadiran dan penghasilan harus mengikuti kebijakan perusahaan yang telah dikonfirmasi.
 
+Implementasi Fase 4 (paket `leave`, rincian di [rencana-fase-4.md](rencana-fase-4.md)):
+
+- Tabel `leave_types`, `leave_requests` (exclusion constraint untuk tumpang tindih, `@Version` untuk keputusan bersamaan), dan `leave_attachments` (metadata saja).
+- Isi surat pendukung disimpan di disk (`app.uploads.dir`, di Docker volume `uploads`) dengan nama UUID; diunduh lewat endpoint yang memeriksa hak akses. Volume ini wajib ikut dicadangkan bersama database (Fase 7).
+- Rekap harian membaca izin Disetujui/Menunggu saat dihitung (K-058, K-076); tidak ada tabel rekap.
+- Notifikasi memakai stream SSE dashboard yang sudah ada (event `LEAVE`), hanya untuk Owner/HR.
+- Surat pengajuan dicetak di browser (halaman A4 tanpa kerangka aplikasi), tanpa library PDF di server.
+
 ### 6.9 Overtime Management
 
 Tanggung jawab:

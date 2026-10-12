@@ -138,6 +138,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 ### Q-013. Izin, sakit, dan cuti
 
+**Sebagian dijawab sementara 2026-10-13 oleh pengguna (Fase 4):** jenis izin diatur Owner sebagai master data (K-070), pengajuan hari penuh (K-071), tanpa kuota dulu (K-072), karyawan mengajukan sendiri dan Owner/HR bisa mencatat atas nama karyawan, persetujuan oleh Owner/HR (K-073), wajib surat diatur per jenis (K-077). **Masih terbuka:** daftar jenis dan kuota yang sebenarnya, jenis mana yang wajib surat, dampak tiap jenis ke upah harian/gaji (kolom "dibayar" sudah ada, belum dipakai), izin per jam, dan kebijakan izin mendadak/mangkir.
+
 - Apa saja jenis izin, sakit, dan cuti yang perlu tersedia?
 - Apakah masing-masing jenis memiliki kuota atau batas tertentu?
 - Siapa yang berhak menyetujui pengajuan?
@@ -173,6 +175,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 ## 4. Pengguna dan Hak Akses
 
 ### Q-016. Hak akses karyawan
+
+**Sebagian dijawab 2026-10-13:** karyawan mengajukan izin/cuti sendiri lewat aplikasi dan melihat status pengajuannya (K-073). Melihat riwayat absensi, slip gaji, dan saldo piutang sendiri masih terbuka.
 
 - Apakah karyawan boleh melihat riwayat absensi miliknya sendiri?
 - Apakah karyawan boleh melihat slip gaji dan rincian komponen penghasilan?
@@ -334,13 +338,23 @@ Cara menjawab: [`panduan-mesin-x401.md`](./panduan-mesin-x401.md) Tahap 1 dan 3,
 
 **Dampak:** isi tabel scan, rekap, dan privasi data orang di luar proyek. Untuk mesin uji milik dosen, riwayat lama **bukan data proyek** dan sebaiknya tidak disimpan.
 
+### Q-033. Batas waktu pengajuan izin untuk tanggal yang sudah lewat
+
+Saat ini pengajuan untuk tanggal lampau diizinkan tanpa batas hari (K-080), karena sakit sering baru dilaporkan setelahnya.
+
+- Berapa hari setelah kejadian izin/sakit masih boleh diajukan?
+- Apakah pengajuan untuk tanggal di periode payroll yang sudah final ditolak, atau masuk prosedur koreksi/buka-kembali (Q-014, Q-015)?
+- Apakah pembatalan izin yang sudah disetujui juga dibatasi waktunya?
+
+**Dampak:** validasi pengajuan di Fase 4 dan penguncian periode di Fase 5.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
 
 | Prioritas | ID | Alasan |
 |---|---|---|
-| P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013, Q-014, Q-015 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
+| P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
 | P0 — Sebelum Fase 3 (uji X401) | Q-029 (sebagian terjawab 2026-10-12), Q-031, Q-032 | Menentukan format adapter ZK-Push dan pemetaan PIN karyawan. |
 | P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
 | P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |

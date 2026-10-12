@@ -1,6 +1,6 @@
 # Rencana Pengerjaan
 
-**Status: disetujui 2026-10-09.** Fase 0 dan Fase 1 selesai. Fase 2 diimplementasikan 2026-10-12 (rincian di [rencana-fase-2.md](rencana-fase-2.md)) dan menunggu checkpoint. Fase 3 diimplementasikan 2026-10-12 (rincian di [rencana-fase-3.md](rencana-fase-3.md)) dan menunggu checkpoint. Skenario X-01–X-08 dengan mesin X401 lulus 2026-10-12 (hasil di [panduan-mesin-x401.md](panduan-mesin-x401.md) Tahap 6).
+**Status: disetujui 2026-10-09.** Fase 0 dan Fase 1 selesai. Fase 2 diimplementasikan 2026-10-12 (rincian di [rencana-fase-2.md](rencana-fase-2.md)) dan menunggu checkpoint. Fase 3 diimplementasikan 2026-10-12 (rincian di [rencana-fase-3.md](rencana-fase-3.md)) dan menunggu checkpoint. Skenario X-01–X-08 dengan mesin X401 lulus 2026-10-12 (hasil di [panduan-mesin-x401.md](panduan-mesin-x401.md) Tahap 6). Fase 4 diimplementasikan 2026-10-13 (rincian di [rencana-fase-4.md](rencana-fase-4.md)) dan menunggu checkpoint.
 
 Prinsip urutan:
 - Bagian yang paling menentukan benar-tidaknya gaji (aturan dan perhitungan) dikerjakan dan diuji lebih dulu.
@@ -50,7 +50,10 @@ Prinsip urutan:
 ## Fase 4 — Izin dan cuti
 
 - Pengajuan oleh karyawan dengan unggah surat, persetujuan oleh HR/Finance/Owner, dan efeknya ke rekap.
-- Detail jenis dan kuota menunggu jawaban pertanyaan terbuka no. 10.
+- Notifikasi langsung ke Owner/HR dan surat pengajuan yang bisa dicetak/disimpan PDF (K-081, K-082).
+- Jenis izin diatur Owner; kuota, dampak ke gaji, dan izin per jam menunggu Q-013 (K-070–K-072).
+
+**Selesai jika:** alur ajukan → setujui/tolak/batalkan teruji (termasuk tumpang tindih dan keputusan bersamaan), izin disetujui tercermin di rekap sebagai Izin, pengajuan yang menunggu tidak mengubah rekap, dan karyawan tidak bisa melihat pengajuan atau surat milik karyawan lain.
 
 ## Fase 5 — Penggajian
 

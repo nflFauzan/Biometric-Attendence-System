@@ -90,6 +90,19 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-067 | 2026-10-12 | Mesin tak terdaftar ditolak tanpa OK; nomor serinya ditampilkan untuk didaftarkan | Disepakati |
 | K-068 | 2026-10-12 | Scan PIN tak dikenal dihubungkan ke karyawan saat PIN-nya diisi | Disepakati |
 | K-069 | 2026-10-12 | Kolom jam/tanggal tanpa zona disimpan apa adanya (hapus hibernate.jdbc.time_zone) | Disepakati, perbaikan bug |
+| K-070 | 2026-10-13 | Jenis izin/cuti adalah master data yang diatur Owner (wajib surat, dibayar/belum ditentukan, aktif) | Disepakati |
+| K-071 | 2026-10-13 | Pengajuan izin berupa rentang tanggal hari penuh; izin per jam ditunda | Disepakati |
+| K-072 | 2026-10-13 | Tanpa kuota cuti dulu; pemakaian per jenis per tahun ditampilkan saat menyetujui | Disepakati, menunggu Q-013 |
+| K-073 | 2026-10-13 | Karyawan mengajukan sendiri; Owner/HR bisa mencatat atas nama karyawan; Owner/HR yang menyetujui | Disepakati |
+| K-074 | 2026-10-13 | Status Menunggu → Disetujui/Ditolak, dan Dibatalkan; tolak dan batal (oleh Owner/HR) wajib alasan | Disepakati |
+| K-075 | 2026-10-13 | Pengajuan aktif satu karyawan tidak boleh tumpang tindih (exclusion constraint) | Disepakati |
+| K-076 | 2026-10-13 | Izin disetujui → status rekap IZIN di hari kerja tanpa scan; ada scan → penanda HADIR_SAAT_IZIN; menunggu tidak berpengaruh | Disepakati |
+| K-077 | 2026-10-13 | "Wajib surat" diperiksa saat persetujuan, bukan saat pengajuan | Disepakati |
+| K-078 | 2026-10-13 | Lampiran PDF/JPG/PNG ≤ 5 MB, maks. 5 per pengajuan, dicek dari isi file, disimpan di volume disk | Disepakati |
+| K-079 | 2026-10-13 | Owner/HR tidak bisa memutus pengajuan miliknya sendiri | Disepakati |
+| K-080 | 2026-10-13 | Pengajuan boleh untuk tanggal lampau; rentang maks. 366 hari (batas teknis) | Disepakati, batas lampau menunggu Q-033 |
+| K-081 | 2026-10-13 | Notifikasi langsung di dalam aplikasi untuk Owner/HR (pop-up SSE + lonceng); tanpa email/WA | Disepakati |
+| K-082 | 2026-10-13 | Surat pengajuan siap cetak / simpan PDF lewat fitur cetak browser | Disepakati |
 
 ---
 
@@ -394,6 +407,25 @@ Hal yang belum dikunci:
 - Dampak keterlambatan dan pulang cepat terhadap penghasilan.
 
 Nilai-nilai tersebut harus dicatat dalam konfigurasi atau keputusan bisnis yang disetujui, bukan ditebak oleh developer.
+
+
+### Fase 4 — Izin dan Cuti (K-070–K-082)
+
+Rincian teknis ada di [rencana-fase-4.md](rencana-fase-4.md). Keputusan dipilih pengguna pada 2026-10-13.
+
+- **K-070 Jenis izin diatur Owner.** Nama, wajib surat, dibayar (boleh "belum ditentukan"), keterangan, aktif. Contoh awal *Sakit*, *Cuti*, *Izin* hanya data awal, bukan aturan. Jenis tidak dihapus, hanya dinonaktifkan. Kolom "dibayar" belum dipakai sampai Fase 5.
+- **K-071 Hari penuh.** Izin datang terlambat/pulang cepat sementara lewat koreksi absensi (K-059).
+- **K-072 Tanpa kuota.** Sistem tidak membatasi; pemakaian per jenis per tahun (hari kalender dan hari kerja, rentang dipotong ke tahun tersebut) ditampilkan sebagai informasi.
+- **K-073 Pengaju.** Karyawan lewat `/api/me/leave-requests` (karyawan diambil dari akun, bukan dari input; milik orang lain dibalas 404). Owner/HR lewat `/api/leave-requests` dengan `employeeId`.
+- **K-074 Status.** Menunggu → Disetujui / Ditolak (alasan wajib). Pengaju bisa membatalkan selama Menunggu; Owner/HR bisa membatalkan yang Menunggu atau Disetujui dengan alasan. Persetujuan bersamaan dicegah `@Version`.
+- **K-075 Tidak tumpang tindih.** Dijaga di service (pesan jelas) dan oleh constraint `EXCLUDE USING gist` untuk status Menunggu/Disetujui, sehingga aman walau dua pengajuan dikirim bersamaan.
+- **K-076 Efek ke rekap.** Hanya di hari kerja: izin Disetujui tanpa scan/koreksi → status `IZIN`; ada scan/koreksi → rekap tetap dari scan + penanda `HADIR_SAAT_IZIN`; Menunggu → status tidak berubah + penanda `IZIN_MENUNGGU` (LEAVE-006). Hari libur/bukan hari kerja tidak berubah. Dampak ke gaji belum diterapkan.
+- **K-077 Wajib surat saat persetujuan.** Pengajuan bisa dikirim lebih dulu (surat dokter menyusul).
+- **K-078 Lampiran.** Jenis dideteksi dari *magic bytes*, nama file di disk UUID acak, hash SHA-256 dicatat, unduhan selalu `attachment` + `nosniff`. Lampiran tidak bisa dihapus dan hanya bisa ditambah selama Menunggu. Setiap pembukaan lampiran oleh Owner/HR dicatat di audit (`VIEW`); isi file tidak pernah masuk audit.
+- **K-079 Pemisahan tugas.** Akun Owner/HR yang terhubung ke data karyawan tidak bisa memutus pengajuan karyawan itu.
+- **K-080 Tanggal lampau.** Diizinkan tanpa batas hari; rentang maks. 366 hari kalender (CHECK di database).
+- **K-081 Notifikasi.** Event SSE `LEAVE` dikirim setelah commit; Owner/HR melihat pop-up dalam hitungan detik dan lonceng berisi pengajuan yang menunggu (terbaru di atas). Karyawan melihat hasil keputusan di halaman "Izin & Cuti Saya".
+- **K-082 Surat cetak/PDF.** Halaman surat tanpa kerangka aplikasi, ukuran A4, dicetak lewat browser ("Simpan sebagai PDF"); tidak ada library PDF di server. Kop surat masih umum dan bisa disesuaikan dengan contoh dari klien.
 
 ---
 
