@@ -1,6 +1,9 @@
 import {
   Building2,
+  Calculator,
+  CalendarDays,
   Fingerprint,
+  SlidersHorizontal,
   LayoutDashboard,
   ScrollText,
   Tags,
@@ -12,7 +15,7 @@ import {
 
 import type { Role } from '@/lib/types'
 
-export type MenuGroup = 'Operasional' | 'Master data' | 'Sistem' | 'Saya'
+export type MenuGroup = 'Operasional' | 'Master data' | 'Pengaturan' | 'Sistem' | 'Saya'
 
 export interface MenuItem {
   path: string
@@ -27,7 +30,7 @@ export interface MenuItem {
 const MANAGERS: Role[] = ['OWNER', 'HR_FINANCE']
 
 /** Urutan kelompok di sidebar (docs/design-system.md §6.9). */
-export const MENU_GROUPS: MenuGroup[] = ['Operasional', 'Master data', 'Sistem', 'Saya']
+export const MENU_GROUPS: MenuGroup[] = ['Operasional', 'Master data', 'Pengaturan', 'Sistem', 'Saya']
 
 /** Menu per role sesuai docs/kebutuhan.md. Backend tetap menjadi penentu akses yang sebenarnya. */
 export const MENU: MenuItem[] = [
@@ -37,6 +40,9 @@ export const MENU: MenuItem[] = [
   { path: '/kategori', label: 'Kategori Karyawan', roles: MANAGERS, icon: Tags, group: 'Master data' },
   { path: '/mesin', label: 'Mesin Absensi', roles: MANAGERS, icon: Fingerprint, group: 'Master data', mobile: true },
   { path: '/akun', label: 'Akun', roles: MANAGERS, icon: UserCog, group: 'Master data' },
+  { path: '/aturan-kerja', label: 'Aturan Kerja', roles: MANAGERS, icon: SlidersHorizontal, group: 'Pengaturan' },
+  { path: '/kalender-libur', label: 'Kalender Libur', roles: MANAGERS, icon: CalendarDays, group: 'Pengaturan' },
+  { path: '/simulasi', label: 'Simulasi Perhitungan', roles: MANAGERS, icon: Calculator, group: 'Pengaturan' },
   { path: '/audit-log', label: 'Audit Log', roles: ['OWNER'], icon: ScrollText, group: 'Sistem' },
   { path: '/profil', label: 'Profil Saya', roles: ['EMPLOYEE'], icon: UserRound, group: 'Saya', mobile: true },
 ]

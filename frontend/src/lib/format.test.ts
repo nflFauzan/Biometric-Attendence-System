@@ -1,6 +1,33 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDate, initials } from '@/lib/format'
+import { formatDate, formatDuration, formatRupiah, formatTime, initials } from '@/lib/format'
+
+describe('formatDuration', () => {
+  it('menampilkan jam dan menit tanpa pembulatan', () => {
+    expect(formatDuration(7200)).toBe('2 jam')
+    expect(formatDuration(3660)).toBe('1 jam 1 menit')
+    expect(formatDuration(45)).toBe('45 detik')
+    expect(formatDuration(0)).toBe('0 menit')
+    expect(formatDuration(null)).toBe('—')
+  })
+})
+
+describe('formatTime', () => {
+  it('memakai titik sebagai pemisah jam', () => {
+    expect(formatTime('08:00')).toBe('08.00')
+    expect(formatTime('08:00:00')).toBe('08.00')
+    expect(formatTime('17:00:45')).toBe('17.00.45')
+    expect(formatTime(null)).toBe('—')
+  })
+})
+
+describe('formatRupiah', () => {
+  it('memformat nominal rupiah', () => {
+    expect(formatRupiah(80000)).toBe('Rp80.000')
+    expect(formatRupiah(12500.5)).toBe('Rp12.500,5')
+    expect(formatRupiah(null)).toBe('—')
+  })
+})
 
 describe('formatDate', () => {
   it('menampilkan tanggal dengan bulan singkat berbahasa Indonesia', () => {

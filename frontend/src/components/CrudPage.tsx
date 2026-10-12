@@ -30,6 +30,10 @@ interface CrudPageProps<T extends { id: number }> {
   toValues: (row: T) => FormValues
   toBody: (values: FormValues, editing: T | null) => unknown
   rowActions?: (row: T) => ReactNode
+  /** Query string untuk daftar, mis. { year: '2026' }. PUT/POST tetap ke endpoint tanpa query. */
+  listParams?: Record<string, string>
+  /** Kontrol tambahan di atas tabel, mis. pemilih tahun. */
+  toolbar?: ReactNode
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {
@@ -52,9 +56,10 @@ export function ActiveBadge({ active }: { active: boolean }) {
  */
 export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
   const queryClient = useQueryClient()
+  const query = props.listParams ? `?${new URLSearchParams(props.listParams)}` : ''
   const { data, isPending, error } = useQuery({
-    queryKey: [props.endpoint],
-    queryFn: () => api<T[]>(props.endpoint),
+    queryKey: [props.endpoint, props.listParams ?? null],
+    queryFn: () => api<T[]>(`${props.endpoint}${query}`),
   })
   const [dialog, setDialog] = useState<{ editing: T | null } | null>(null)
 
@@ -99,6 +104,8 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
           </Button>
         }
       />
+
+      {props.toolbar}
 
       {error && <ErrorAlert message={error.message} />}
 

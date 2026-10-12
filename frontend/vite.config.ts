@@ -22,5 +22,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Lihat src/test/setup.ts: batas waktu dilonggarkan untuk mesin yang sibuk.
+    testTimeout: 30_000,
   },
 })

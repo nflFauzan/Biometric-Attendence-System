@@ -7,15 +7,18 @@ import type { Role } from '@/lib/types'
 import { homePathFor } from '@/navigation'
 import { AuditLogPage } from '@/pages/AuditLogPage'
 import { BranchesPage } from '@/pages/BranchesPage'
+import { CalculationPreviewPage } from '@/pages/CalculationPreviewPage'
 import { CategoriesPage } from '@/pages/CategoriesPage'
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DevicesPage } from '@/pages/DevicesPage'
 import { EmployeeDetailPage } from '@/pages/EmployeeDetailPage'
 import { EmployeesPage } from '@/pages/EmployeesPage'
+import { HolidaysPage } from '@/pages/HolidaysPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { UsersPage } from '@/pages/UsersPage'
+import { WorkRulesPage } from '@/pages/WorkRulesPage'
 
 const MANAGERS: Role[] = ['OWNER', 'HR_FINANCE']
 
@@ -70,6 +73,9 @@ function App() {
         <Route path="kategori" element={managers(<CategoriesPage />)} />
         <Route path="mesin" element={managers(<DevicesPage />)} />
         <Route path="akun" element={managers(<UsersPage />)} />
+        <Route path="aturan-kerja" element={managers(<WorkRulesPage />)} />
+        <Route path="kalender-libur" element={managers(<HolidaysPage />)} />
+        <Route path="simulasi" element={managers(<CalculationPreviewPage />)} />
         <Route path="audit-log" element={<RequireRole roles={['OWNER']}><AuditLogPage /></RequireRole>} />
         <Route path="profil" element={<RequireRole roles={['EMPLOYEE']}><ProfilePage /></RequireRole>} />
       </Route>
