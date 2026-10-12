@@ -66,6 +66,14 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-043 | 2026-10-11 | Pengujian regresi wajib mencakup tarif historis dan payroll yang dibuka kembali | Disepakati |
 | K-044 | 2026-10-11 | Sesi login langsung dicabut setelah password di-reset, akun dinonaktifkan, atau role diubah | Disepakati, memperjelas K-014/K-015/K-016 |
 | K-045 | 2026-10-11 | Dokumentasi API memakai springdoc/OpenAPI, mati secara default dan hanya untuk Owner/HR-Finance | Disepakati |
+| K-046 | 2026-10-12 | Prioritas aturan per kolom: Karyawan > Kategori > Global | Disepakati, memperjelas K-028 |
+| K-047 | 2026-10-12 | Tidak ada nilai aturan bawaan; perhitungan ditolak sampai aturan wajib diatur | Disepakati |
+| K-048 | 2026-10-12 | Jam istirahat opsional; bila kosong tidak ada pengurangan dan rekap diberi penanda | Disepakati, sementara menunggu Q-002 |
+| K-049 | 2026-10-12 | Aturan kerja dan tarif hanya diubah Owner; kalender libur dikelola Owner dan HR/Finance | Disepakati |
+| K-050 | 2026-10-12 | Versi aturan tidak boleh berlaku surut dan terkunci setelah tanggal berlakunya tiba | Disepakati |
+| K-051 | 2026-10-12 | Kalender libur berlaku untuk semua cabang | Disepakati, sementara |
+| K-052 | 2026-10-12 | Durasi absensi disimpan persis sampai detik tanpa pembulatan | Disepakati, sementara menunggu Q-008 |
+| K-053 | 2026-10-12 | Kehadiran di hari libur/bukan hari kerja hanya dihitung total hadirnya dan ditandai perlu tinjauan | Disepakati, sementara menunggu Q-005 |
 
 ---
 
@@ -182,6 +190,48 @@ Rincian visual terdapat di [`design-system.md`](./design-system.md).
 **Keputusan (B-04):** dokumentasi API memakai springdoc-openapi. Dokumentasi mati secara default (`OPENAPI_ENABLED=false`) dan hanya dinyalakan untuk development. Saat menyala, `/v3/api-docs` dan Swagger UI tetap hanya bisa dibuka oleh Owner dan HR/Finance yang sudah login.
 
 **Alasan:** NFR-MAINT-003 membutuhkan kontrak API yang terdokumentasi, tetapi daftar endpoint tidak perlu terbuka di production.
+
+### K-046 — Prioritas Aturan per Kolom
+
+**Keputusan (2026-10-12, dipilih pengguna):** setiap parameter aturan diambil dari level paling spesifik yang mengisinya: Karyawan, lalu Kategori, lalu Global. Parameter yang dikosongkan mewarisi level di atasnya. Di dalam satu level, versi dengan tanggal berlaku terakhir yang tidak melewati tanggal kejadian menggantikan versi lama level itu sepenuhnya.
+
+**Alasan:** pengecualian untuk satu karyawan cukup mengisi parameter yang berbeda, tanpa menyalin seluruh aturan. Sistem menampilkan asal setiap nilai (level, versi, tanggal berlaku) sehingga perhitungan dapat ditelusuri (K-040).
+
+### K-047 — Tanpa Nilai Aturan Bawaan
+
+**Keputusan (2026-10-12, dipilih pengguna):** migration tidak mengisi nilai aturan. Owner mengisi aturan Global lewat aplikasi. Selama jam masuk, jam pulang, toleransi keterlambatan, batas mulai lembur, atau hari kerja belum diatur untuk suatu tanggal, perhitungan ditolak dengan pesan "Aturan belum diatur: …".
+
+**Alasan:** nilai "acuan awal" di `aturan-bisnis.md` §3.1 belum final; menanamnya di migration sama dengan hardcode aturan bisnis.
+
+### K-048 — Istirahat Opsional
+
+**Keputusan (2026-10-12, dipilih pengguna):** jam mulai dan selesai istirahat boleh kosong (keduanya diisi atau keduanya kosong). Bila kosong, jam kerja normal tidak dikurangi istirahat dan rekap diberi penanda `ISTIRAHAT_BELUM_DIATUR`. Bila diisi, irisan jam kerja normal dengan jam istirahat dikurangkan.
+
+**Status:** sementara sampai Q-002 dijawab.
+
+### K-049 — Hak Akses Aturan dan Kalender Libur
+
+**Keputusan (2026-10-12, dipilih pengguna):** aturan kerja dan tarif hanya dapat ditambah, diubah, atau dihapus oleh Owner (sesuai K-004); HR/Finance dapat melihat. Kalender libur dikelola Owner dan HR/Finance. Karyawan tidak memiliki akses. Diterapkan di `SecurityConfig` dan diuji `AccessControlTests`.
+
+### K-050 — Versi Aturan Tidak Berlaku Surut
+
+**Keputusan (2026-10-12):** versi aturan baru hanya boleh berlaku mulai hari ini atau sesudahnya. Versi yang tanggal berlakunya sudah tiba terkunci: tidak bisa diubah atau dihapus. Perubahan dilakukan dengan membuat versi baru. Versi yang belum berlaku boleh diubah atau dihapus, dan setiap perubahan tercatat di audit log. "Hari ini" mengikuti zona waktu perusahaan (`COMPANY_TIMEZONE`, bawaan `Asia/Jakarta`).
+
+**Alasan:** menjamin perubahan aturan tidak mengubah hasil tanggal sebelumnya (K-033). Prosedur koreksi aturan berlaku surut dicatat sebagai Q-026.
+
+### K-051 — Kalender Libur Semua Cabang
+
+**Keputusan (2026-10-12):** satu kalender libur berlaku untuk semua cabang. Libur khusus cabang dicatat sebagai Q-027.
+
+### K-052 — Durasi Tanpa Pembulatan
+
+**Keputusan (2026-10-12):** keterlambatan, jam kerja normal, pulang lebih awal, kandidat lembur, dan total kehadiran dihitung persis sampai detik. Tidak ada pembulatan sampai Q-008 dijawab.
+
+### K-053 — Kehadiran di Hari Libur
+
+**Keputusan (2026-10-12):** pada tanggal di kalender libur atau di luar hari kerja, sistem hanya menghitung total kehadiran (jam pulang − jam masuk), tidak memisahkan jam normal, keterlambatan, atau kandidat lembur, dan memberi penanda `PERLU_TINJAUAN_HARI_LIBUR`.
+
+**Alasan:** perlakuan kerja di hari libur belum diketahui (Q-005); `aturan-bisnis.md` §3.4 melarang memakai satu rumus lembur untuk semua kasus.
 
 ---
 

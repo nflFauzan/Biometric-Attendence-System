@@ -12,6 +12,7 @@ Indeks dokumentasi proyek. Semua dokumen ditulis dalam Bahasa Indonesia.
 | [keputusan.md](keputusan.md) | Catatan keputusan beserta alasannya |
 | [pertanyaan-terbuka.md](pertanyaan-terbuka.md) | Hal yang belum diketahui atau belum diputuskan |
 | [rencana-pengerjaan.md](rencana-pengerjaan.md) | Fase pengerjaan, tugas, dan kriteria selesai |
+| [rencana-fase-2.md](rencana-fase-2.md) | Rencana teknis Fase 2: schema aturan kerja, mesin perhitungan, API, dan pengujian |
 
 ## Status label
 

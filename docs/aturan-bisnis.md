@@ -381,6 +381,29 @@ Setiap perubahan aturan atau tarif perlu memiliki tanggal mulai berlaku, penggun
 
 Aturan yang sudah digunakan oleh payroll final harus tetap dapat ditelusuri. Perubahan konfigurasi baru berlaku sesuai tanggal efektifnya dan tidak boleh mengubah snapshot payroll historis.
 
+### 10.1 Prioritas dan Versi Aturan (Disepakati, 2026-10-12)
+
+- Aturan disimpan per level: **Global**, **Kategori**, dan **Karyawan**. Setiap versi memiliki tanggal mulai berlaku.
+- Untuk sebuah tanggal, setiap level memakai versinya yang terakhir berlaku pada tanggal itu.
+- Nilai diambil **per parameter** dari level paling spesifik yang mengisinya: Karyawan, lalu Kategori, lalu Global. Parameter yang dikosongkan mewarisi level di atasnya (K-046). Jam istirahat diwariskan sebagai satu pasangan mulai–selesai.
+- Sistem menampilkan asal setiap nilai (level dan tanggal berlaku versinya).
+- Tidak ada nilai bawaan. Rekap harian hanya dapat dihitung jika jam masuk, jam pulang, toleransi keterlambatan, batas mulai lembur, dan hari kerja sudah diatur (K-047). Jam istirahat dan tarif tidak wajib untuk rekap harian.
+- Versi baru tidak boleh berlaku surut. Versi yang tanggal berlakunya sudah tiba terkunci; perubahan dilakukan dengan versi baru (K-050).
+- Aturan kerja dan tarif hanya diubah Owner; kalender libur dikelola Owner dan HR/Finance (K-049).
+
+### 10.2 Rekap Harian Sementara (Fase 2)
+
+Mesin perhitungan menerapkan §4.3–§5.2 dengan ketentuan sementara berikut sampai pertanyaan terkait dijawab:
+
+| Kondisi | Perlakuan | Dasar |
+|---|---|---|
+| Jam istirahat belum diatur | Tidak ada pengurangan; rekap ditandai `ISTIRAHAT_BELUM_DIATUR` | K-048, Q-002 |
+| Pembulatan durasi | Tidak ada; durasi persis sampai detik | K-052, Q-008 |
+| Tanggal di kalender libur atau bukan hari kerja | Hanya total kehadiran yang dihitung; ditandai `PERLU_TINJAUAN_HARI_LIBUR` | K-053, Q-005 |
+| Hanya satu scan | `TIDAK_LENGKAP`; jam masuk/pulang tidak diisi (TC-07) | §4.3 |
+| Jam pulang tidak setelah jam masuk | `TIDAK_LENGKAP` dengan penanda `URUTAN_TIDAK_WAJAR` | §4.3 |
+| Scan lintas tengah malam | Belum didukung; scan dikelompokkan per tanggal di zona waktu cabang | Q-004 |
+
 ---
 
 ## 11. Hak Akses dan Audit

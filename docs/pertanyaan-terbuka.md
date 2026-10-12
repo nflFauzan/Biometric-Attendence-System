@@ -271,6 +271,30 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 **Referensi:** `design-system.md`.
 
+## 7a. Pengaturan Aturan (ditemukan saat Fase 2, 2026-10-12)
+
+### Q-026. Koreksi aturan berlaku surut
+
+- Versi aturan saat ini tidak boleh berlaku surut dan terkunci setelah tanggal berlakunya tiba (K-050).
+- Jika Owner salah memasukkan aturan yang sudah berlaku (mis. jam masuk salah ketik), bagaimana prosedur koreksinya?
+- Siapa yang boleh melakukan koreksi berlaku surut, apakah butuh alasan atau persetujuan, dan bagaimana dampaknya terhadap rekap dan payroll yang belum/sudah final?
+
+**Dampak:** keterlacakan aturan dan payroll yang dibuka kembali (K-033, K-034).
+
+### Q-027. Hari libur khusus cabang
+
+- Apakah ada hari libur yang hanya berlaku di cabang tertentu (mis. libur daerah)?
+- Saat ini satu kalender libur berlaku untuk semua cabang (K-051).
+
+**Dampak:** penentuan hari kerja per cabang.
+
+### Q-028. Lembur yang dimulai setelah jam pulang normal
+
+- Batas mulai lembur dan jam pulang normal diatur sebagai dua parameter terpisah. Jika keduanya berbeda (mis. jam pulang 16.00, lembur mulai 17.00), bagaimana status waktu antara 16.00–17.00?
+- Saat ini waktu tersebut tidak dihitung sebagai jam normal maupun kandidat lembur.
+
+**Dampak:** durasi kerja dan lembur bila jadwal kategori berbeda dari 08.00–17.00.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
@@ -279,7 +303,7 @@ Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan k
 |---|---|---|
 | P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013, Q-014, Q-015 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
 | P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
-| P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
+| P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
 | P1 — Sebelum rilis produksi | Q-023 | Menentukan tata kelola data biometrik dan kontrol aksesnya. |
 | P2 — Sebelum UI final | Q-024, Q-025 | Menyelesaikan identitas visual dan nama aplikasi. |
 
