@@ -146,6 +146,22 @@ Setiap koreksi wajib memiliki alasan dan jejak audit. Koreksi tidak mengubah raw
 
 Kewenangan koreksi dan kebutuhan persetujuan tambahan harus mengikuti matriks akses yang ditetapkan perusahaan.
 
+### 4.7 Penerimaan Scan dan Koreksi (Disepakati, 2026-10-12, Fase 3)
+
+| Aturan | Ketentuan | Keputusan |
+|---|---|---|
+| Identitas karyawan di mesin | Satu PIN mesin per karyawan, sama di semua mesin. | K-056 |
+| Waktu scan | Jam lokal mesin ditafsirkan dengan zona waktu cabang tempat mesin berada. | K-055 |
+| Batas hari rekap | Mengikuti zona waktu cabang karyawan (scan 23.59 dan 00.01 jatuh di dua tanggal). | K-058 |
+| Scan ganda | Scan dengan mesin, PIN, dan waktu yang sama hanya disimpan sekali. | K-061 |
+| Riwayat lama | Scan sebelum "Terima scan sejak" mesin tidak disimpan, hanya dihitung. | K-057 |
+| PIN belum dipetakan | Scan tetap disimpan dengan penanda dan belum masuk rekap; terhubung otomatis saat PIN diisi. | K-065, K-068 |
+| Scan di mesin cabang lain | Tetap masuk rekap, diberi penanda untuk ditinjau. | K-065 (Q-022) |
+| Waktu scan di masa depan | Tetap disimpan, diberi penanda (jam mesin mungkin salah). | K-065 |
+| Koreksi | Jam masuk dan/atau pulang; alasan wajib; Owner dan HR/Finance; hanya untuk tanggal yang sudah terjadi. | K-059 |
+| Beberapa koreksi pada tanggal sama | Yang terbaru berlaku; yang lama tetap tersimpan sebagai riwayat. | K-066 |
+| Satu scan + koreksi sisi lainnya | Scan itu dipakai sebagai sisi yang tidak dikoreksi (mis. scan 08.00 + koreksi pulang 17.00 = lengkap). | §10.2, TC-08 |
+
 ---
 
 ## 5. Aturan Lembur

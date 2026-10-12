@@ -316,6 +316,8 @@ Cara menjawab: [`panduan-mesin-x401.md`](./panduan-mesin-x401.md) Tahap 1 dan 3,
 
 ### Q-031. Pemetaan karyawan ke PIN mesin
 
+**Dijawab sementara 2026-10-12 oleh pengguna:** satu PIN per karyawan untuk semua mesin (K-056); scan PIN tak dikenal disimpan dengan penanda dan dihubungkan saat PIN diisi (K-065, K-068). Siapa yang mendaftarkan sidik jari di mesin klien masih perlu dikonfirmasi.
+
 - Apakah satu karyawan memakai PIN yang sama di semua mesin cabang, atau PIN per mesin?
 - Siapa yang mendaftarkan sidik jari dan PIN di mesin, dan bagaimana sinkronisasinya dengan data karyawan di web?
 - Bagaimana menangani scan dari PIN yang belum dipetakan ke karyawan?
@@ -323,6 +325,8 @@ Cara menjawab: [`panduan-mesin-x401.md`](./panduan-mesin-x401.md) Tahap 1 dan 3,
 **Dampak:** schema karyawan/mesin di Fase 3 dan proses enrollment (terkait Q-019).
 
 ### Q-032. Riwayat scan lama saat mesin pertama kali tersambung
+
+**Dijawab 2026-10-12 oleh pengguna:** scan sebelum "Terima scan sejak" mesin dibalas OK tetapi tidak disimpan (K-057).
 
 - Uji 2026-10-12 menunjukkan X401 langsung mengirim **seluruh riwayat** (16.951 log sejak 2020) begitu ADMS diarahkan ke server.
 - Apakah server menyimpan semua riwayat itu sebagai scan asli, atau hanya scan sejak tanggal mesin didaftarkan di web (sisanya tetap di-ACK agar mesin berhenti mengirim, tetapi ditandai/diabaikan)?

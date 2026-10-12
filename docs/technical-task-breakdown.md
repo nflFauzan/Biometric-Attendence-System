@@ -109,7 +109,7 @@
 | `V1__akun_dan_master_data.sql` | `branches`, `employee_categories` (+ seed `KANTOR`, `SUPIR_KENEK`), `employees`, `user_accounts`, `devices`, `audit_logs` |
 | `V2__sesi_login.sql` | `SPRING_SESSION`, `SPRING_SESSION_ATTRIBUTES` (disalin dari schema spring-session-jdbc 4.1.1) |
 
-`spring.jpa.hibernate.ddl-auto=validate`, `open-in-view=false`, `hibernate.jdbc.time_zone=UTC`.
+`spring.jpa.hibernate.ddl-auto=validate`, `open-in-view=false`. (`hibernate.jdbc.time_zone=UTC` sempat dipakai lalu dihapus di Fase 3 karena menggeser kolom jam tanpa zona; lihat K-069.)
 
 **Test yang tersedia**
 

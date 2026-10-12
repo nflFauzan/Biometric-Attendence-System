@@ -1,6 +1,6 @@
 # Rencana Teknis — Fase 3: Absensi
 
-**Status: draft 2026-10-12, menunggu persetujuan pengguna.**
+**Status: disetujui dan diimplementasikan 2026-10-12; menunggu checkpoint pengguna.** Keputusan K-056–K-068 tercatat di [keputusan.md](keputusan.md). Selama implementasi ditemukan dan diperbaiki bug penyimpanan jam (K-069).
 Acuan: [rencana-pengerjaan.md](rencana-pengerjaan.md) Fase 3, [kebutuhan.md](kebutuhan.md) ATT/COR/DASH/DEV, [aturan-bisnis.md](aturan-bisnis.md) §4, [arsitektur.md](arsitektur.md) §11, K-054/K-055, dan hasil uji mesin di [panduan-mesin-x401.md](panduan-mesin-x401.md) §7.
 
 Tujuan: scan dari mesin (X401 sekarang, alat rakitan nanti) tersimpan tanpa hilang atau ganda, langsung terlihat di dashboard, dan menjadi rekap harian memakai mesin perhitungan Fase 2. Koreksi absensi disimpan terpisah dari scan asli dengan alasan dan audit.

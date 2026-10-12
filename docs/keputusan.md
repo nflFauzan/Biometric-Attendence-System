@@ -76,6 +76,20 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-053 | 2026-10-12 | Kehadiran di hari libur/bukan hari kerja hanya dihitung total hadirnya dan ditandai perlu tinjauan | Disepakati, sementara menunggu Q-005 |
 | K-054 | 2026-10-12 | Penerimaan scan memakai inti yang sama untuk semua mesin, ditambah adapter per protokol | Disepakati, memperjelas K-008/K-018 |
 | K-055 | 2026-10-12 | Mesin Solution X401 (mode ADMS) dipakai sebagai mesin uji sementara, dengan batasan tercatat | Disepakati, sementara sampai alat rakitan siap; menunggu Q-029 |
+| K-056 | 2026-10-12 | Satu PIN mesin per karyawan, berlaku di semua mesin | Disepakati, menjawab Q-031 |
+| K-057 | 2026-10-12 | Scan lebih lama dari "Terima scan sejak" mesin di-ACK tetapi tidak disimpan | Disepakati, menjawab Q-032 |
+| K-058 | 2026-10-12 | Rekap harian dihitung saat dibuka, tanpa tabel rekap | Disepakati |
+| K-059 | 2026-10-12 | Koreksi absensi oleh Owner dan HR/Finance, alasan wajib, tanpa persetujuan kedua | Disepakati |
+| K-060 | 2026-10-12 | Endpoint mesin juga dibuka di port 8888 | Disepakati, sementara (keypad X401) |
+| K-061 | 2026-10-12 | ACK "OK" hanya setelah commit; duplikat diabaikan unique constraint | Disepakati |
+| K-062 | 2026-10-12 | Baris scan rusak disimpan di rejected_scan_lines dan kiriman tetap di-ACK | Disepakati |
+| K-063 | 2026-10-12 | Mesin hanya diminta mengirim data absensi, bukan data user/sidik jari | Disepakati |
+| K-064 | 2026-10-12 | Mesin offline bila tidak ada kontak selama DEVICE_OFFLINE_AFTER (bawaan 5 menit) | Disepakati |
+| K-065 | 2026-10-12 | Penanda scan: PIN tak dikenal, waktu di masa depan, cabang berbeda | Disepakati, sementara menunggu Q-022 |
+| K-066 | 2026-10-12 | Satu koreksi aktif per karyawan per tanggal; koreksi lama tetap tersimpan | Disepakati |
+| K-067 | 2026-10-12 | Mesin tak terdaftar ditolak tanpa OK; nomor serinya ditampilkan untuk didaftarkan | Disepakati |
+| K-068 | 2026-10-12 | Scan PIN tak dikenal dihubungkan ke karyawan saat PIN-nya diisi | Disepakati |
+| K-069 | 2026-10-12 | Kolom jam/tanggal tanpa zona disimpan apa adanya (hapus hibernate.jdbc.time_zone) | Disepakati, perbaikan bug |
 
 ---
 
@@ -310,6 +324,32 @@ Detail penyimpanan template sidik jari, kebijakan retensi, dan prosedur penghapu
 **Status:** Menunggu Konfirmasi.
 
 Versi awal menggunakan tiga role. Kebutuhan membuat role khusus dan membatasi pengguna berdasarkan cabang perlu divalidasi sebelum desain otorisasi final dikunci.
+
+### K-056 sampai K-068 — Absensi Fase 3
+
+Dipilih/disetujui pengguna 2026-10-12. Rincian teknis, schema, dan pengujiannya ada di [`rencana-fase-3.md`](./rencana-fase-3.md); aturan operasionalnya di [`aturan-bisnis.md`](./aturan-bisnis.md) §4.7.
+
+- **K-056:** kolom `device_pin` (teks, unik) di karyawan. Mesin rakitan cukup mengirim PIN yang sama.
+- **K-057:** setiap mesin punya `accept_scans_from` (bawaan: saat didaftarkan). Scan lebih lama dibalas OK agar mesin berhenti mengirim, tidak disimpan, dan hanya dihitung (`ignored_scan_count`). Alasan: riwayat mesin uji X401 berisi 16.951 data orang di luar proyek.
+- **K-058:** rekap = mesin perhitungan Fase 2 atas scan asli + koreksi aktif + aturan berlaku, dihitung saat dibuka. Tidak ada data rekap basi; snapshot baru disimpan saat payroll final (Fase 5, K-035).
+- **K-059:** koreksi oleh Owner dan HR/Finance; persetujuan kedua (COR-008) belum diterapkan.
+- **K-060:** `docker-compose` memetakan `8888:8080` (`DEVICE_PORT`) karena tombol 0 di keypad X401 rusak. Di produksi diganti reverse proxy (Fase 7).
+- **K-061:** satu kiriman ATTLOG = satu transaksi; `insert … on conflict do nothing` atas (mesin, PIN, waktu). Balasan `OK` dikirim setelah transaksi selesai; gagal simpan → HTTP 500 `ERROR`, mesin mengirim ulang (terbukti di uji X401).
+- **K-062:** baris yang tidak bisa dibaca disimpan apa adanya di `rejected_scan_lines`; kiriman tetap di-ACK agar scan valid dalam kiriman yang sama tidak tertahan.
+- **K-063:** handshake `TransFlag=TransData AttLog`. Tabel lain yang tetap datang dibalas OK tanpa disimpan.
+- **K-064:** `DEVICE_OFFLINE_AFTER` (bawaan 5 menit) adalah parameter teknis, bukan aturan bisnis.
+- **K-065:** `PIN_TIDAK_DIKENAL` (tidak masuk rekap sampai dihubungkan), `WAKTU_DI_MASA_DEPAN` (lebih dari `SCAN_FUTURE_TOLERANCE`, bawaan 5 menit), `CABANG_BERBEDA` (tetap masuk rekap, hanya ditandai sampai Q-022 dijawab).
+- **K-066:** koreksi baru mengisi `superseded_at` koreksi lama; audit mencatat jam masuk/pulang sebelum dan sesudah beserta alasan.
+- **K-067:** mesin tak terdaftar/nonaktif dibalas HTTP 401 `UNKNOWN DEVICE`; nomor serinya disimpan di memori (bukan database) dan ditampilkan di halaman Mesin.
+- **K-068:** satu-satunya perubahan pada baris scan asli adalah mengisi `employee_id` (dan menghapus penanda `PIN_TIDAK_DIKENAL`) untuk scan yang PIN-nya baru dipetakan, dalam transaksi yang sama dengan perubahan karyawan, tercatat sebagai `LINK_SCANS` di audit. Waktu, PIN, dan baris mentah tidak berubah.
+
+### K-069 — Penyimpanan Jam Tanpa Zona Waktu (perbaikan bug)
+
+**Keputusan (2026-10-12):** properti `spring.jpa.properties.hibernate.jdbc.time_zone=UTC` dihapus.
+
+**Alasan:** properti itu menggeser nilai kolom `TIME`/`TIMESTAMP` tanpa zona sebesar selisih zona JVM. Di database dev, aturan Global yang diisi 08:00 lewat aplikasi tersimpan sebagai 01:00 (JVM berzona WIB), dan aturan yang ditulis langsung ke database terbaca 7 jam bergeser. Selama semua baca/tulis lewat aplikasi di zona yang sama hasilnya tampak benar, tetapi laporan/ekspor SQL, server dengan zona berbeda, atau jam koreksi dan jam lokal mesin akan salah. Kolom `TIMESTAMPTZ` (`Instant`) tetap disimpan dalam UTC oleh Hibernate. Dijaga test regresi `TimeColumnStorageTests`.
+
+**Dampak data:** data aturan di database dev yang dibuat sebelum perbaikan tersimpan bergeser 7 jam dan perlu diisi ulang. Belum ada data produksi.
 
 ---
 
