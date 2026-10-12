@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
@@ -160,6 +161,77 @@ class AccessControlTests extends IntegrationTest {
 		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
 		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
 		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+	}
+
+	private static final String LEAVE_SUBMIT = "{\"employeeId\":" + MISSING + ",\"leaveTypeId\":1,"
+			+ "\"startDate\":\"2026-10-05\",\"endDate\":\"2026-10-05\",\"reason\":\"Uji hak akses\"}";
+	private static final String LEAVE_TYPE = "{\"name\":\"Uji akses\",\"requiresDocument\":false,\"active\":true}";
+
+	/** Fase 4: pengelolaan izin/cuti hanya untuk Owner dan HR/Finance (K-073, K-074). */
+	static Stream<Arguments> phase4ManagerEndpoints() {
+		return Stream.of(Arguments.of(HttpMethod.GET, "/api/leave-requests/" + MISSING, null),
+				Arguments.of(HttpMethod.POST, "/api/leave-requests", LEAVE_SUBMIT),
+				Arguments.of(HttpMethod.POST, "/api/leave-requests/" + MISSING + "/approve", "{}"),
+				Arguments.of(HttpMethod.POST, "/api/leave-requests/" + MISSING + "/reject", "{\"note\":\"x\"}"),
+				Arguments.of(HttpMethod.POST, "/api/leave-requests/" + MISSING + "/cancel", "{\"note\":\"x\"}"),
+				Arguments.of(HttpMethod.GET, "/api/leave-requests/usage?employeeId=" + MISSING + "&year=2026", null),
+				Arguments.of(HttpMethod.GET, "/api/leave-requests/" + MISSING + "/attachments/1", null));
+	}
+
+	@ParameterizedTest(name = "{0} {1}")
+	@MethodSource("phase4ManagerEndpoints")
+	void phase4ManagerEndpointMatrix(HttpMethod method, String url, String body) throws Exception {
+		managerEndpointMatrix(method, url, body);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "/api/leave-requests", "/api/leave-requests/pending" })
+	void phase4ReadsForOwnerAndHrFinanceOnly(String url) throws Exception {
+		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void leaveAttachmentUploadIsForManagersOnly() throws Exception {
+		var file = new org.springframework.mock.web.MockMultipartFile("file", "surat.pdf", "application/pdf",
+				"%PDF-1.4".getBytes());
+		mockMvc.perform(multipart("/api/leave-requests/" + MISSING + "/attachments").file(file).with(OWNER).with(csrf()))
+			.andExpect(status().isNotFound());
+		mockMvc.perform(multipart("/api/leave-requests/" + MISSING + "/attachments").file(file).with(EMPLOYEE)
+			.with(csrf())).andExpect(status().isForbidden());
+		mockMvc.perform(multipart("/api/leave-requests/" + MISSING + "/attachments").file(file).with(csrf()))
+			.andExpect(status().isUnauthorized());
+	}
+
+	/** Jenis izin dibaca semua pengguna yang login (untuk form pengajuan), diubah hanya Owner (K-070). */
+	@Test
+	void leaveTypesReadableByAllButWritableByOwnerOnly() throws Exception {
+		mockMvc.perform(get("/api/leave-types").with(OWNER)).andExpect(status().isOk());
+		mockMvc.perform(get("/api/leave-types").with(HR_FINANCE)).andExpect(status().isOk());
+		mockMvc.perform(get("/api/leave-types").with(EMPLOYEE)).andExpect(status().isOk());
+		mockMvc.perform(get("/api/leave-types")).andExpect(status().isUnauthorized());
+
+		mockMvc.perform(build(HttpMethod.PUT, "/api/leave-types/" + MISSING, LEAVE_TYPE).with(OWNER))
+			.andExpect(status().isNotFound());
+		for (HttpMethod method : new HttpMethod[] { HttpMethod.POST, HttpMethod.PUT }) {
+			String url = method == HttpMethod.POST ? "/api/leave-types" : "/api/leave-types/" + MISSING;
+			mockMvc.perform(build(method, url, LEAVE_TYPE).with(HR_FINANCE)).andExpect(status().isForbidden());
+			mockMvc.perform(build(method, url, LEAVE_TYPE).with(EMPLOYEE)).andExpect(status().isForbidden());
+			mockMvc.perform(build(method, url, LEAVE_TYPE)).andExpect(status().isUnauthorized());
+		}
+	}
+
+	/**
+	 * Pengajuan milik sendiri butuh login dan akun yang terhubung ke data karyawan; pengguna uji di sini tidak
+	 * punya akun di database sehingga ditolak 403 oleh service, bukan oleh aturan URL.
+	 */
+	@ParameterizedTest
+	@ValueSource(strings = { "/api/me/leave-requests", "/api/me/leave-requests/" + MISSING })
+	void ownLeaveRequestsRequireLinkedEmployee(String url) throws Exception {
+		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
 	}
 
 	@Test

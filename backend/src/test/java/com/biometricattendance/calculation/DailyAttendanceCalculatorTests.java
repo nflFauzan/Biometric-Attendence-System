@@ -15,6 +15,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import com.biometricattendance.calculation.DailyInput.LeaveState;
 import com.biometricattendance.calculation.DailyResult.AttendanceStatus;
 import com.biometricattendance.calculation.DailyResult.DayType;
 import com.biometricattendance.calculation.DailyResult.Flag;
@@ -274,6 +275,59 @@ class DailyAttendanceCalculatorTests {
 		EffectiveRule empty = RuleResolver.resolve(List.of(), MONDAY);
 
 		assertThatThrownBy(() -> calculate(empty, "08:00", "17:00")).isInstanceOf(RuleNotConfiguredException.class);
+	}
+
+	// ---- Fase 4: izin/cuti (K-076) ----
+
+	private static DailyResult withLeave(LocalDate date, LeaveState leave, boolean holiday, String... times) {
+		return DailyAttendanceCalculator
+			.calculate(new DailyInput(date, JAKARTA, scans(date, times), null, ruleWithoutBreak(), holiday, leave));
+	}
+
+	@Test
+	void approvedLeaveOnWorkdayWithoutScanIsIzinNotAbsent() {
+		DailyResult result = withLeave(MONDAY, LeaveState.APPROVED, false);
+
+		assertThat(result.status()).isEqualTo(AttendanceStatus.IZIN);
+		assertThat(result.late()).isNull();
+		assertThat(result.regularWork()).isNull();
+		assertThat(result.flags()).isEmpty();
+	}
+
+	@Test
+	void scansDuringApprovedLeaveAreStillCalculatedButFlaggedForReview() {
+		DailyResult result = withLeave(MONDAY, LeaveState.APPROVED, false, "08:00", "17:00");
+
+		assertThat(result.status()).isEqualTo(AttendanceStatus.LENGKAP);
+		assertThat(result.regularWork()).isEqualTo(Duration.ofHours(9));
+		assertThat(result.flags()).contains(Flag.HADIR_SAAT_IZIN);
+	}
+
+	/** LEAVE-006: pengajuan yang belum disetujui tidak dianggap izin sah. */
+	@Test
+	void pendingLeaveDoesNotChangeStatusOnlyFlagsIt() {
+		DailyResult result = withLeave(MONDAY, LeaveState.PENDING, false);
+
+		assertThat(result.status()).isEqualTo(AttendanceStatus.TIDAK_HADIR);
+		assertThat(result.flags()).containsExactly(Flag.IZIN_MENUNGGU);
+	}
+
+	@Test
+	void leaveDoesNotChangeNonWorkdaysOrHolidays() {
+		assertThat(withLeave(SUNDAY, LeaveState.APPROVED, false).status()).isEqualTo(AttendanceStatus.TIDAK_ADA_SCAN);
+		assertThat(withLeave(SUNDAY, LeaveState.PENDING, false).flags()).isEmpty();
+		DailyResult holiday = withLeave(MONDAY, LeaveState.APPROVED, true);
+		assertThat(holiday.status()).isEqualTo(AttendanceStatus.TIDAK_ADA_SCAN);
+		assertThat(holiday.flags()).isEmpty();
+	}
+
+	@Test
+	void inputWithoutLeaveBehavesAsBefore() {
+		DailyResult result = DailyAttendanceCalculator
+			.calculate(new DailyInput(MONDAY, JAKARTA, List.of(), null, ruleWithoutBreak(), false, null));
+
+		assertThat(result.status()).isEqualTo(AttendanceStatus.TIDAK_HADIR);
+		assertThat(result.flags()).isEmpty();
 	}
 
 }

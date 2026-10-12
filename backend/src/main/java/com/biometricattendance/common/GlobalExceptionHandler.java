@@ -6,6 +6,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -15,6 +16,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 /** Semua error API dikembalikan dalam format ProblemDetail (RFC 9457). */
 @RestControllerAdvice
@@ -56,6 +60,23 @@ public class GlobalExceptionHandler {
 		log.warn("Pelanggaran integritas data: {}", ex.getMostSpecificCause().getMessage());
 		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
 				"Data bentrok dengan data yang sudah ada. Muat ulang lalu coba lagi");
+	}
+
+	/** Dua pengguna mengubah data yang sama bersamaan (@Version), mis. dua penyetuju satu pengajuan izin. */
+	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+	ProblemDetail handleOptimisticLock() {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+				"Data baru saja diubah oleh pengguna lain. Muat ulang lalu coba lagi");
+	}
+
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	ProblemDetail handleUploadTooLarge() {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.CONTENT_TOO_LARGE, "Ukuran file maksimal 5 MB");
+	}
+
+	@ExceptionHandler({ MissingServletRequestPartException.class, MultipartException.class })
+	ProblemDetail handleMissingFile() {
+		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Pilih file surat yang akan diunggah");
 	}
 
 	@ExceptionHandler(BadCredentialsException.class)

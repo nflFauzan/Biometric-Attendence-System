@@ -11,6 +11,7 @@ import com.biometricattendance.attendance.ScanFlag;
 import com.biometricattendance.calculation.DailyResult.AttendanceStatus;
 import com.biometricattendance.calculation.DailyResult.Flag;
 import com.biometricattendance.device.DeviceDtos.DeviceResponse;
+import com.biometricattendance.leave.LeaveStatus;
 
 public final class DashboardDtos {
 
@@ -23,12 +24,13 @@ public final class DashboardDtos {
 	 * @param present ada scan atau koreksi
 	 * @param incomplete status TIDAK_LENGKAP (mis. baru scan masuk)
 	 * @param needsReview tidak lengkap, aturan belum diatur, penanda scan, atau penanda perhitungan yang perlu dicek
+	 * @param onLeave izin/cuti disetujui pada tanggal tersebut (K-076)
 	 */
 	public record Counts(int totalEmployees, int present, int late, int incomplete, int overtimeCandidates,
-			int absent, int needsReview, int ruleMissing) {
+			int absent, int needsReview, int ruleMissing, int onLeave) {
 
 		static Counts of(List<DailyRow> rows) {
-			int present = 0, late = 0, incomplete = 0, overtime = 0, absent = 0, review = 0, missing = 0;
+			int present = 0, late = 0, incomplete = 0, overtime = 0, absent = 0, review = 0, missing = 0, leave = 0;
 			for (DailyRow row : rows) {
 				DayRecord day = row.day();
 				var result = day.result();
@@ -44,10 +46,14 @@ public final class DashboardDtos {
 				absent += status == AttendanceStatus.TIDAK_HADIR ? 1 : 0;
 				missing += day.ruleMissing() != null ? 1 : 0;
 				boolean flagged = result != null && (result.flags().contains(Flag.URUTAN_TIDAK_WAJAR)
-						|| result.flags().contains(Flag.PERLU_TINJAUAN_HARI_LIBUR));
+						|| result.flags().contains(Flag.PERLU_TINJAUAN_HARI_LIBUR)
+						|| result.flags().contains(Flag.HADIR_SAAT_IZIN));
 				review += isIncomplete || day.ruleMissing() != null || !day.scanFlags().isEmpty() || flagged ? 1 : 0;
+				// Izin disetujui tanpa kehadiran; dihitung juga bila aturan kerja belum diatur (result null).
+				boolean approvedLeave = day.leave() != null && day.leave().status() == LeaveStatus.DISETUJUI;
+				leave += status == AttendanceStatus.IZIN || (result == null && approvedLeave && !hasData) ? 1 : 0;
 			}
-			return new Counts(rows.size(), present, late, incomplete, overtime, absent, review, missing);
+			return new Counts(rows.size(), present, late, incomplete, overtime, absent, review, missing, leave);
 		}
 
 	}
@@ -59,8 +65,10 @@ public final class DashboardDtos {
 			String deviceName, Set<ScanFlag> flags) {
 	}
 
+	/** @param pendingLeaveRequests pengajuan izin/cuti yang menunggu keputusan (K-081), semua tanggal */
 	public record DashboardSummary(LocalDate date, Counts totals, List<BranchSummary> branches,
-			List<DeviceResponse> devices, List<RecentScan> recentScans, long unmatchedScans) {
+			List<DeviceResponse> devices, List<RecentScan> recentScans, long unmatchedScans,
+			long pendingLeaveRequests) {
 	}
 
 }

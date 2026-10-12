@@ -21,16 +21,21 @@ import com.biometricattendance.attendance.AttendanceDtos.DailyAttendanceResponse
 import com.biometricattendance.attendance.AttendanceDtos.DailyRow;
 import com.biometricattendance.attendance.AttendanceDtos.DayRecord;
 import com.biometricattendance.attendance.AttendanceDtos.EmployeeAttendanceResponse;
+import com.biometricattendance.attendance.AttendanceDtos.LeaveInfo;
 import com.biometricattendance.attendance.AttendanceDtos.ScanResponse;
 import com.biometricattendance.calculation.CalculationDtos.DailyResultResponse;
 import com.biometricattendance.calculation.DailyAttendanceCalculator;
 import com.biometricattendance.calculation.DailyInput;
+import com.biometricattendance.calculation.DailyInput.LeaveState;
 import com.biometricattendance.calculation.RuleNotConfiguredException;
 import com.biometricattendance.common.ApiException;
 import com.biometricattendance.employee.Employee;
 import com.biometricattendance.employee.EmployeeRepository;
 import com.biometricattendance.holiday.Holiday;
 import com.biometricattendance.holiday.HolidayRepository;
+import com.biometricattendance.leave.LeaveRequest;
+import com.biometricattendance.leave.LeaveRequestRepository;
+import com.biometricattendance.leave.LeaveStatus;
 import com.biometricattendance.workrule.WorkRuleService;
 
 /**
@@ -48,14 +53,17 @@ public class AttendanceService {
 	private final AttendanceCorrectionRepository corrections;
 	private final HolidayRepository holidays;
 	private final WorkRuleService workRules;
+	private final LeaveRequestRepository leaves;
 
 	public AttendanceService(EmployeeRepository employees, AttendanceScanRepository scans,
-			AttendanceCorrectionRepository corrections, HolidayRepository holidays, WorkRuleService workRules) {
+			AttendanceCorrectionRepository corrections, HolidayRepository holidays, WorkRuleService workRules,
+			LeaveRequestRepository leaves) {
 		this.employees = employees;
 		this.scans = scans;
 		this.corrections = corrections;
 		this.holidays = holidays;
 		this.workRules = workRules;
+		this.leaves = leaves;
 	}
 
 	public LocalDate today() {
@@ -120,11 +128,17 @@ public class AttendanceService {
 			.stream()
 			.map(Holiday::getHolidayDate)
 			.collect(Collectors.toSet());
+		// K-076: izin disetujui mengubah status hari kerja tanpa scan; yang menunggu hanya diberi penanda.
+		Map<Long, List<LeaveRequest>> leavesByEmployee = leaves
+			.findOverlapping(ids, EnumSet.of(LeaveStatus.DISETUJUI, LeaveStatus.MENUNGGU), from, to)
+			.stream()
+			.collect(Collectors.groupingBy(r -> r.getEmployee().getId()));
 
 		Map<Long, List<DayRecord>> result = new HashMap<>();
 		for (Employee e : list) {
 			ZoneId zone = ZoneId.of(e.getBranch().getTimezone());
 			List<AttendanceScan> all = scansByEmployee.getOrDefault(e.getId(), List.of());
+			List<LeaveRequest> employeeLeaves = leavesByEmployee.getOrDefault(e.getId(), List.of());
 			List<DayRecord> days = new ArrayList<>();
 			for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
 				Instant start = date.atStartOfDay(zone).toInstant();
@@ -133,7 +147,7 @@ public class AttendanceService {
 					.filter(s -> !s.getScannedAt().isBefore(start) && s.getScannedAt().isBefore(end))
 					.toList();
 				days.add(calculate(e, date, zone, dayScans, activeCorrections.get(key(e.getId(), date)),
-						holidayDates.contains(date)));
+						holidayDates.contains(date), leaveOn(employeeLeaves, date)));
 			}
 			result.put(e.getId(), days);
 		}
@@ -141,7 +155,7 @@ public class AttendanceService {
 	}
 
 	private DayRecord calculate(Employee employee, LocalDate date, ZoneId zone, List<AttendanceScan> dayScans,
-			AttendanceCorrection correction, boolean holiday) {
+			AttendanceCorrection correction, boolean holiday, LeaveRequest leave) {
 		Set<ScanFlag> scanFlags = EnumSet.noneOf(ScanFlag.class);
 		dayScans.forEach(s -> scanFlags.addAll(s.getFlags()));
 		List<ScanResponse> scanResponses = dayScans.stream().map(ScanResponse::from).toList();
@@ -152,13 +166,34 @@ public class AttendanceService {
 		try {
 			result = DailyResultResponse.from(DailyAttendanceCalculator.calculate(new DailyInput(date, zone,
 					dayScans.stream().map(AttendanceScan::getScannedAt).toList(), input,
-					workRules.resolve(employee, date), holiday)));
+					workRules.resolve(employee, date), holiday, leaveState(leave))));
 		}
 		catch (RuleNotConfiguredException ex) {
 			ruleMissing = ex.getMessage();
 		}
 		return new DayRecord(date, result, ruleMissing, scanResponses, CorrectionResponse.from(correction),
-				scanFlags.isEmpty() ? Set.of() : Set.copyOf(scanFlags));
+				scanFlags.isEmpty() ? Set.of() : Set.copyOf(scanFlags), LeaveInfo.from(leave));
+	}
+
+	/** Izin yang mencakup tanggal; yang disetujui diutamakan (tumpang tindih dicegah K-075, ini hanya jaga-jaga). */
+	private static LeaveRequest leaveOn(List<LeaveRequest> leaves, LocalDate date) {
+		LeaveRequest pending = null;
+		for (LeaveRequest r : leaves) {
+			if (r.covers(date)) {
+				if (r.getStatus() == LeaveStatus.DISETUJUI) {
+					return r;
+				}
+				pending = r;
+			}
+		}
+		return pending;
+	}
+
+	private static LeaveState leaveState(LeaveRequest leave) {
+		if (leave == null) {
+			return LeaveState.NONE;
+		}
+		return leave.getStatus() == LeaveStatus.DISETUJUI ? LeaveState.APPROVED : LeaveState.PENDING;
 	}
 
 	private static String key(Long employeeId, LocalDate date) {

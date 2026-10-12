@@ -17,7 +17,8 @@ import org.springframework.web.context.WebApplicationContext;
  * Data antar test tidak dibersihkan, jadi setiap test memakai kode/username unik.
  */
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = { "app.bootstrap.owner-username=owner", "app.bootstrap.owner-password=owner-awal-123" })
+@SpringBootTest(properties = { "app.bootstrap.owner-username=owner", "app.bootstrap.owner-password=owner-awal-123",
+		"app.uploads.dir=target/test-uploads" })
 public abstract class IntegrationTest {
 
 	@Autowired

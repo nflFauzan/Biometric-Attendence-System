@@ -25,6 +25,8 @@ import com.biometricattendance.dashboard.DashboardDtos.RecentScan;
 import com.biometricattendance.device.DeviceService;
 import com.biometricattendance.employee.Employee;
 import com.biometricattendance.employee.EmployeeRepository;
+import com.biometricattendance.leave.LeaveRequestRepository;
+import com.biometricattendance.leave.LeaveStatus;
 
 /** Ringkasan dashboard untuk satu tanggal (bawaan hari ini menurut zona waktu perusahaan). */
 @Service
@@ -36,14 +38,17 @@ public class DashboardService {
 	private final DeviceService devices;
 	private final AttendanceScanRepository scans;
 	private final EmployeeRepository employees;
+	private final LeaveRequestRepository leaves;
 	private final ZoneId companyZone;
 
 	public DashboardService(AttendanceService attendance, DeviceService devices, AttendanceScanRepository scans,
-			EmployeeRepository employees, @Value("${app.company-timezone}") String companyZone) {
+			EmployeeRepository employees, LeaveRequestRepository leaves,
+			@Value("${app.company-timezone}") String companyZone) {
 		this.attendance = attendance;
 		this.devices = devices;
 		this.scans = scans;
 		this.employees = employees;
+		this.leaves = leaves;
 		this.companyZone = ZoneId.of(companyZone);
 	}
 
@@ -78,7 +83,7 @@ public class DashboardService {
 			.toList();
 
 		return new DashboardSummary(date, Counts.of(rows), branches, devices.list(), recentScans,
-				scans.countUnmatched(start, end));
+				scans.countUnmatched(start, end), leaves.countByStatus(LeaveStatus.MENUNGGU));
 	}
 
 }

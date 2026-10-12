@@ -23,6 +23,7 @@ import com.biometricattendance.device.DeviceContactEvent;
 import com.biometricattendance.device.DeviceRepository;
 import com.biometricattendance.device.DeviceStatus;
 import com.biometricattendance.ingest.ScansSavedEvent;
+import com.biometricattendance.leave.LeaveChangedEvent;
 
 /**
  * Pemberitahuan real-time ke dashboard lewat Server-Sent Events (DASH-006). Event hanya dikirim setelah commit,
@@ -67,6 +68,14 @@ public class DashboardStream {
 	@TransactionalEventListener
 	void onAttendanceChanged(AttendanceChangedEvent event) {
 		broadcast(Map.of("type", "CORRECTION", "employeeId", event.employeeId(), "date", event.date().toString()));
+	}
+
+	/** Notifikasi izin/cuti untuk Owner/HR (K-081); stream ini memang hanya untuk Owner dan HR/Finance. */
+	@TransactionalEventListener
+	void onLeaveChanged(LeaveChangedEvent event) {
+		broadcast(Map.of("type", "LEAVE", "action", event.action().name(), "requestId", event.requestId(),
+				"employeeId", event.employeeId(), "employeeName", event.employeeName(), "leaveType",
+				event.leaveTypeName()));
 	}
 
 	@TransactionalEventListener

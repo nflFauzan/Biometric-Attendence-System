@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -121,6 +122,18 @@ public class WorkRuleService {
 			.map(WorkRule::toVersion)
 			.toList();
 		return RuleResolver.resolve(versions, date);
+	}
+
+	/**
+	 * Seperti {@link #resolve}, tetapi versi aturan dibaca sekali untuk banyak tanggal (mis. hari kerja dalam
+	 * rentang izin). Harus dipakai di dalam transaksi yang sama.
+	 */
+	public Function<LocalDate, EffectiveRule> resolverFor(Employee employee) {
+		List<RuleVersion> versions = repository.findApplicable(employee.getCategory().getId(), employee.getId())
+			.stream()
+			.map(WorkRule::toVersion)
+			.toList();
+		return date -> RuleResolver.resolve(versions, date);
 	}
 
 	Employee employee(Long id) {

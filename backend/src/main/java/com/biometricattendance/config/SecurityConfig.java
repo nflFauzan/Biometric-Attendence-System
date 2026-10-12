@@ -53,6 +53,11 @@ public class SecurityConfig {
 				.requestMatchers("/api/holidays/**", "/api/calculation/**").hasAnyRole(OWNER, HR_FINANCE)
 				// Fase 3: rekap, koreksi (K-059), dan dashboard real-time. Absensi mandiri karyawan (ATT-021) belum.
 				.requestMatchers("/api/attendance/**", "/api/dashboard/**").hasAnyRole(OWNER, HR_FINANCE)
+				// Fase 4: jenis izin dibaca semua pengguna (untuk form pengajuan), diubah hanya Owner (K-070).
+				// Pengajuan milik sendiri lewat /api/me/leave-requests (di atas: authenticated, kepemilikan dicek service).
+				.requestMatchers(HttpMethod.GET, "/api/leave-types/**").authenticated()
+				.requestMatchers("/api/leave-types/**").hasRole(OWNER)
+				.requestMatchers("/api/leave-requests/**").hasAnyRole(OWNER, HR_FINANCE)
 				.anyRequest().denyAll())
 			// Mesin tidak memakai cookie sesi, jadi CSRF tidak relevan untuk /iclock/**.
 			.csrf(csrf -> csrf.spa().ignoringRequestMatchers("/iclock/**"))

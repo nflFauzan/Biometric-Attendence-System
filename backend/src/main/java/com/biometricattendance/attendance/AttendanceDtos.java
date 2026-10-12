@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 
 import com.biometricattendance.calculation.CalculationDtos.DailyResultResponse;
+import com.biometricattendance.leave.LeaveRequest;
+import com.biometricattendance.leave.LeaveStatus;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -48,8 +50,21 @@ public final class AttendanceDtos {
 	 * @param ruleMissing pesan "Aturan belum diatur: …" (K-047), null bila aturan lengkap
 	 * @param scanFlags gabungan penanda scan asli pada tanggal itu (K-065)
 	 */
+	/** @param leave izin/cuti disetujui (diutamakan) atau menunggu yang mencakup tanggal ini, atau null */
 	public record DayRecord(LocalDate date, DailyResultResponse result, String ruleMissing, List<ScanResponse> scans,
-			CorrectionResponse correction, Set<ScanFlag> scanFlags) {
+			CorrectionResponse correction, Set<ScanFlag> scanFlags, LeaveInfo leave) {
+	}
+
+	/** Izin/cuti yang mencakup satu tanggal rekap (K-076). */
+	public record LeaveInfo(Long requestId, String leaveTypeName, LeaveStatus status, LocalDate startDate,
+			LocalDate endDate) {
+
+		public static LeaveInfo from(LeaveRequest r) {
+			return r == null ? null
+					: new LeaveInfo(r.getId(), r.getLeaveType().getName(), r.getStatus(), r.getStartDate(),
+							r.getEndDate());
+		}
+
 	}
 
 	public record DailyRow(Long employeeId, String employeeNumber, String fullName, String devicePin, Long branchId,

@@ -39,7 +39,9 @@ public record DailyResult(LocalDate date, DayType dayType, AttendanceStatus stat
 		/** Tidak ada scan pada hari kerja. */
 		TIDAK_HADIR,
 		/** Tidak ada scan pada hari libur atau bukan hari kerja. */
-		TIDAK_ADA_SCAN
+		TIDAK_ADA_SCAN,
+		/** Tidak ada scan pada hari kerja, tetapi ada izin/cuti yang disetujui (K-076). */
+		IZIN
 	}
 
 	public enum Flag {
@@ -48,7 +50,11 @@ public record DailyResult(LocalDate date, DayType dayType, AttendanceStatus stat
 		/** Hadir di hari libur atau bukan hari kerja; perlakuan belum diketahui (K-053, Q-005). */
 		PERLU_TINJAUAN_HARI_LIBUR,
 		/** Jam pulang tidak setelah jam masuk. */
-		URUTAN_TIDAK_WAJAR
+		URUTAN_TIDAK_WAJAR,
+		/** Ada scan/koreksi pada hari kerja yang tercakup izin disetujui; perlu ditinjau (K-076). */
+		HADIR_SAAT_IZIN,
+		/** Ada pengajuan izin yang belum diputus; status tidak berubah (LEAVE-006). */
+		IZIN_MENUNGGU
 	}
 
 	public enum TimeSource {

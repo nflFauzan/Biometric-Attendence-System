@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.biometricattendance.calculation.DailyInput.Correction;
+import com.biometricattendance.calculation.DailyInput.LeaveState;
 import com.biometricattendance.calculation.DailyResult.AttendanceStatus;
 import com.biometricattendance.calculation.DailyResult.DayType;
 import com.biometricattendance.calculation.DailyResult.Flag;
@@ -46,6 +47,11 @@ public final class DailyAttendanceCalculator {
 		DayType dayType = input.holiday() ? DayType.HARI_LIBUR
 				: rule.workDays().contains(input.date().getDayOfWeek()) ? DayType.HARI_KERJA : DayType.BUKAN_HARI_KERJA;
 		Set<Flag> flags = EnumSet.noneOf(Flag.class);
+		boolean workday = dayType == DayType.HARI_KERJA;
+		// K-076: izin hanya berpengaruh di hari kerja; pengajuan yang belum diputus tidak mengubah status.
+		if (workday && input.leave() == LeaveState.PENDING) {
+			flags.add(Flag.IZIN_MENUNGGU);
+		}
 
 		Correction correction = input.correction() == null ? new Correction(null, null) : input.correction();
 		TimeValue in = correction.checkIn() == null ? null : new TimeValue(correction.checkIn(), TimeSource.KOREKSI);
@@ -67,9 +73,13 @@ public final class DailyAttendanceCalculator {
 		}
 
 		if (in == null && out == null && scanTimes.isEmpty()) {
-			AttendanceStatus status = dayType == DayType.HARI_KERJA ? AttendanceStatus.TIDAK_HADIR
-					: AttendanceStatus.TIDAK_ADA_SCAN;
+			AttendanceStatus status = !workday ? AttendanceStatus.TIDAK_ADA_SCAN
+					: input.leave() == LeaveState.APPROVED ? AttendanceStatus.IZIN : AttendanceStatus.TIDAK_HADIR;
 			return incomplete(input, dayType, status, scanTimes, null, null, flags);
+		}
+		if (workday && input.leave() == LeaveState.APPROVED) {
+			// Ada scan/koreksi padahal izin disetujui: rekap tetap dari scan, tetapi perlu ditinjau.
+			flags.add(Flag.HADIR_SAAT_IZIN);
 		}
 		if (in == null || out == null) {
 			return incomplete(input, dayType, AttendanceStatus.TIDAK_LENGKAP, scanTimes, in, out, flags);
