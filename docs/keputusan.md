@@ -74,6 +74,8 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-051 | 2026-10-12 | Kalender libur berlaku untuk semua cabang | Disepakati, sementara |
 | K-052 | 2026-10-12 | Durasi absensi disimpan persis sampai detik tanpa pembulatan | Disepakati, sementara menunggu Q-008 |
 | K-053 | 2026-10-12 | Kehadiran di hari libur/bukan hari kerja hanya dihitung total hadirnya dan ditandai perlu tinjauan | Disepakati, sementara menunggu Q-005 |
+| K-054 | 2026-10-12 | Penerimaan scan memakai inti yang sama untuk semua mesin, ditambah adapter per protokol | Disepakati, memperjelas K-008/K-018 |
+| K-055 | 2026-10-12 | Mesin Solution X401 (mode ADMS) dipakai sebagai mesin uji sementara, dengan batasan tercatat | Disepakati, sementara sampai alat rakitan siap; menunggu Q-029 |
 
 ---
 
@@ -116,6 +118,8 @@ Jika kebutuhan berubah menjadi produk multi-perusahaan, arsitektur perlu dievalu
 **Keputusan:** backend dan frontend dikembangkan menggunakan simulator sampai prototipe mesin tersedia.
 
 Simulator harus mengikuti kontrak integrasi yang dirancang dan tidak boleh dianggap sebagai bukti bahwa seluruh kemampuan hardware telah tersedia.
+
+**Pembaruan 2026-10-12 (K-055):** selain simulator, mesin komersial Solution X401 dipakai sebagai mesin uji sementara. Simulator tetap wajib untuk test otomatis (offline, kirim ulang, scan ganda), karena mesin sungguhan tidak bisa dijalankan di test.
 
 ### K-009 — Pengarsipan Backend Lama
 
@@ -260,6 +264,34 @@ Jika penyimpanan gagal, backend tidak boleh memberikan ACK sukses. Mekanisme ret
 **Status:** Menunggu Konfirmasi.
 
 Penyimpanan offline, retry otomatis, RTC, dan sinkronisasi setelah koneksi pulih bergantung pada spesifikasi perangkat serta firmware. Implementasi tidak boleh mengasumsikan kemampuan tersebut sebelum divalidasi.
+
+### K-054 — Inti Penerimaan Scan dan Adapter per Protokol
+
+**Keputusan (2026-10-12, disetujui pengguna):** penerimaan scan dibagi dua lapis.
+
+- **Inti penerimaan scan** (sama untuk semua mesin): validasi mesin terdaftar dan aktif, simpan scan asli (K-019), cegah duplikat, balas sukses hanya setelah tersimpan (K-020), lalu teruskan ke rekap harian dan dashboard.
+- **Adapter per protokol**: penerjemah kecil dari format mesin ke format inti. Adapter pertama adalah **ZK-Push** (protokol ADMS mesin Solution/ZKTeco) untuk X401. Alat rakitan memakai adapter sendiri, atau meniru protokol ZK-Push (Q-030).
+
+**Alasan:** rekap, dashboard, koreksi, dan halaman web tidak bergantung pada jenis mesin. Mengganti X401 dengan alat rakitan cukup menambah adapter, bukan mengubah web.
+
+**Alternatif yang dipertimbangkan:** membuat endpoint khusus X401 saja (ditolak: harus dibongkar saat alat rakitan siap), atau langsung memaksa alat rakitan memakai protokol ZK-Push (ditunda ke Q-030 karena protokol itu lemah dari sisi keamanan, lihat K-055).
+
+### K-055 — Solution X401 sebagai Mesin Uji Sementara
+
+**Keputusan (2026-10-12, disetujui pengguna):** mesin Solution X401 milik dosen dipakai untuk menguji alur scan sebelum alat rakitan selesai, lewat mode ADMS/Cloud Server (mesin mengirim ke server). Langkah uji ada di [`panduan-mesin-x401.md`](./panduan-mesin-x401.md).
+
+**Batasan yang diterima selama uji** (tidak berlaku untuk alat rakitan):
+
+| Aturan | Penanganan sementara pada X401 |
+|---|---|
+| ID unik per scan | Kunci duplikat = nomor seri mesin + PIN + waktu scan |
+| Kredensial unik per mesin | Hanya nomor seri yang terdaftar dan aktif yang diterima; hanya di jaringan lokal |
+| TLS | Uji hanya di jaringan lokal, tidak diekspos ke internet |
+| Waktu scan tanpa zona waktu | Ditafsirkan dengan zona waktu cabang mesin |
+
+Mesin mengidentifikasi karyawan dengan PIN (User ID di mesin). Karyawan perlu dipetakan ke PIN per mesin; rinciannya diputuskan di rencana Fase 3 (Q-031).
+
+**Syarat:** kemampuan X401 (ADMS, format data, kirim ulang) baru dianggap ada setelah terbukti dari log tangkapan (`tools/x401-capture`), bukan dari brosur (Q-029).
 
 ### K-023 — Otorisasi Backend
 

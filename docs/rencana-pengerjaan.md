@@ -1,6 +1,6 @@
 # Rencana Pengerjaan
 
-**Status: disetujui 2026-10-09.** Fase 0 dan Fase 1 selesai. Fase 2 diimplementasikan 2026-10-12 (rincian di [rencana-fase-2.md](rencana-fase-2.md)) dan menunggu checkpoint; Fase 3 menunggu persetujuan.
+**Status: disetujui 2026-10-09.** Fase 0 dan Fase 1 selesai. Fase 2 diimplementasikan 2026-10-12 (rincian di [rencana-fase-2.md](rencana-fase-2.md)) dan menunggu checkpoint; rencana Fase 3 ada di [rencana-fase-3.md](rencana-fase-3.md) dan menunggu persetujuan.
 
 Prinsip urutan:
 - Bagian yang paling menentukan benar-tidaknya gaji (aturan dan perhitungan) dikerjakan dan diuji lebih dulu.
@@ -38,12 +38,14 @@ Prinsip urutan:
 
 ## Fase 3 — Absensi
 
-- API penerimaan scan dari mesin: kredensial per mesin, ID unik per scan, OK hanya setelah tersimpan, tahan scan ganda.
-- **Simulator mesin** untuk mengirim scan, mensimulasikan offline lalu kirim ulang, dan scan ganda.
+- **Inti penerimaan scan** yang tidak bergantung jenis mesin (K-054): mesin terdaftar, OK hanya setelah tersimpan, tahan scan ganda.
+- **Adapter ZK-Push** untuk mesin uji Solution X401 (K-055), disusun dari log tangkapan asli ([panduan-mesin-x401.md](panduan-mesin-x401.md) Tahap 1–4, Q-029).
+- Pemetaan karyawan ke PIN mesin (Q-031).
+- **Simulator mesin** yang berbicara protokol ZK-Push untuk mengirim scan, mensimulasikan offline lalu kirim ulang, dan scan ganda.
 - Rekap harian otomatis, dashboard real-time (SSE), dan status mesin online/offline.
 - Koreksi scan dengan alasan wajib dan audit log.
 
-**Selesai jika:** test integrasi membuktikan tidak ada scan hilang atau ganda (termasuk skenario kirim ulang), dan dashboard berubah dalam hitungan detik setelah simulator mengirim scan.
+**Selesai jika:** test integrasi membuktikan tidak ada scan hilang atau ganda (termasuk skenario kirim ulang), dashboard berubah dalam hitungan detik setelah simulator mengirim scan, dan skenario X-01 sampai X-08 di panduan X401 lulus dengan mesin sungguhan.
 
 ## Fase 4 — Izin dan cuti
 
@@ -66,7 +68,7 @@ Prinsip urutan:
 
 ## Fase 7 — Integrasi mesin asli dan rilis
 
-- Menyesuaikan kontrak dengan prototipe mesin, lalu uji end-to-end di satu cabang sebelum ketiganya.
+- Menyesuaikan kontrak dengan prototipe mesin rakitan (adapter baru atau meniru ZK-Push, Q-030), lalu uji end-to-end di satu cabang sebelum ketiganya. Skenario uji X-01 sampai X-08 dari mesin X401 dipakai ulang.
 - Deployment, TLS, backup terjadwal, dan uji restore. Fase ini menunggu keputusan hosting.
 
 ## Yang bisa dikerjakan paralel

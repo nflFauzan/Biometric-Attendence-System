@@ -517,6 +517,28 @@ Kebutuhan yang harus dievaluasi bersama tim hardware:
 
 Fitur yang tidak didukung hardware tidak boleh dianggap tersedia hanya karena backend telah menyiapkan endpoint.
 
+### 11.1 Inti penerimaan scan dan adapter (K-054)
+
+```mermaid
+flowchart LR
+    X401["Solution X401<br/>(mode ADMS)"] --> ZK["Adapter ZK-Push<br/>/iclock/*"]
+    SIM["Simulator"] --> ZK
+    RAKIT["Alat rakitan"] --> NATIVE["Adapter rakitan<br/>(kontrak sendiri, Q-030)"]
+    ZK --> CORE["Inti penerimaan scan"]
+    NATIVE --> CORE
+    CORE --> DB[("scan asli")]
+    CORE --> REKAP["Rekap harian"]
+    CORE --> SSE["Dashboard (SSE)"]
+```
+
+- **Inti penerimaan scan** tidak mengenal protokol mesin. Input-nya: mesin (hasil validasi), PIN/identitas karyawan di mesin, waktu scan, kunci duplikat, dan data mentah untuk audit. Inti menyimpan scan asli, mencegah duplikat, lalu baru membalas sukses ke adapter.
+- **Adapter ZK-Push** menerjemahkan protokol ADMS mesin Solution/ZKTeco (handshake, heartbeat, data ATTLOG). Format persisnya ditetapkan dari log tangkapan X401 (Q-029), bukan dari asumsi.
+- **Adapter rakitan** dibuat saat protokol alat rakitan diputuskan (Q-030). Bila alat rakitan meniru ZK-Push, adapter ini tidak diperlukan.
+- Simulator meniru protokol adapter yang sedang diuji agar test otomatis mendekati kondisi nyata.
+- Batasan keamanan X401 (tanpa secret per mesin, tanpa TLS, tanpa ID scan) hanya diterima untuk uji di jaringan lokal (K-055) dan tidak berlaku untuk alat rakitan.
+
+Langkah uji dengan mesin X401: [`panduan-mesin-x401.md`](./panduan-mesin-x401.md).
+
 ## 12. Frontend
 
 Frontend menggunakan React, Vite, TypeScript, Tailwind CSS, dan shadcn/ui.

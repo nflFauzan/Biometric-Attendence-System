@@ -295,6 +295,41 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 **Dampak:** durasi kerja dan lembur bila jadwal kategori berbeda dari 08.00–17.00.
 
+## 7b. Mesin Uji X401 (ditemukan 2026-10-12)
+
+### Q-029. Kemampuan nyata mesin Solution X401
+
+- Apakah firmware X401 yang dipinjam memiliki menu ADMS/Cloud Server?
+- Apa format persis request yang dikirim (path, parameter, format baris scan, format tanggal)?
+- Seberapa sering mesin mengirim heartbeat, dan apakah mesin mengirim ulang scan bila server membalas gagal?
+- Apakah mesin mengirim secret/kredensial selain nomor seri, dan apakah mendukung HTTPS?
+
+Cara menjawab: [`panduan-mesin-x401.md`](./panduan-mesin-x401.md) Tahap 1 dan 3, hasil dicatat di §7 panduan.
+
+**Dampak:** adapter ZK-Push, simulator, dan uji Fase 3 (K-054, K-055).
+
+### Q-030. Protokol alat rakitan
+
+- Apakah alat rakitan akan meniru protokol ZK-Push (server tidak perlu diubah sama sekali), atau memakai kontrak sendiri yang mendukung ID unik per scan, kredensial rahasia per mesin, dan TLS?
+
+**Dampak:** jumlah adapter yang dipelihara dan tingkat keamanan di produksi. Perlu dijawab sebelum firmware alat rakitan ditulis.
+
+### Q-031. Pemetaan karyawan ke PIN mesin
+
+- Apakah satu karyawan memakai PIN yang sama di semua mesin cabang, atau PIN per mesin?
+- Siapa yang mendaftarkan sidik jari dan PIN di mesin, dan bagaimana sinkronisasinya dengan data karyawan di web?
+- Bagaimana menangani scan dari PIN yang belum dipetakan ke karyawan?
+
+**Dampak:** schema karyawan/mesin di Fase 3 dan proses enrollment (terkait Q-019).
+
+### Q-032. Riwayat scan lama saat mesin pertama kali tersambung
+
+- Uji 2026-10-12 menunjukkan X401 langsung mengirim **seluruh riwayat** (16.951 log sejak 2020) begitu ADMS diarahkan ke server.
+- Apakah server menyimpan semua riwayat itu sebagai scan asli, atau hanya scan sejak tanggal mesin didaftarkan di web (sisanya tetap di-ACK agar mesin berhenti mengirim, tetapi ditandai/diabaikan)?
+- Bagaimana dengan scan dari PIN yang tidak dipetakan ke karyawan (Q-031)?
+
+**Dampak:** isi tabel scan, rekap, dan privasi data orang di luar proyek. Untuk mesin uji milik dosen, riwayat lama **bukan data proyek** dan sebaiknya tidak disimpan.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
@@ -302,7 +337,8 @@ Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan k
 | Prioritas | ID | Alasan |
 |---|---|---|
 | P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013, Q-014, Q-015 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
-| P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
+| P0 — Sebelum Fase 3 (uji X401) | Q-029 (sebagian terjawab 2026-10-12), Q-031, Q-032 | Menentukan format adapter ZK-Push dan pemetaan PIN karyawan. |
+| P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
 | P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
 | P1 — Sebelum rilis produksi | Q-023 | Menentukan tata kelola data biometrik dan kontrol aksesnya. |
 | P2 — Sebelum UI final | Q-024, Q-025 | Menyelesaikan identitas visual dan nama aplikasi. |
