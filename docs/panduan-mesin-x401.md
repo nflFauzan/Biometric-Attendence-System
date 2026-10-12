@@ -179,6 +179,27 @@ Mesin `SIM-001` harus didaftarkan dulu di halaman Mesin.
 
 Hasil setiap skenario dicatat beserta tanggal dan versi firmware. Skenario yang sama juga diotomatiskan memakai simulator (K-008), karena mesin sungguhan tidak bisa dipakai di test otomatis.
 
+### Hasil uji 2026-10-12 (firmware `Ver 6.5.4 (build 162)`, backend Fase 3)
+
+User uji di mesin: PIN `1696`, dipetakan ke karyawan uji "Uji X401 (PIN 1696)".
+
+| No | Hasil | Bukti |
+|---|---|---|
+| X-01 | ✅ Lulus. Scan tiba 2–6 detik setelah tempel jari; dashboard berubah tanpa muat ulang | scan #15–16 (17.56.40 → tiba 17.56.46) |
+| X-02 | ✅ Lulus. Kabel LAN terlepas (kendor) 17.39–17.55; 4 scan selama terputus tiba bersamaan 17.55.26 dengan jam tempel jari aslinya (17.39.33, 17.39.47, 17.42.09, 17.43.01) | scan #11–14 |
+| X-03 | ✅ Lulus. Backend mati 17.58.18–18.01.44; 3 scan selama mati dikirim ulang mesin 18.02.15, masing-masing tersimpan 1 kali | scan #17–19 |
+| X-04 | ✅ Lulus. Dua scan berjarak 4 detik tersimpan sebagai 2 scan berbeda (memang 2 kali tempel); setelah backend restart 21.33 mesin mengirim ulang 1 scan yang sudah ada → dicatat `duplicates=1`, tidak tersimpan ganda. Query `GROUP BY pin, waktu HAVING count > 1` kosong | log `IngestResult` |
+| X-05 | ✅ Lulus. Mesin dinonaktifkan 18.03–20.30: server membalas 401 sebanyak 1.688 kali, tidak ada scan tersimpan. Scan 19.46.52 (saat nonaktif) tertahan di mesin dan masuk 20.45.17 setelah diaktifkan kembali | scan #20, log `WARN` |
+| X-06 | ✅ Lulus. Scan PIN `1696` sebelum dipetakan tersimpan dengan tanda `PIN_TIDAK_DIKENAL`; begitu PIN diisi di data karyawan, scan otomatis terhubung (K-068) | scan #9–10 |
+| X-07 | ✅ Lulus. Jam mesin dimajukan ±1 jam: scan 21.46.54 (jam mesin) tiba 20.48.03 → tersimpan dengan tanda `WAKTU_DI_MASA_DEPAN`. Jam mesin yang **mundur** tidak terdeteksi (batasan, Q-020/Q-022) | scan #22 |
+| X-08 | ✅ Lulus. Setelah kabel dicabut, status berubah "Offline" setelah batas 5 menit dan kembali "Online" setelah dicolok. Awalnya halaman Mesin baru berubah setelah dimuat ulang; sudah diperbaiki, halaman Mesin kini ikut diperbarui lewat SSE | laporan pengguna + uji simulator |
+
+Temuan selama uji:
+- Kabel LAN dua kali kendor. Gejalanya: adaptor "Ethernet" laptop berstatus *Disconnected* dan mesin tidak bisa di-ping. Cek ini dulu sebelum mencurigai web.
+- Mesin mengirim **ulang seluruh riwayat** (16.948 baris) sekali lagi di antara 20.29 dan 21.32, setelah periode nonaktif (401), kabel terlepas, dan perubahan jam. Semua diabaikan dengan benar (penghitung "scan lama diabaikan" menjadi 33.896, tidak ada scan lama tersimpan). Penyebab pastinya tidak teramati karena log hilang saat container backend dibuat ulang; perilaku `ATTLOGStamp` tetap dicatat belum pasti (Q-029).
+- "Terima scan sejak" sempat terpotong ke menit saat formulir mesin disimpan (15.51.51 → 15.51.00). Sudah diperbaiki: input menyimpan detik.
+- Setelah frontend di-update, browser bisa tetap menjalankan versi lama karena `index.html` ter-cache. Sudah diperbaiki di `frontend/nginx.conf` (`index.html` no-cache).
+
 ## 7. Hasil pengamatan X401
 
 Diisi setelah Tahap 1 dan Tahap 3. **Jangan diisi dengan tebakan.**

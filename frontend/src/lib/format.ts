@@ -36,7 +36,7 @@ export function addDays(iso: string, days: number): string {
   return localDateIso(new Date(year, month - 1, day + days))
 }
 
-/** Instant ISO → nilai input datetime-local di zona waktu perangkat, mis. "2026-10-12T08:00". */
+/** Instant ISO → nilai input datetime-local di zona waktu perangkat, mis. "2026-10-12T08:00:00" (detik ikut agar tidak terpotong). */
 export function toDateTimeLocal(iso: string | null | undefined): string {
   if (!iso) {
     return ''
@@ -46,7 +46,7 @@ export function toDateTimeLocal(iso: string | null | undefined): string {
     return ''
   }
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${localDateIso(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  return `${localDateIso(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 /** Nilai input datetime-local (zona waktu perangkat) → instant ISO, atau null bila kosong. */

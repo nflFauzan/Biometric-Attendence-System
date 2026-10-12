@@ -1,6 +1,6 @@
 # Rencana Pengerjaan
 
-**Status: disetujui 2026-10-09.** Fase 0 dan Fase 1 selesai. Fase 2 diimplementasikan 2026-10-12 (rincian di [rencana-fase-2.md](rencana-fase-2.md)) dan menunggu checkpoint. Fase 3 diimplementasikan 2026-10-12 (rincian di [rencana-fase-3.md](rencana-fase-3.md)) dan menunggu checkpoint, termasuk skenario X-01–X-08 dengan mesin X401.
+**Status: disetujui 2026-10-09.** Fase 0 dan Fase 1 selesai. Fase 2 diimplementasikan 2026-10-12 (rincian di [rencana-fase-2.md](rencana-fase-2.md)) dan menunggu checkpoint. Fase 3 diimplementasikan 2026-10-12 (rincian di [rencana-fase-3.md](rencana-fase-3.md)) dan menunggu checkpoint. Skenario X-01–X-08 dengan mesin X401 lulus 2026-10-12 (hasil di [panduan-mesin-x401.md](panduan-mesin-x401.md) Tahap 6).
 
 Prinsip urutan:
 - Bagian yang paling menentukan benar-tidaknya gaji (aturan dan perhitungan) dikerjakan dan diuji lebih dulu.

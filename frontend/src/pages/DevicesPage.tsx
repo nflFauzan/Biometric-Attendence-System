@@ -5,6 +5,7 @@ import { ActiveBadge, CrudPage } from '@/components/CrudPage'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api'
 import { toId } from '@/lib/form'
+import { useDashboardStream } from '@/lib/useDashboardStream'
 import { formatDateTime, fromDateTimeLocal, toDateTimeLocal } from '@/lib/format'
 import type { Device, UnregisteredAttempt } from '@/lib/types'
 import { useBranchOptions } from '@/pages/options'
@@ -45,6 +46,8 @@ function UnregisteredBanner() {
 
 export function DevicesPage() {
   const branchOptions = useBranchOptions()
+  // Status online/offline dan banner SN tak terdaftar ikut diperbarui tanpa memuat ulang halaman.
+  useDashboardStream()
   return (
     <CrudPage<Device>
       title="Mesin Absensi"

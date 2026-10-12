@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatDate, formatDuration, formatRupiah, formatTime, initials } from '@/lib/format'
+import {
+  formatDate,
+  formatDuration,
+  formatRupiah,
+  formatTime,
+  fromDateTimeLocal,
+  initials,
+  toDateTimeLocal,
+} from '@/lib/format'
 
 describe('formatDuration', () => {
   it('menampilkan jam dan menit tanpa pembulatan', () => {
@@ -47,5 +55,14 @@ describe('initials', () => {
     expect(initials('siti nur aisyah')).toBe('SN')
     expect(initials('Owner')).toBe('O')
     expect(initials(null)).toBe('')
+  })
+})
+
+describe('toDateTimeLocal', () => {
+  it('menyertakan detik agar batas "Terima scan sejak" tidak terpotong', () => {
+    const iso = new Date(2026, 9, 12, 15, 51, 51).toISOString()
+    expect(toDateTimeLocal(iso)).toBe('2026-10-12T15:51:51')
+    expect(fromDateTimeLocal(toDateTimeLocal(iso))).toBe(iso)
+    expect(toDateTimeLocal(null)).toBe('')
   })
 })

@@ -152,6 +152,7 @@ export function FormDialog({ open, title, description, fields, initialValues, on
                       <Input
                         id={field.name}
                         type={field.type ?? 'text'}
+                        step={field.type === 'datetime-local' ? 1 : undefined}
                         className={fieldClass}
                         placeholder={field.placeholder}
                         aria-invalid={Boolean(fieldError)}
