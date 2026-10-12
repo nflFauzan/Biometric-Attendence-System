@@ -143,14 +143,26 @@ Kirim file log ke tim untuk dipakai menyusun adapter dan simulator di Fase 3.
 
 ## Tahap 5 — Uji end-to-end dengan backend (setelah Fase 3)
 
-Tahap ini baru bisa dijalankan setelah adapter ZK-Push di Fase 3 selesai. Langkah yang direncanakan:
+Adapter ZK-Push sudah tersedia (Fase 3). Langkah:
 
-1. Jalankan sistem: `docker compose up --build -d`. Backend mendengarkan di port `8080` laptop.
-2. Login web sebagai Owner → **Master Data → Mesin** → tambah mesin dengan **nomor seri persis** dari Tahap 1 dan cabang uji (misalnya "Cabang Pusat (test)"). Mesin yang nomor serinya tidak terdaftar ditolak.
-3. Di **Karyawan**, isi PIN mesin untuk karyawan uji (kolom baru di Fase 3).
-4. Di mesin: ubah Server Port ADMS dari `8081` ke `8080`.
-5. Scan sidik jari, lalu buka **Dashboard**: scan harus muncul dalam hitungan detik, dan status mesin "Online".
-6. Buka rekap harian karyawan uji: jam masuk, keterlambatan, dan jam normal dihitung dengan aturan kerja yang berlaku (Fase 2).
+1. Jalankan sistem: `docker compose up --build -d`. Backend mendengarkan di port `8080` dan, untuk mesin, di port **`8888`** (K-060, karena tombol 0 keypad rusak).
+2. Login web sebagai Owner → **Mesin Absensi** → tambah mesin dengan **serial number persis** `BRYV181860187` dan cabang uji. Biarkan **Terima scan sejak** kosong agar riwayat lama mesin (data dosen) tidak disimpan (K-057). Bila mesin sudah mencoba terhubung sebelum didaftarkan, serial number-nya tampil di banner "Mesin belum terdaftar mencoba terhubung".
+3. Di **Karyawan**, isi **PIN mesin** karyawan uji sama dengan User ID di mesin (mis. `9001`).
+4. Di mesin: `Comm. → ADMS`, alamat server **`172.35.3.55`**, port **`8888`**. Restart mesin bila diminta.
+5. Buka **Dashboard**: status mesin berubah "Online" dan badge "Langsung" menyala. Scan sidik jari: scan harus muncul di "Scan terbaru" dalam hitungan detik tanpa memuat ulang halaman.
+6. Buka **Absensi Harian** → klik nama karyawan uji: jam masuk, keterlambatan, dan jam normal dihitung dengan aturan kerja yang berlaku (Fase 2). Scan dari PIN yang belum diisi tampil di **Scan Tak Dikenal**.
+
+Tanpa mesin, alur yang sama bisa dicoba dengan simulator (protokol sama, data sintetis):
+
+```powershell
+node tools/device-simulator/simulate.mjs handshake --sn SIM-001
+node tools/device-simulator/simulate.mjs scan --sn SIM-001 --pin 9001
+node tools/device-simulator/simulate.mjs offline --sn SIM-001 --pin 9001 --count 3
+node tools/device-simulator/simulate.mjs duplicate --sn SIM-001 --pin 9001
+node tools/device-simulator/simulate.mjs live --sn SIM-001 --pin 9001 --every 10
+```
+
+Mesin `SIM-001` harus didaftarkan dulu di halaman Mesin.
 
 ## Tahap 6 — Skenario uji dengan mesin sungguhan
 
