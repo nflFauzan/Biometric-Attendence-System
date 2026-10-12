@@ -1,11 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowUpRight, Clock } from 'lucide-react'
+import { ArrowUpRight, Radio, WifiOff } from 'lucide-react'
 import { Link } from 'react-router'
 
-import { EmptyState } from '@/components/feedback'
+import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { PageHeader } from '@/components/PageHeader'
+import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api'
-import type { Branch, Device, Employee } from '@/lib/types'
+import { SCAN_FLAG_LABELS } from '@/lib/attendance'
+import { formatDate, formatDateTime } from '@/lib/format'
+import type { DashboardSummary } from '@/lib/types'
+import { useDashboardStream } from '@/lib/useDashboardStream'
 import { cn } from '@/lib/utils'
 
 interface TileProps {
@@ -45,61 +49,144 @@ function Tile({ label, value, to, hint, highlight }: TileProps) {
   )
 }
 
+/** Kehadiran hari ini, diperbarui otomatis lewat SSE begitu scan tersimpan (DASH-001–007). */
 export function DashboardPage() {
-  const employees = useQuery({ queryKey: ['/api/employees'], queryFn: () => api<Employee[]>('/api/employees') })
-  const branches = useQuery({ queryKey: ['/api/branches'], queryFn: () => api<Branch[]>('/api/branches') })
-  const devices = useQuery({ queryKey: ['/api/devices'], queryFn: () => api<Device[]>('/api/devices') })
+  const live = useDashboardStream()
+  const { data, error, isPending } = useQuery({
+    queryKey: ['/api/dashboard/summary'],
+    queryFn: () => api<DashboardSummary>('/api/dashboard/summary'),
+  })
+  const totals = data?.totals
 
-  const activeEmployees = employees.data?.filter((e) => e.active)
-  const activeBranches = branches.data?.filter((b) => b.active) ?? []
+  const attention = data
+    ? [
+        { label: 'Tidak hadir', value: data.totals.absent, to: '/absensi' },
+        { label: 'Belum lengkap (baru scan sekali)', value: data.totals.incomplete, to: '/absensi' },
+        { label: 'Perlu ditinjau', value: data.totals.needsReview, to: '/absensi' },
+        { label: 'Aturan kerja belum diatur', value: data.totals.ruleMissing, to: '/aturan-kerja' },
+        { label: 'Scan dengan PIN tak dikenal', value: data.unmatchedScans, to: '/absensi/scan-tak-dikenal' },
+      ]
+    : []
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Dashboard" description="Ringkasan data karyawan, cabang, dan mesin absensi." />
+      <PageHeader
+        title="Dashboard"
+        description={data ? `Kehadiran ${formatDate(data.date)}. Diperbarui otomatis saat ada scan baru.` : 'Kehadiran hari ini.'}
+        actions={
+          live ? (
+            <Badge variant="success">
+              <Radio />
+              Langsung
+            </Badge>
+          ) : (
+            <Badge variant="neutral">
+              <WifiOff />
+              Menyambung…
+            </Badge>
+          )
+        }
+      />
+
+      {error && <ErrorAlert message={error.message} />}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Tile label="Karyawan aktif" value={activeEmployees?.length} to="/karyawan" hint="Lihat daftar karyawan" highlight />
-        <Tile label="Cabang aktif" value={branches.data ? activeBranches.length : undefined} to="/cabang" hint="Kelola cabang" />
-        <Tile label="Mesin terdaftar" value={devices.data?.length} to="/mesin" hint="Kelola mesin" />
+        <Tile
+          label="Hadir hari ini"
+          value={totals?.present}
+          to="/absensi"
+          hint={totals ? `dari ${totals.totalEmployees} karyawan aktif` : 'Memuat…'}
+          highlight
+        />
+        <Tile label="Terlambat" value={totals?.late} to="/absensi" hint="Melewati jam masuk + toleransi" />
+        <Tile label="Kandidat lembur" value={totals?.overtimeCandidates} to="/absensi" hint="Belum diverifikasi" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-12">
         <section className="rounded-lg border bg-card lg:col-span-7">
-          <h2 className="border-b px-5 py-4 text-base font-semibold">Kehadiran hari ini</h2>
-          <EmptyState message="Kehadiran real-time, keterlambatan, dan lembur akan tampil di sini setelah modul absensi (Fase 3)." />
+          <h2 className="border-b px-5 py-4 text-base font-semibold">Scan terbaru</h2>
+          {isPending && <SkeletonLines />}
+          {data?.recentScans.length === 0 && <EmptyState message="Belum ada scan hari ini." />}
+          <ul className="divide-y">
+            {data?.recentScans.map((scan) => (
+              <li key={scan.id} className="flex items-center justify-between gap-4 px-5 py-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">
+                    {scan.employeeName ?? <span className="text-muted-foreground">PIN {scan.devicePin} (belum dipetakan)</span>}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{scan.deviceName}</p>
+                  {scan.flags
+                    .filter((flag) => flag !== 'PIN_TIDAK_DIKENAL')
+                    .map((flag) => (
+                      <p key={flag} className="text-xs text-warning">
+                        {SCAN_FLAG_LABELS[flag]}
+                      </p>
+                    ))}
+                </div>
+                <span className="shrink-0 text-sm tabular-nums">{formatDateTime(scan.scannedAt)}</span>
+              </li>
+            ))}
+          </ul>
         </section>
 
-        <section className="rounded-lg border bg-card lg:col-span-5">
-          <h2 className="border-b px-5 py-4 text-base font-semibold">Ringkasan per cabang</h2>
-          {branches.data && activeBranches.length === 0 && <EmptyState message="Belum ada cabang aktif." />}
-          <ul className="divide-y">
-            {activeBranches.map((branch) => {
-              const employeeCount = activeEmployees?.filter((e) => e.branchId === branch.id).length ?? 0
-              const deviceCount = devices.data?.filter((d) => d.branchId === branch.id).length ?? 0
-              return (
-                <li key={branch.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+        <div className="flex flex-col gap-4 lg:col-span-5">
+          <section className="rounded-lg border bg-card">
+            <h2 className="border-b px-5 py-4 text-base font-semibold">Perlu perhatian</h2>
+            <ul className="divide-y">
+              {attention.map((item) => (
+                <li key={item.label}>
+                  <Link to={item.to} className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-accent/60">
+                    <span className="text-sm">{item.label}</span>
+                    <span className={cn('font-heading text-lg font-bold tabular-nums', item.value > 0 && 'text-warning')}>
+                      {item.value}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="rounded-lg border bg-card">
+            <h2 className="border-b px-5 py-4 text-base font-semibold">Status mesin</h2>
+            {data?.devices.length === 0 && <EmptyState message="Belum ada mesin terdaftar." />}
+            <ul className="divide-y">
+              {data?.devices.map((device) => (
+                <li key={device.id} className="flex items-center justify-between gap-4 px-5 py-3">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">{branch.name}</p>
-                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock className="size-3" aria-hidden="true" />
-                      {branch.timezone}
+                    <p className="truncate font-semibold">{device.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {device.branchName} · terakhir {formatDateTime(device.lastSeenAt)}
                     </p>
                   </div>
+                  <Badge variant={device.online ? 'success' : 'neutral'}>{device.online ? 'Online' : 'Offline'}</Badge>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="rounded-lg border bg-card">
+            <h2 className="border-b px-5 py-4 text-base font-semibold">Per cabang</h2>
+            <ul className="divide-y">
+              {data?.branches.map((branch) => (
+                <li key={branch.branchId} className="flex items-center justify-between gap-4 px-5 py-3">
+                  <p className="min-w-0 truncate font-semibold">{branch.branchName}</p>
                   <dl className="flex gap-5 text-right text-sm tabular-nums">
                     <div>
-                      <dt className="label-caps text-muted-foreground">Karyawan</dt>
-                      <dd className="font-heading text-lg font-bold">{employeeCount}</dd>
+                      <dt className="label-caps text-muted-foreground">Hadir</dt>
+                      <dd className="font-heading text-lg font-bold">
+                        {branch.counts.present}/{branch.counts.totalEmployees}
+                      </dd>
                     </div>
                     <div>
-                      <dt className="label-caps text-muted-foreground">Mesin</dt>
-                      <dd className="font-heading text-lg font-bold">{deviceCount}</dd>
+                      <dt className="label-caps text-muted-foreground">Terlambat</dt>
+                      <dd className="font-heading text-lg font-bold">{branch.counts.late}</dd>
                     </div>
                   </dl>
                 </li>
-              )
-            })}
-          </ul>
-        </section>
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
     </div>
   )

@@ -30,6 +30,43 @@ export function localDateIso(date: Date = new Date()): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
+/** "2026-10-12" + n hari → "YYYY-MM-DD", dihitung sebagai tanggal kalender (tanpa zona waktu). */
+export function addDays(iso: string, days: number): string {
+  const [year, month, day] = iso.split('-').map(Number)
+  return localDateIso(new Date(year, month - 1, day + days))
+}
+
+/** Instant ISO → nilai input datetime-local di zona waktu perangkat, mis. "2026-10-12T08:00". */
+export function toDateTimeLocal(iso: string | null | undefined): string {
+  if (!iso) {
+    return ''
+  }
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${localDateIso(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+/** Nilai input datetime-local (zona waktu perangkat) → instant ISO, atau null bila kosong. */
+export function fromDateTimeLocal(value: string): string | null {
+  if (!value) {
+    return null
+  }
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+/** Waktu lokal mesin "2026-10-05T08:01:02" (tanpa zona) → "5 Okt 2026, 08.01.02". */
+export function formatLocalDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return '—'
+  }
+  const [date, time] = value.split('T')
+  return time ? `${formatDate(date)}, ${formatTime(time)}` : formatDate(date)
+}
+
 /** Jam dari API ("08:00" atau "08:00:30") → "08.00" atau "08.00.30". */
 export function formatTime(value: string | null | undefined): string {
   if (!value) {

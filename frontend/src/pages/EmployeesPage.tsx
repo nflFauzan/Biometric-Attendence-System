@@ -25,6 +25,7 @@ export function EmployeesPage() {
           role: 'primary',
         },
         { header: 'No. karyawan', cell: (e) => e.employeeNumber, mono: true },
+        { header: 'PIN mesin', cell: (e) => e.devicePin ?? '—', mono: true },
         { header: 'Cabang', cell: (e) => e.branchName },
         { header: 'Kategori', cell: (e) => e.categoryName },
         { header: 'Tgl masuk', cell: (e) => formatDate(e.joinDate) },
@@ -39,6 +40,11 @@ export function EmployeesPage() {
         { name: 'position', label: 'Jabatan' },
         { name: 'joinDate', label: 'Tanggal masuk', type: 'date', required: true },
         { name: 'endDate', label: 'Tanggal keluar', type: 'date' },
+        {
+          name: 'devicePin',
+          label: 'PIN mesin',
+          hint: 'User ID karyawan di mesin absensi (sama di semua mesin). Scan dengan PIN ini otomatis terhubung.',
+        },
         { name: 'active', label: 'Aktif', type: 'checkbox' },
       ]}
       emptyValues={{
@@ -50,6 +56,7 @@ export function EmployeesPage() {
         position: '',
         joinDate: '',
         endDate: '',
+        devicePin: '',
         active: true,
       }}
       toValues={(e) => ({
@@ -61,6 +68,7 @@ export function EmployeesPage() {
         position: e.position ?? '',
         joinDate: e.joinDate,
         endDate: e.endDate ?? '',
+        devicePin: e.devicePin ?? '',
         active: e.active,
       })}
       toBody={(v) => ({
@@ -72,6 +80,7 @@ export function EmployeesPage() {
         position: emptyToNull(v.position),
         joinDate: emptyToNull(v.joinDate),
         endDate: emptyToNull(v.endDate),
+        devicePin: emptyToNull(v.devicePin),
         active: v.active,
       })}
     />

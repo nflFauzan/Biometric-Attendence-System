@@ -39,6 +39,7 @@ const employee: Employee = {
   joinDate: '2026-01-05',
   endDate: null,
   active: true,
+  devicePin: null,
 }
 
 const preview: DailyPreview = {

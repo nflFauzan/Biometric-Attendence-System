@@ -5,6 +5,8 @@ import { useAuth } from '@/auth/AuthContext'
 import { AppLayout } from '@/components/AppLayout'
 import type { Role } from '@/lib/types'
 import { homePathFor } from '@/navigation'
+import { AttendanceEmployeePage } from '@/pages/AttendanceEmployeePage'
+import { AttendancePage } from '@/pages/AttendancePage'
 import { AuditLogPage } from '@/pages/AuditLogPage'
 import { BranchesPage } from '@/pages/BranchesPage'
 import { CalculationPreviewPage } from '@/pages/CalculationPreviewPage'
@@ -17,6 +19,7 @@ import { EmployeesPage } from '@/pages/EmployeesPage'
 import { HolidaysPage } from '@/pages/HolidaysPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { UnmatchedScansPage } from '@/pages/UnmatchedScansPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { WorkRulesPage } from '@/pages/WorkRulesPage'
 
@@ -67,6 +70,9 @@ function App() {
         }
       >
         <Route index element={managers(<DashboardPage />)} />
+        <Route path="absensi" element={managers(<AttendancePage />)} />
+        <Route path="absensi/karyawan/:id" element={managers(<AttendanceEmployeePage />)} />
+        <Route path="absensi/scan-tak-dikenal" element={managers(<UnmatchedScansPage />)} />
         <Route path="karyawan" element={managers(<EmployeesPage />)} />
         <Route path="karyawan/:id" element={managers(<EmployeeDetailPage />)} />
         <Route path="cabang" element={managers(<BranchesPage />)} />

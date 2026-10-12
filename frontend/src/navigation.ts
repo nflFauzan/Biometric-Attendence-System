@@ -2,6 +2,8 @@ import {
   Building2,
   Calculator,
   CalendarDays,
+  ClipboardCheck,
+  ScanSearch,
   Fingerprint,
   SlidersHorizontal,
   LayoutDashboard,
@@ -35,6 +37,8 @@ export const MENU_GROUPS: MenuGroup[] = ['Operasional', 'Master data', 'Pengatur
 /** Menu per role sesuai docs/kebutuhan.md. Backend tetap menjadi penentu akses yang sebenarnya. */
 export const MENU: MenuItem[] = [
   { path: '/', label: 'Dashboard', roles: MANAGERS, icon: LayoutDashboard, group: 'Operasional', mobile: true },
+  { path: '/absensi', label: 'Absensi Harian', roles: MANAGERS, icon: ClipboardCheck, group: 'Operasional', mobile: true },
+  { path: '/absensi/scan-tak-dikenal', label: 'Scan Tak Dikenal', roles: MANAGERS, icon: ScanSearch, group: 'Operasional' },
   { path: '/karyawan', label: 'Karyawan', roles: MANAGERS, icon: Users, group: 'Master data', mobile: true },
   { path: '/cabang', label: 'Cabang', roles: MANAGERS, icon: Building2, group: 'Master data' },
   { path: '/kategori', label: 'Kategori Karyawan', roles: MANAGERS, icon: Tags, group: 'Master data' },
@@ -53,7 +57,11 @@ export function menuFor(role: Role): MenuItem[] {
 
 /** Item menu untuk path yang sedang dibuka (termasuk sub-halaman seperti /karyawan/12), untuk judul di header. */
 export function menuItemFor(pathname: string): MenuItem | undefined {
-  return MENU.find((item) => item.path === pathname || (item.path !== '/' && pathname.startsWith(`${item.path}/`)))
+  // Cocok persis dulu, agar /absensi/scan-tak-dikenal tidak terbaca sebagai sub-halaman /absensi.
+  return (
+    MENU.find((item) => item.path === pathname) ??
+    MENU.find((item) => item.path !== '/' && pathname.startsWith(`${item.path}/`))
+  )
 }
 
 export function homePathFor(role: Role): string {
