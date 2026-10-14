@@ -24,6 +24,8 @@ import { LeaveTypesPage } from '@/pages/LeaveTypesPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MyLeavePage } from '@/pages/MyLeavePage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { TeamMemberPage } from '@/pages/TeamMemberPage'
+import { TeamPage } from '@/pages/TeamPage'
 import { UnmatchedScansPage } from '@/pages/UnmatchedScansPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { WorkRulesPage } from '@/pages/WorkRulesPage'
@@ -90,6 +92,9 @@ function App() {
         {/* Pengajuan sendiri: backend memastikan akun terhubung ke data karyawan. */}
         <Route path="izin-saya" element={<MyLeavePage />} />
         <Route path="izin-saya/:id" element={<LeaveDetailPage mode="mine" />} />
+        {/* Rekan kerja: semua role yang login; kolom dibatasi backend (K-083). */}
+        <Route path="rekan-kerja" element={<TeamPage />} />
+        <Route path="rekan-kerja/:id" element={<TeamMemberPage />} />
         <Route path="karyawan" element={managers(<EmployeesPage />)} />
         <Route path="karyawan/:id" element={managers(<EmployeeDetailPage />)} />
         <Route path="cabang" element={managers(<BranchesPage />)} />

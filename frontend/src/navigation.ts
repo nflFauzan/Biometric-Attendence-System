@@ -5,6 +5,7 @@ import {
   CalendarDays,
   FileText,
   ClipboardCheck,
+  ContactRound,
   ScanSearch,
   Fingerprint,
   SlidersHorizontal,
@@ -53,6 +54,7 @@ export const MENU: MenuItem[] = [
   { path: '/jenis-izin', label: 'Jenis Izin/Cuti', roles: ['OWNER'], icon: FileText, group: 'Pengaturan' },
   { path: '/simulasi', label: 'Simulasi Perhitungan', roles: MANAGERS, icon: Calculator, group: 'Pengaturan' },
   { path: '/audit-log', label: 'Audit Log', roles: ['OWNER'], icon: ScrollText, group: 'Sistem' },
+  { path: '/rekan-kerja', label: 'Rekan Kerja', roles: ['EMPLOYEE'], icon: ContactRound, group: 'Saya', mobile: true },
   { path: '/profil', label: 'Profil Saya', roles: ['EMPLOYEE'], icon: UserRound, group: 'Saya', mobile: true },
   { path: '/izin-saya', label: 'Izin & Cuti Saya', roles: ['EMPLOYEE'], icon: CalendarCheck, group: 'Saya', mobile: true },
 ]

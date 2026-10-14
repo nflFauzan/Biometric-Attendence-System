@@ -234,6 +234,25 @@ class AccessControlTests extends IntegrationTest {
 		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
 	}
 
+	/** Daftar rekan kerja dibuka semua role yang login (K-083); kolomnya dibatasi DTO, bukan role. */
+	@ParameterizedTest
+	@ValueSource(strings = { "/api/team/attendance", "/api/team/attendance?date=2026-10-05&branchId=" + MISSING })
+	void teamAttendanceIsOpenToAllSignedInRoles(String url) throws Exception {
+		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isOk());
+		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+	}
+
+	@Test
+	void teamMemberHistoryRequiresLoginOnly() throws Exception {
+		String url = "/api/team/employees/" + MISSING + "/attendance";
+		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isNotFound());
+		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isNotFound());
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isNotFound());
+		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+	}
+
 	@Test
 	void dashboardStreamRequiresManagerRole() throws Exception {
 		mockMvc.perform(get("/api/dashboard/stream").with(EMPLOYEE)).andExpect(status().isForbidden());

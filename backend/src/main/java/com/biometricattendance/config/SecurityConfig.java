@@ -40,6 +40,8 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 				.requestMatchers("/api/auth/**", "/api/me/**").authenticated()
+				// Daftar rekan kerja: semua role yang login; kolomnya dibatasi TeamDtos (K-083).
+				.requestMatchers(HttpMethod.GET, "/api/team/**").authenticated()
 				.requestMatchers("/api/audit-logs/**").hasRole(OWNER)
 				// Dokumentasi API hanya ada jika OPENAPI_ENABLED=true, dan tetap butuh login pengelola.
 				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")

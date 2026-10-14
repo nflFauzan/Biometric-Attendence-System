@@ -406,3 +406,43 @@ export interface PendingLeaveSummary {
     submittedAt: string
   }[]
 }
+
+/** Daftar rekan kerja (docs/rencana-rekan-kerja.md, K-083): hanya kolom yang diizinkan. */
+export type TeamStatus = 'HADIR' | 'TIDAK_LENGKAP' | 'TIDAK_HADIR' | 'IZIN' | 'LIBUR' | 'BELUM_DIATUR'
+
+export interface TeamDay {
+  date: string
+  status: TeamStatus
+  checkIn: string | null
+  checkOut: string | null
+  lateSeconds: number | null
+  overtimeSeconds: number | null
+}
+
+export interface TeamRow {
+  employeeId: number
+  employeeNumber: string
+  fullName: string
+  branchId: number
+  branchName: string
+  position: string | null
+  day: TeamDay
+}
+
+export interface TeamDaily {
+  date: string
+  branchId: number | null
+  branches: { id: number; name: string }[]
+  rows: TeamRow[]
+}
+
+export interface TeamMember {
+  employeeId: number
+  employeeNumber: string
+  fullName: string
+  branchName: string
+  position: string | null
+  from: string
+  to: string
+  days: TeamDay[]
+}
