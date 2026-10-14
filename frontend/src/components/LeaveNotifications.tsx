@@ -69,7 +69,7 @@ export function LeaveNotifications() {
           <Popover.Content
             align="end"
             sideOffset={8}
-            className="z-50 w-[min(22rem,calc(100vw-2rem))] rounded-lg border bg-card text-card-foreground shadow-lg"
+            className="z-50 w-[min(22rem,calc(100vw-2rem))] rounded-lg border glass-strong text-card-foreground"
           >
             <div className="flex items-center justify-between border-b px-4 py-3">
               <p className="font-semibold">Izin menunggu persetujuan</p>
@@ -98,7 +98,7 @@ export function LeaveNotifications() {
             <Link
               to="/izin"
               onClick={() => setOpen(false)}
-              className="block border-t px-4 py-3 text-center text-sm font-semibold text-steel-600 hover:bg-accent/60"
+              className="block border-t px-4 py-3 text-center text-sm font-semibold text-primary hover:bg-accent/60"
             >
               Buka halaman Izin &amp; Cuti
             </Link>
@@ -130,12 +130,12 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: (key: number
   const close = () => onDismiss(toast.key)
 
   return (
-    <div role="status" className="pointer-events-auto flex items-start gap-3 rounded-lg border border-l-4 border-l-gold-500 bg-card p-4 shadow-lg">
-      <Bell className="mt-0.5 size-5 shrink-0 text-steel-600" />
+    <div role="status" className="pointer-events-auto flex items-start gap-3 rounded-lg border border-l-4 border-l-gold-500 glass-strong p-4">
+      <Bell className="mt-0.5 size-5 shrink-0 text-primary" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">Pengajuan izin baru</p>
         <p className="text-sm">{toast.text}</p>
-        <Link to={`/izin/${toast.requestId}`} onClick={close} className="mt-1 inline-block text-sm font-semibold text-steel-600 underline">
+        <Link to={`/izin/${toast.requestId}`} onClick={close} className="mt-1 inline-block text-sm font-semibold text-primary underline">
           Tinjau sekarang
         </Link>
       </div>

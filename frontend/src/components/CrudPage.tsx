@@ -109,7 +109,7 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
 
       {error && <ErrorAlert message={error.message} />}
 
-      <section className="overflow-hidden rounded-lg border bg-card">
+      <section className="overflow-hidden rounded-lg border glass-strong">
         {data && (
           <p className="border-b px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{data.length} data</p>
         )}
@@ -131,7 +131,7 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
             <div className="hidden md:block">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-steel-50 hover:bg-steel-50 dark:bg-secondary dark:hover:bg-secondary">
+                  <TableRow className="glass-head hover:glass-head">
                     {props.columns.map((column) => (
                       <TableHead key={column.header} scope="col" className="label-caps h-11 px-4 text-muted-foreground">
                         {column.header}

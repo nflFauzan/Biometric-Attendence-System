@@ -5,6 +5,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '@/auth/AuthContext'
 import { BrandMark, Wordmark } from '@/components/Brand'
 import { LeaveNotifications } from '@/components/LeaveNotifications'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { initials } from '@/lib/format'
@@ -16,6 +17,7 @@ import { MENU_GROUPS, menuFor, menuItemFor, type MenuItem } from '@/navigation'
 /**
  * Kerangka aplikasi (docs/design-system.md §5 dan §6.9):
  * HP = header + bottom navigation, tablet = sidebar ringkas, desktop = sidebar penuh.
+ * Semua bagian memakai kaca di atas latar statis (docs/rencana-tema-kaca.md §2–§3).
  */
 export function AppLayout() {
   const { me, logout } = useAuth()
@@ -40,10 +42,11 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="relative isolate min-h-dvh">
+      <div aria-hidden="true" className="app-backdrop pointer-events-none fixed inset-0 -z-10" />
       <div aria-hidden="true" className="fixed inset-x-0 top-0 z-40 h-0.5 bg-gold-500" />
 
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[76px] flex-col overflow-hidden bg-sidebar text-steel-200 md:flex lg:w-62">
+      <aside className="glass-sidebar fixed inset-y-0 left-0 z-30 hidden w-[76px] flex-col overflow-hidden border-r border-white/10 text-steel-200 md:flex lg:w-62">
         <div className="flex h-16 items-center justify-center border-b border-white/10 px-4 lg:justify-start lg:px-5">
           <BrandMark className="lg:hidden" />
           <Wordmark tone="dark" className="hidden lg:flex" />
@@ -56,7 +59,7 @@ export function AppLayout() {
             }
             return (
               <div key={group} className="flex flex-col gap-1">
-                <p className="label-caps hidden px-3 pb-1 text-steel-400 lg:block">{group}</p>
+                <p className="label-caps hidden px-3 pb-1 text-steel-200 lg:block">{group}</p>
                 {items.map((item) => (
                   <SidebarLink key={item.path} item={item} />
                 ))}
@@ -71,7 +74,7 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-h-dvh flex-col md:pl-[76px] lg:pl-62">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b bg-card/95 px-4 backdrop-blur-sm md:h-16 md:px-6">
+        <header className="glass-bar sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b px-4 md:h-16 md:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <Wordmark className="md:hidden" />
             {current && (
@@ -82,7 +85,8 @@ export function AppLayout() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
+            <ThemeToggle />
             {me.role !== 'EMPLOYEE' && <LeaveNotifications />}
             <div className="hidden text-right sm:block">
               <p className="text-sm leading-tight font-semibold">{displayName}</p>
@@ -90,7 +94,7 @@ export function AppLayout() {
             </div>
             <span
               aria-hidden="true"
-              className="grid size-9 place-items-center rounded-full bg-steel-100 font-heading text-xs font-bold text-steel-600"
+              className="grid size-9 place-items-center rounded-full bg-steel-100 font-heading text-xs font-bold text-primary dark:bg-secondary dark:text-foreground"
             >
               {initials(displayName)}
             </span>
@@ -114,7 +118,7 @@ export function AppLayout() {
 
       <nav
         aria-label="Menu bawah"
-        className="fixed inset-x-0 bottom-0 z-30 border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="glass-bar fixed inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom))] z-30 overflow-hidden rounded-2xl border shadow-lg shadow-steel-900/15 md:hidden"
       >
         <ul className="flex">
           {menu
@@ -142,7 +146,7 @@ export function AppLayout() {
           <DialogHeader>
             <DialogTitle>Menu lainnya</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center gap-3 rounded-lg bg-steel-50 p-3">
+          <div className="flex items-center gap-3 rounded-lg bg-secondary/60 p-3">
             <span className="grid size-10 place-items-center rounded-full bg-steel-600 font-heading text-sm font-bold text-white">
               {initials(displayName)}
             </span>
@@ -161,7 +165,7 @@ export function AppLayout() {
                     onClick={() => setMoreOpen(false)}
                     className="flex h-12 items-center gap-3 rounded-md px-2 text-[15px] hover:bg-accent"
                   >
-                    <item.icon className="size-5 text-steel-600" />
+                    <item.icon className="size-5 text-primary" />
                     {item.label}
                   </NavLink>
                 </li>
@@ -172,7 +176,7 @@ export function AppLayout() {
                 onClick={goChangePassword}
                 className="flex h-12 w-full items-center gap-3 rounded-md px-2 text-[15px] hover:bg-accent"
               >
-                <KeyRound className="size-5 text-steel-600" />
+                <KeyRound className="size-5 text-primary" />
                 Ganti password
               </button>
             </li>
@@ -201,10 +205,10 @@ function SidebarLink({ item }: { item: MenuItem }) {
       title={item.label}
       className={({ isActive }) =>
         cn(
-          'relative flex flex-col items-center gap-1 rounded-md px-1 py-2 text-center text-[10.5px] leading-tight transition-colors hover:bg-steel-700/60 hover:text-white',
+          'relative flex flex-col items-center gap-1 rounded-md px-1 py-2 text-center text-[10.5px] leading-tight transition-colors hover:bg-white/10 hover:text-white',
           'lg:flex-row lg:gap-3 lg:px-3 lg:py-2.5 lg:text-left lg:text-sm',
           isActive &&
-            'bg-steel-700 font-semibold text-white before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-gold-500',
+            'bg-white/15 font-semibold text-white before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-gold-500',
         )
       }
     >
@@ -222,7 +226,7 @@ function BottomLink({ item }: { item: MenuItem }) {
       className={({ isActive }) =>
         cn(
           'relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-muted-foreground',
-          isActive && 'text-steel-600 before:absolute before:top-1.5 before:size-1.5 before:rounded-full before:bg-gold-500',
+          isActive && 'text-primary before:absolute before:top-1.5 before:size-1.5 before:rounded-full before:bg-gold-500',
         )
       }
     >

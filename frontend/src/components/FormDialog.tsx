@@ -107,7 +107,7 @@ export function FormDialog({ open, title, description, fields, initialValues, on
                         return (
                           <label
                             key={option.value}
-                            className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border bg-steel-50 px-3 text-sm md:min-h-10 dark:bg-secondary"
+                            className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border bg-secondary/50 px-3 text-sm md:min-h-10 dark:bg-secondary"
                           >
                             <input type="checkbox" className="size-4 accent-steel-600" checked={checked} onChange={toggle} />
                             {option.label}
@@ -117,7 +117,7 @@ export function FormDialog({ open, title, description, fields, initialValues, on
                     </div>
                   </fieldset>
                 ) : field.type === 'checkbox' ? (
-                  <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border bg-steel-50 px-3 text-sm font-semibold dark:bg-secondary">
+                  <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border bg-secondary/50 px-3 text-sm font-semibold dark:bg-secondary">
                     <input
                       type="checkbox"
                       className="size-4 accent-steel-600"

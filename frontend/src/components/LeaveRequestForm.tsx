@@ -196,9 +196,9 @@ export function LeaveRequestForm({ open, mode, onClose, onCreated }: LeaveReques
           >
             <label
               htmlFor="attachment"
-              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-dashed bg-steel-50 px-3 py-2 text-sm dark:bg-secondary"
+              className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md border border-dashed bg-secondary/50 px-3 py-2 text-sm dark:bg-secondary"
             >
-              <Paperclip className="size-4 shrink-0 text-steel-600" />
+              <Paperclip className="size-4 shrink-0 text-primary" />
               <span className="min-w-0 truncate">
                 {file ? `${file.name} · ${formatFileSize(file.size)}` : 'Pilih file dari perangkat…'}
               </span>

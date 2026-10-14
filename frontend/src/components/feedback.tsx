@@ -18,7 +18,7 @@ export function ErrorAlert({ message, className }: { message: string; className?
 export function EmptyState({ message, action }: { message: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-      <span aria-hidden="true" className="relative block h-12 w-16 overflow-hidden rounded-md bg-steel-100">
+      <span aria-hidden="true" className="relative block h-12 w-16 overflow-hidden rounded-md bg-steel-100 dark:bg-secondary">
         <span className="absolute inset-x-0 top-0 h-1 bg-gold-500" />
         <span className="motif-spandek absolute inset-x-2 top-2.5 bottom-2 text-steel-300 [background-size:8px_100%]" />
       </span>

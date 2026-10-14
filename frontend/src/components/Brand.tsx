@@ -25,7 +25,7 @@ export function Wordmark({ tone = 'light', className }: { tone?: 'light' | 'dark
         <span
           className={cn(
             'font-heading text-[15px] font-extrabold tracking-wide',
-            tone === 'dark' ? 'text-white' : 'text-steel-600',
+            tone === 'dark' ? 'text-white' : 'text-primary',
           )}
         >
           TAKKA STEEL
