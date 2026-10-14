@@ -103,6 +103,8 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-080 | 2026-10-13 | Pengajuan boleh untuk tanggal lampau; rentang maks. 366 hari (batas teknis) | Disepakati, batas lampau menunggu Q-033 |
 | K-081 | 2026-10-13 | Notifikasi langsung di dalam aplikasi untuk Owner/HR (pop-up SSE + lonceng); tanpa email/WA | Disepakati |
 | K-082 | 2026-10-13 | Surat pengajuan siap cetak / simpan PDF lewat fitur cetak browser | Disepakati |
+| K-083 | 2026-10-14 | Semua karyawan boleh melihat absensi semua karyawan aktif dengan kolom terbatas, tanpa data sensitif | Disepakati |
+| K-084 | 2026-10-14 | Status rekan kerja disederhanakan; izin tampil tanpa jenis, koreksi tidak terlihat | Disepakati |
 
 ---
 
@@ -426,6 +428,13 @@ Rincian teknis ada di [rencana-fase-4.md](rencana-fase-4.md). Keputusan dipilih 
 - **K-080 Tanggal lampau.** Diizinkan tanpa batas hari; rentang maks. 366 hari kalender (CHECK di database).
 - **K-081 Notifikasi.** Event SSE `LEAVE` dikirim setelah commit; Owner/HR melihat pop-up dalam hitungan detik dan lonceng berisi pengajuan yang menunggu (terbaru di atas). Karyawan melihat hasil keputusan di halaman "Izin & Cuti Saya".
 - **K-082 Surat cetak/PDF.** Halaman surat tanpa kerangka aplikasi, ukuran A4, dicetak lewat browser ("Simpan sebagai PDF"); tidak ada library PDF di server. Kop surat masih umum dan bisa disesuaikan dengan contoh dari klien.
+
+### Daftar rekan kerja untuk karyawan (K-083–K-084)
+
+Rincian teknis ada di [rencana-rekan-kerja.md](rencana-rekan-kerja.md). Dipilih pengguna pada 2026-10-14 (hasil rapat dengan tim).
+
+- **K-083 Absensi rekan kerja.** Semua pengguna yang login (termasuk Karyawan) boleh melihat absensi semua karyawan aktif: No. karyawan, nama, cabang, jabatan, status, jam masuk/pulang, terlambat, dan lembur. Data sensitif (No. HP, PIN mesin, kategori, tanggal masuk/keluar, jenis/alasan/surat izin, koreksi, data gaji) tidak dikirim, karena respons paket `team` di backend hanya berisi kolom yang diizinkan; pembatasan tidak bergantung pada frontend.
+- **K-084 Status sederhana.** Hadir / Belum lengkap / Tidak hadir / Izin / Libur / Belum diatur. Izin tampil tanpa jenis; izin yang masih menunggu dan "hadir saat izin" tidak ditampilkan sebagai izin; jam hasil koreksi tampil tanpa keterangan koreksi. Jam dan durasi dikirim dalam menit penuh (dibulatkan ke bawah), karena koreksi selalu berdetik 0 sedangkan scan asli tidak; tanpa pembulatan, koreksi bisa ditebak dari detiknya. Tanggal yang belum terjadi ditolak (400), agar tidak tampil "Tidak hadir" palsu dan izin mendatang tidak terlihat.
 
 ---
 

@@ -459,6 +459,8 @@ Audit log harus memuat informasi yang memadai untuk mengetahui pelaku, waktu, ob
 
 Hak akses final untuk Owner, HR/Finance, dan Karyawan mengikuti dokumen kebutuhan serta keputusan akses yang telah disepakati. Sistem tidak boleh hanya mengandalkan penyembunyian menu di frontend; backend juga wajib memvalidasi izin setiap tindakan.
 
+Karyawan boleh melihat absensi rekan kerja (semua karyawan aktif) dengan kolom terbatas, tanpa data pribadi yang sensitif (K-083, K-084). Rinciannya ada di [rencana-rekan-kerja.md](rencana-rekan-kerja.md).
+
 ---
 
 ## 12. Laporan Payroll sebagai Acuan Pengujian

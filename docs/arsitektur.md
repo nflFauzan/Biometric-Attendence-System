@@ -237,6 +237,12 @@ Tanggung jawab:
 
 Raw scan dan rekap absensi merupakan data yang berbeda. Raw scan berfungsi sebagai bukti kejadian, sedangkan rekap absensi adalah hasil interpretasi berdasarkan aturan yang berlaku.
 
+Daftar rekan kerja (paket `team`, K-083, rincian di [rencana-rekan-kerja.md](rencana-rekan-kerja.md)):
+
+- `GET /api/team/attendance` dan `GET /api/team/employees/{id}/attendance` dibuka untuk semua role yang login.
+- Rekap dihitung dengan `AttendanceService` yang sama dengan pengelola, lalu dipetakan ke DTO `TeamDtos` yang hanya berisi kolom yang diizinkan.
+- Tidak memakai SSE; halaman memuat ulang tiap 60 detik.
+
 ### 6.6 Attendance Correction
 
 Tanggung jawab:

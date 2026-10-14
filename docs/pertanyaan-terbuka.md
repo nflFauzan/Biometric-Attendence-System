@@ -178,6 +178,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 **Sebagian dijawab 2026-10-13:** karyawan mengajukan izin/cuti sendiri lewat aplikasi dan melihat status pengajuannya (K-073). Melihat riwayat absensi, slip gaji, dan saldo piutang sendiri masih terbuka.
 
+**Riwayat absensi dijawab 2026-10-14:** karyawan melihat absensinya sendiri dan rekan kerja lewat halaman Rekan Kerja (K-083). Slip gaji dan saldo piutang masih terbuka.
+
 - Apakah karyawan boleh melihat riwayat absensi miliknya sendiri?
 - Apakah karyawan boleh melihat slip gaji dan rincian komponen penghasilan?
 - Apakah karyawan dapat melihat saldo piutang miliknya?
