@@ -24,5 +24,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     // Lihat src/test/setup.ts: batas waktu dilonggarkan untuk mesin yang sibuk.
     testTimeout: 30_000,
+    // index.css dibaca mentah (?raw) oleh uji kontras kaca; CSS lain tetap dilewati agar test cepat.
+    css: { include: [/index\.css/] },
   },
 })
