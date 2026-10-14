@@ -215,7 +215,7 @@ export function WorkRulesPage() {
           <span className="text-sm font-semibold" id="level-label">
             Level aturan
           </span>
-          <div className="inline-flex rounded-md border bg-card p-1" role="group" aria-labelledby="level-label">
+          <div className="inline-flex rounded-md border glass p-1" role="group" aria-labelledby="level-label">
             {LEVELS.map((item) => (
               <Button
                 key={item}
@@ -255,7 +255,7 @@ export function WorkRulesPage() {
       {actionError && <ErrorAlert message={actionError} />}
       {versions.error && <ErrorAlert message={versions.error.message} />}
 
-      <section className="overflow-hidden rounded-lg border bg-card" aria-labelledby="versi-aturan">
+      <section className="overflow-hidden rounded-lg border glass-strong" aria-labelledby="versi-aturan">
         <h2 id="versi-aturan" className="flex items-center gap-2 border-b px-5 py-3.5 text-base font-semibold">
           <CalendarClock className="size-4 text-muted-foreground" aria-hidden="true" />
           Versi aturan {RULE_LEVEL_LABELS[level]}
@@ -354,7 +354,7 @@ function EffectiveRulePanel() {
   const data = effective.data
 
   return (
-    <section className="rounded-lg border bg-card" aria-labelledby="aturan-berlaku">
+    <section className="rounded-lg border glass" aria-labelledby="aturan-berlaku">
       <h2 id="aturan-berlaku" className="flex items-center gap-2 border-b px-5 py-3.5 text-base font-semibold">
         <Scale className="size-4 text-muted-foreground" aria-hidden="true" />
         Aturan yang berlaku

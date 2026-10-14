@@ -39,7 +39,7 @@ export function ChangePasswordPage() {
     <div className="flex min-h-dvh flex-col items-center bg-background px-4 py-10">
       <div aria-hidden="true" className="fixed inset-x-0 top-0 h-1 bg-gold-500" />
       <Wordmark className="mb-8" />
-      <div className="w-full max-w-md rounded-xl border bg-card p-6 sm:p-8">
+      <div className="w-full max-w-md rounded-xl border glass-strong p-6 sm:p-8">
         <h1 className="text-2xl font-bold text-steel-800 dark:text-foreground">Ganti password</h1>
         {me?.mustChangePassword && (
           <p className="mt-3 rounded-md border border-warning/25 bg-warning-bg px-3 py-2 text-sm text-warning">

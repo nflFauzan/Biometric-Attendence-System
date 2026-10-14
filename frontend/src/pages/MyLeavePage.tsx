@@ -37,7 +37,7 @@ export function MyLeavePage() {
 
       {error && <ErrorAlert message={error.message} />}
 
-      <section className="overflow-hidden rounded-lg border bg-card">
+      <section className="overflow-hidden rounded-lg border glass-strong">
         {isPending && <SkeletonLines />}
         {data?.length === 0 && (
           <EmptyState

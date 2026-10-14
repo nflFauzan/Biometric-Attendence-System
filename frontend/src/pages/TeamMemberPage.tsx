@@ -67,7 +67,7 @@ export function TeamMemberPage() {
       {data && (
         <ul aria-label="Ringkasan bulan ini" className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {summary.map((item) => (
-            <li key={item.label} className="rounded-lg border bg-card p-4">
+            <li key={item.label} className="rounded-lg border glass p-4">
               <p className="label-caps text-muted-foreground">{item.label}</p>
               <p className="font-heading text-2xl font-bold tabular-nums">{item.value}</p>
             </li>
@@ -76,7 +76,7 @@ export function TeamMemberPage() {
       )}
 
       {!isFuture && (
-        <section className="overflow-hidden rounded-lg border bg-card">
+        <section className="overflow-hidden rounded-lg border glass-strong">
           {isPending && <SkeletonLines />}
           {data && days.length === 0 && <EmptyState message="Belum ada data di bulan ini." />}
           {days.length > 0 && (
@@ -84,7 +84,7 @@ export function TeamMemberPage() {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-steel-50 hover:bg-steel-50 dark:bg-secondary dark:hover:bg-secondary">
+                    <TableRow className="glass-head hover:glass-head">
                       {HEADERS.map((header) => (
                         <TableHead key={header} scope="col" className="label-caps h-11 px-4 text-muted-foreground">
                           {header}

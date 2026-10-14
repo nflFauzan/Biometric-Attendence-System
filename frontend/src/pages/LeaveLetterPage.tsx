@@ -33,7 +33,7 @@ export function LeaveLetterPage({ mode }: { mode: LeaveMode }) {
       <div className="mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 px-4 print:hidden">
         <Link
           to={`${leavePageBase(mode)}/${id}`}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-steel-600 hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="size-4" />
           Kembali ke pengajuan

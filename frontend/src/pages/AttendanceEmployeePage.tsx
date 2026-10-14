@@ -90,7 +90,7 @@ export function AttendanceEmployeePage() {
           const status = dayStatus(day)
           const notes = day.ruleMissing ? [day.ruleMissing] : reviewNotes(day)
           return (
-            <li key={day.date} className="rounded-lg border bg-card p-4">
+            <li key={day.date} className="rounded-lg border glass p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold">{formatDate(day.date)}</p>
@@ -138,7 +138,7 @@ export function AttendanceEmployeePage() {
                 ) : (
                   <ul className="mt-1 flex flex-wrap gap-2">
                     {day.scans.map((scan) => (
-                      <li key={scan.id} className="rounded-md border bg-steel-50 px-2 py-1 dark:bg-secondary">
+                      <li key={scan.id} className="rounded-md border bg-secondary/50 px-2 py-1">
                         <span className="font-semibold tabular-nums">{formatTime(scan.deviceLocalTime.slice(11))}</span>
                         <span className="text-xs text-muted-foreground"> · {scan.deviceName}</span>
                         {scan.flags.map((flag) => (
@@ -169,7 +169,7 @@ export function AttendanceEmployeePage() {
         })}
       </ul>
 
-      <section className="rounded-lg border bg-card">
+      <section className="rounded-lg border glass">
         <h2 className="border-b px-5 py-4 text-base font-semibold">Riwayat koreksi</h2>
         {data?.corrections.length === 0 && <EmptyState message="Belum ada koreksi pada rentang ini." />}
         <ul className="divide-y">

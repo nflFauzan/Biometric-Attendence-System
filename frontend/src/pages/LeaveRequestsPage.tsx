@@ -66,7 +66,7 @@ export function LeaveRequestsPage() {
               onClick={() => setStatus(filter.value)}
               className={cn(
                 'h-9 rounded-full border px-4 text-sm font-semibold transition-colors',
-                status === filter.value ? 'border-steel-600 bg-steel-600 text-white' : 'bg-card hover:border-steel-300',
+                status === filter.value ? 'border-steel-600 bg-steel-600 text-white' : 'glass hover:border-steel-300',
               )}
             >
               {filter.label}
@@ -90,7 +90,7 @@ export function LeaveRequestsPage() {
 
       {error && <ErrorAlert message={error.message} />}
 
-      <section className="overflow-hidden rounded-lg border bg-card">
+      <section className="overflow-hidden rounded-lg border glass-strong">
         {data && <p className="border-b px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{data.length} pengajuan</p>}
         {isPending && <SkeletonLines />}
         {data?.length === 0 && (
@@ -101,7 +101,7 @@ export function LeaveRequestsPage() {
             <div className="hidden md:block">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-steel-50 hover:bg-steel-50 dark:bg-secondary dark:hover:bg-secondary">
+                  <TableRow className="glass-head hover:glass-head">
                     {HEADERS.map((header) => (
                       <TableHead key={header} scope="col" className="label-caps h-11 px-4 text-muted-foreground">
                         {header}

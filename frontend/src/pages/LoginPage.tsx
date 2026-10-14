@@ -55,8 +55,8 @@ export function LoginPage() {
           </div>
         </div>
 
-        <div className="w-full max-w-md justify-self-center rounded-xl border border-white/30 bg-white/95 p-6 text-foreground shadow-2xl shadow-steel-950/40 backdrop-blur-md sm:p-8 lg:justify-self-end">
-          <h2 className="text-2xl font-bold text-steel-800">Masuk</h2>
+        <div className="w-full max-w-md justify-self-center glass-strong rounded-xl border p-6 text-foreground sm:p-8 lg:justify-self-end">
+          <h2 className="text-2xl font-bold text-steel-800 dark:text-foreground">Masuk</h2>
           <p className="mt-1 text-sm text-muted-foreground">Gunakan username dan password dari HR/Finance.</p>
           <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
             {sessionExpired && !error && (

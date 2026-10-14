@@ -61,7 +61,7 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
   return (
     <div className="flex flex-col gap-5">
       {live && <LiveUpdates />}
-      <Link to={leavePageBase(mode)} className="inline-flex items-center gap-1 text-sm font-semibold text-steel-600 hover:underline">
+      <Link to={leavePageBase(mode)} className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
         <ArrowLeft className="size-4" />
         Kembali ke daftar
       </Link>
@@ -108,7 +108,7 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
           )}
 
           <div className="grid gap-4 lg:grid-cols-12">
-            <section className="rounded-lg border bg-card lg:col-span-7">
+            <section className="rounded-lg border glass lg:col-span-7">
               <div className="flex items-center justify-between border-b px-5 py-4">
                 <h2 className="text-base font-semibold">Rincian pengajuan</h2>
                 <Badge variant={LEAVE_STATUS_TONES[data.status]}>{LEAVE_STATUS_LABELS[data.status]}</Badge>
@@ -212,7 +212,7 @@ function Attachments({ request, mode, onUploaded }: { request: LeaveRequest; mod
   }
 
   return (
-    <section className="rounded-lg border bg-card">
+    <section className="rounded-lg border glass">
       <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
         <h2 className="text-base font-semibold">
           Surat pendukung
@@ -241,7 +241,7 @@ function Attachments({ request, mode, onUploaded }: { request: LeaveRequest; mod
         {request.attachments.map((a) => (
           <li key={a.id} className="flex items-center justify-between gap-3 px-5 py-3">
             <div className="flex min-w-0 items-center gap-3">
-              <Paperclip className="size-4 shrink-0 text-steel-600" />
+              <Paperclip className="size-4 shrink-0 text-primary" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{a.originalName}</p>
                 <p className="text-xs text-muted-foreground">
@@ -274,7 +274,7 @@ function Usage({ employeeId, year }: { employeeId: number; year: number }) {
     queryFn: () => api<LeaveUsage>(`/api/leave-requests/usage?employeeId=${employeeId}&year=${year}`),
   })
   return (
-    <section className="rounded-lg border bg-card">
+    <section className="rounded-lg border glass">
       <h2 className="border-b px-5 py-4 text-base font-semibold">Pemakaian tahun {year}</h2>
       {data?.types.length === 0 && <EmptyState message="Belum ada izin yang disetujui tahun ini." />}
       <ul className="divide-y">

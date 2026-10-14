@@ -29,7 +29,7 @@ function Tile({ label, value, to, hint, highlight }: TileProps) {
         'group flex flex-col justify-between gap-6 rounded-lg border p-5 transition-colors',
         highlight
           ? 'col-span-2 border-steel-600 bg-steel-600 text-white hover:bg-steel-700'
-          : 'bg-card hover:border-steel-300',
+          : 'glass hover:border-steel-300',
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -108,7 +108,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-12">
-        <section className="rounded-lg border bg-card lg:col-span-7">
+        <section className="rounded-lg border glass lg:col-span-7">
           <h2 className="border-b px-5 py-4 text-base font-semibold">Scan terbaru</h2>
           {isPending && <SkeletonLines />}
           {data?.recentScans.length === 0 && <EmptyState message="Belum ada scan hari ini." />}
@@ -135,7 +135,7 @@ export function DashboardPage() {
         </section>
 
         <div className="flex flex-col gap-4 lg:col-span-5">
-          <section className="rounded-lg border bg-card">
+          <section className="rounded-lg border glass">
             <h2 className="border-b px-5 py-4 text-base font-semibold">Perlu perhatian</h2>
             <ul className="divide-y">
               {attention.map((item) => (
@@ -151,7 +151,7 @@ export function DashboardPage() {
             </ul>
           </section>
 
-          <section className="rounded-lg border bg-card">
+          <section className="rounded-lg border glass">
             <h2 className="border-b px-5 py-4 text-base font-semibold">Status mesin</h2>
             {data?.devices.length === 0 && <EmptyState message="Belum ada mesin terdaftar." />}
             <ul className="divide-y">
@@ -169,7 +169,7 @@ export function DashboardPage() {
             </ul>
           </section>
 
-          <section className="rounded-lg border bg-card">
+          <section className="rounded-lg border glass">
             <h2 className="border-b px-5 py-4 text-base font-semibold">Per cabang</h2>
             <ul className="divide-y">
               {data?.branches.map((branch) => (

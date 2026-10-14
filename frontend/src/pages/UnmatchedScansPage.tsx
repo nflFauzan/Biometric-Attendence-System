@@ -51,7 +51,7 @@ export function UnmatchedScansPage() {
       </div>
 
       {error && <ErrorAlert message={error.message} />}
-      <section className="overflow-hidden rounded-lg border bg-card">
+      <section className="overflow-hidden rounded-lg border glass-strong">
         {data && <p className="border-b px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{data.length} scan</p>}
         {isPending && <SkeletonLines />}
         {data?.length === 0 && <EmptyState message="Tidak ada scan dengan PIN tak dikenal pada rentang ini." />}

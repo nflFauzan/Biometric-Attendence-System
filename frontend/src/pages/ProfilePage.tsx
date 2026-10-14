@@ -25,7 +25,7 @@ export function ProfilePage() {
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
       <h1 className="sr-only">Profil Saya</h1>
       {error && <ErrorAlert message={error.message} />}
-      <section className="overflow-hidden rounded-xl border bg-card">
+      <section className="overflow-hidden rounded-xl border glass-strong">
         <div className="relative h-20 bg-steel-800">
           <div aria-hidden="true" className="motif-spandek absolute inset-0 text-white/[0.08]" />
           <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 bg-gold-500" />

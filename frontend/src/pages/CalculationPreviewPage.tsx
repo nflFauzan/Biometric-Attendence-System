@@ -118,7 +118,7 @@ export function CalculationPreviewPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <form onSubmit={submit} className="flex flex-col gap-4 rounded-lg border bg-card p-5 lg:col-span-2">
+        <form onSubmit={submit} className="flex flex-col gap-4 rounded-lg border glass-strong p-5 lg:col-span-2">
           {error && <ErrorAlert message={error} />}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="sim-employee" className="font-semibold">
@@ -187,7 +187,7 @@ export function CalculationPreviewPage() {
           </Button>
         </form>
 
-        <section className="rounded-lg border bg-card lg:col-span-3" aria-labelledby="hasil-simulasi" aria-live="polite">
+        <section className="rounded-lg border glass lg:col-span-3" aria-labelledby="hasil-simulasi" aria-live="polite">
           <h2 id="hasil-simulasi" className="border-b px-5 py-3.5 text-base font-semibold">
             Hasil
           </h2>

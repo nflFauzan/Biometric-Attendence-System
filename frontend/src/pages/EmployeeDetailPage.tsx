@@ -37,7 +37,7 @@ export function EmployeeDetailPage() {
 
   if (employee.error instanceof ApiError && employee.error.status === 404) {
     return (
-      <section className="rounded-lg border bg-card">
+      <section className="rounded-lg border glass">
         <EmptyState message="Karyawan tidak ditemukan." action={back} />
       </section>
     )
@@ -65,7 +65,7 @@ export function EmployeeDetailPage() {
       {employee.error && <ErrorAlert message={employee.error.message} />}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className="rounded-lg border bg-card lg:col-span-2" aria-labelledby="data-karyawan">
+        <section className="rounded-lg border glass lg:col-span-2" aria-labelledby="data-karyawan">
           <h2 id="data-karyawan" className="flex items-center gap-2 border-b px-5 py-3.5 text-base font-semibold">
             <UserRound className="size-4 text-muted-foreground" aria-hidden="true" />
             Data kepegawaian
@@ -83,7 +83,7 @@ export function EmployeeDetailPage() {
           )}
         </section>
 
-        <section className="rounded-lg border bg-card" aria-labelledby="akun-web">
+        <section className="rounded-lg border glass" aria-labelledby="akun-web">
           <h2 id="akun-web" className="flex items-center gap-2 border-b px-5 py-3.5 text-base font-semibold">
             <KeyRound className="size-4 text-muted-foreground" aria-hidden="true" />
             Akun web

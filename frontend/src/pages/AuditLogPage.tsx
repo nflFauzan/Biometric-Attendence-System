@@ -33,7 +33,7 @@ function ActionBadge({ action }: { action: string }) {
 function Changes({ log }: { log: AuditLog }) {
   return (
     <details className="group">
-      <summary className="cursor-pointer text-xs font-semibold text-steel-600 select-none">Lihat perubahan</summary>
+      <summary className="cursor-pointer text-xs font-semibold text-primary select-none">Lihat perubahan</summary>
       <div className="mt-2 grid gap-2 text-xs">
         <div className="rounded-md bg-danger-bg/60 p-2">
           <p className="label-caps mb-1 text-danger">Sebelum</p>
@@ -64,7 +64,7 @@ export function AuditLogPage() {
 
       {error && <ErrorAlert message={error.message} />}
 
-      <section className="overflow-hidden rounded-lg border bg-card">
+      <section className="overflow-hidden rounded-lg border glass-strong">
         {data && (
           <p className="border-b px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{data.totalElements} catatan</p>
         )}
@@ -76,7 +76,7 @@ export function AuditLogPage() {
             <div className="hidden md:block">
               <Table className="text-[13px]">
                 <TableHeader>
-                  <TableRow className="bg-steel-50 hover:bg-steel-50 dark:bg-secondary dark:hover:bg-secondary">
+                  <TableRow className="glass-head hover:glass-head">
                     {['Waktu', 'Pengguna', 'Aksi', 'Data', 'Perubahan'].map((header) => (
                       <TableHead key={header} scope="col" className="label-caps h-10 px-3 text-muted-foreground">
                         {header}
