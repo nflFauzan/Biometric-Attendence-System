@@ -16,6 +16,7 @@ Indeks dokumentasi proyek. Semua dokumen ditulis dalam Bahasa Indonesia.
 | [rencana-fase-3.md](rencana-fase-3.md) | Rencana teknis Fase 3: penerimaan scan, adapter ZK-Push, rekap, koreksi, dashboard real-time |
 | [rencana-fase-4.md](rencana-fase-4.md) | Rencana teknis Fase 4: izin dan cuti, surat pendukung, notifikasi, surat siap cetak/PDF |
 | [rencana-rekan-kerja.md](rencana-rekan-kerja.md) | Daftar rekan kerja untuk karyawan: absensi semua karyawan aktif tanpa data sensitif |
+| [rencana-tema-kaca.md](rencana-tema-kaca.md) | Tema kaca (glassmorphism) terang/gelap, responsif, dengan pengaman kontras dan performa |
 | [panduan-mesin-x401.md](panduan-mesin-x401.md) | Langkah menyambungkan dan menguji mesin uji Solution X401 (mode ADMS) |
 
 ## Status label

@@ -2,7 +2,7 @@
 
 Panduan tampilan web absensi dan penggajian: token warna, tipografi, layout responsif, dan aturan setiap komponen. Isinya menentukan gaya mana yang dipakai di elemen mana.
 
-**Status: Disepakati (K-017), 2026-10-10.** Sudah diterapkan ke halaman Fase 1. Lihat [§14](#14-penerapan) untuk bagian yang belum diterapkan.
+**Status: Disepakati (K-017), 2026-10-10; tema kaca terang/gelap ditambahkan 2026-10-14 (K-085, rincian di [rencana-tema-kaca.md](rencana-tema-kaca.md)).** Sudah diterapkan ke halaman Fase 1. Lihat [§14](#14-penerapan) untuk bagian yang belum diterapkan.
 
 Sumber identitas brand: audit CSS, logo, dan teks situs [takkasteel.com](https://takkasteel.com) pada 2026-10-10. Katalog 35 gaya beserta pratinjaunya ada di halaman "Takka Absensi Design Directions" (artifact pribadi pemilik proyek).
 
@@ -11,7 +11,7 @@ Sumber identitas brand: audit CSS, logo, dan teks situs [takkasteel.com](https:/
 1. **Data dulu, dekorasi belakangan.** HR/Finance membaca tabel setiap hari. Kerapian dan keterbacaan lebih penting daripada efek visual.
 2. **Satu gaya dasar, aksen di tempat tertentu.** Gaya dasar dipakai di seluruh aplikasi. Gaya lain hanya boleh muncul di tempat yang disebut di [Peta gaya](#3-peta-gaya-per-elemen).
 3. **Terasa milik Takka Steel.** Warna, font, dan tombol pill mengikuti situs. Motif garis vertikal dari logo menjadi ciri khas.
-4. **Ringan di HP murah.** Tidak memakai `backdrop-filter` (blur) di halaman kerja, hanya di halaman login.
+4. **Kaca yang tetap terbaca dan ringan (K-085).** Semua permukaan memakai kaca (`glass`, `glass-strong`, `glass-bar`) di atas latar statis. Teks minimal 4.5:1 diuji otomatis; kaca di dalam kaca tidak diberi blur lagi; "kurangi transparansi" membuat kaca solid.
 5. **Status tidak hanya dibedakan dengan warna.** Setiap status punya ikon dan teks.
 6. **Mobile-first.** Karyawan, terutama supir/kenek, membuka aplikasi dari HP. Pengelola membuka dari desktop maupun tablet.
 
@@ -44,7 +44,8 @@ Gaya dasar: **Corporate Clean**, yaitu permukaan terang dengan sedikit rona biru
 | Tabel di HP (< 768px) | Daftar kartu | Tabel diubah menjadi kartu per baris |
 | Dashboard | Bento Grid + Corporate Clean | Satu angka utama memakai Bold Typography |
 | Layar pantau mesin / mode TV | Blueprint | Halaman khusus, selalu gelap |
-| Halaman login | Steel Premium + satu kartu glass | Satu-satunya tempat yang memakai blur |
+| Halaman login | Steel Premium + kartu `glass-strong` | Kartu ikut tema terang/gelap |
+| Kartu, panel, tabel, form, dialog, kerangka | Glassmorphism (K-085) | Tiga tingkat kaca, lihat [rencana-tema-kaca.md](rencana-tema-kaca.md) §2 |
 | Peringatan yang butuh tindakan | Industrial Hazard (strip kuning-hitam tipis) | Scan tidak lengkap, mesin offline, periode belum final saat jatuh tempo |
 | Badge status | Corporate Clean (pill lembut + ikon) | Lihat [§6.6](#66-badge-status) |
 | Slip gaji, ekspor PDF, cetak | Monokrom Biru | Tetap jelas jika dicetak hitam putih |
@@ -52,7 +53,7 @@ Gaya dasar: **Corporate Clean**, yaitu permukaan terang dengan sedikit rona biru
 | Mode gelap | Blueprint (tanpa grid di area tabel) | Lihat [§9](#9-mode-gelap) |
 | Area karyawan di HP | Corporate Clean, ukuran besar | Area sentuh minimal 48px, teks minimal 16px |
 
-**Tidak dipakai:** Glassmorphism di luar login, Liquid Glass, Neumorphism, Claymorphism, Neubrutalism, dan semua gaya dekoratif lain (Memphis, Y2K, Retro, Cyberpunk, dan lainnya). Alasannya ada di [§12](#12-gaya-yang-tidak-dipakai).
+**Tidak dipakai:** Liquid Glass, Neumorphism, Claymorphism, Neubrutalism, dan semua gaya dekoratif lain (Memphis, Y2K, Retro, Cyberpunk, dan lainnya). Alasannya ada di [§12](#12-gaya-yang-tidak-dipakai).
 
 ## 4. Token
 
@@ -361,8 +362,8 @@ Zona waktu mengikuti konfigurasi server, bukan zona perangkat pengguna.
 
 ## 9. Mode gelap
 
-- Mengikuti pengaturan sistem perangkat, dengan pilihan manual di menu akun (Terang / Gelap / Ikuti sistem).
-- Latar `steel-950`, kartu `steel-900`, border `#1F3355`.
+- Mengikuti pengaturan sistem perangkat, dengan tombol tema di header (Terang / Gelap / Ikut perangkat), disimpan di browser (K-085).
+- Latar `steel-950` dengan cahaya biru/emas, kaca navy `steel-900` 55–75%, border putih 10%. Input tetap solid.
 - Primary di mode gelap `#5B9AEE` dengan teks `steel-950` (kontras 6,7:1). Teks putih di atas biru terang tidak memenuhi standar kontras.
 - `gold-500` boleh dipakai sebagai teks di mode gelap (kontras 12,7:1).
 - Grid blueprint hanya di latar dashboard dan layar pantau, tidak di belakang tabel.
@@ -389,7 +390,7 @@ Zona waktu mengikuti konfigurasi server, bukan zona perangkat pengguna.
 
 | Gaya | Alasan |
 | --- | --- |
-| Glassmorphism / Liquid Glass (di luar login) | Blur berat di HP murah, kontras teks sulit dijaga, tabel di atas kaca sulit dibaca |
+| Liquid Glass | Efek pembiasan berat dan tidak menambah keterbacaan. Glassmorphism biasa dipakai sejak K-085 dengan pengaman kontras dan performa |
 | Neumorphism | Kontras rendah, tombol sulit dibedakan dari kartu |
 | Claymorphism | Terlalu ceria untuk karakter industri baja |
 | Neubrutalism | Melelahkan untuk kerja harian. Fungsi penandanya sudah digantikan strip hazard |

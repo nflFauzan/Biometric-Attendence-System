@@ -105,6 +105,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-082 | 2026-10-13 | Surat pengajuan siap cetak / simpan PDF lewat fitur cetak browser | Disepakati |
 | K-083 | 2026-10-14 | Semua karyawan boleh melihat absensi semua karyawan aktif dengan kolom terbatas, tanpa data sensitif | Disepakati |
 | K-084 | 2026-10-14 | Status rekan kerja disederhanakan; izin tampil tanpa jenis, koreksi tidak terlihat | Disepakati |
+| K-085 | 2026-10-14 | Tema kaca (glassmorphism) penuh, terang/gelap dengan tombol tema, responsif HP/tablet/desktop | Disepakati |
 
 ---
 
@@ -435,6 +436,12 @@ Rincian teknis ada di [rencana-rekan-kerja.md](rencana-rekan-kerja.md). Dipilih 
 
 - **K-083 Absensi rekan kerja.** Semua pengguna yang login (termasuk Karyawan) boleh melihat absensi semua karyawan aktif: No. karyawan, nama, cabang, jabatan, status, jam masuk/pulang, terlambat, dan lembur. Data sensitif (No. HP, PIN mesin, kategori, tanggal masuk/keluar, jenis/alasan/surat izin, koreksi, data gaji) tidak dikirim, karena respons paket `team` di backend hanya berisi kolom yang diizinkan; pembatasan tidak bergantung pada frontend.
 - **K-084 Status sederhana.** Hadir / Belum lengkap / Tidak hadir / Izin / Libur / Belum diatur. Izin tampil tanpa jenis; izin yang masih menunggu dan "hadir saat izin" tidak ditampilkan sebagai izin; jam hasil koreksi tampil tanpa keterangan koreksi. Jam dan durasi dikirim dalam menit penuh (dibulatkan ke bawah), karena koreksi selalu berdetik 0 sedangkan scan asli tidak; tanpa pembulatan, koreksi bisa ditebak dari detiknya. Tanggal yang belum terjadi ditolak (400), agar tidak tampil "Tidak hadir" palsu dan izin mendatang tidak terlihat.
+
+### Tema kaca (K-085)
+
+Rincian di [rencana-tema-kaca.md](rencana-tema-kaca.md). Dipilih pengguna 2026-10-14.
+
+- **K-085 Glassmorphism penuh.** Semua kartu, panel, tabel, form, dialog, dan kerangka memakai kaca dengan blur asli di semua perangkat, di atas latar gradasi statis. Mode terang dan gelap dengan tombol tema di header (Terang / Gelap / Ikut perangkat). Menggantikan larangan blur di K-017 poin 4; warna brand, font, dan logo K-017 tetap. Pengaman: kontras teks minimal 4.5:1 diuji otomatis dari token, tanpa blur bertumpuk, kaca solid untuk "kurangi transparansi", input dan surat cetak tetap solid.
 
 ---
 
