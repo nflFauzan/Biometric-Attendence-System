@@ -164,6 +164,25 @@ node tools/device-simulator/simulate.mjs live --sn SIM-001 --pin 9001 --every 10
 
 Mesin `SIM-001` harus didaftarkan dulu di halaman Mesin.
 
+### Uji di lokasi mana pun (mesin dibawa)
+
+Mesin dan laptop selalu disambung **kabel langsung** (Pilihan B), sehingga uji tidak bergantung pada jaringan setempat dan tidak perlu internet. Pengaturan ADMS mesin (`172.35.3.55:8888`) tidak pernah diubah karena IP Ethernet laptop dibuat tetap.
+
+Sekali saja (sudah terpasang per 2026-10-15): adaptor **Ethernet** laptop memakai IP statis `172.35.3.50` dan `172.35.3.55` (mask `255.255.248.0`, tanpa gateway). Port Ethernet laptop khusus untuk mesin; internet lewat Wi-Fi.
+
+Setiap kali mau uji:
+
+1. Nyalakan mesin, colok kabel LAN mesin ↔ laptop.
+2. Pastikan adaptor Ethernet *Connected* dan `ping 172.35.3.102` dibalas.
+3. Jalankan Docker Desktop, lalu salah satu:
+   - **Mode development:** klik `start-dev.bat`. Backend (Maven) membuka port `8888` untuk mesin selain `8080` (K-086); web di `http://localhost:5173`. Ringkasan akhir skrip menampilkan apakah mesin terjangkau.
+   - **Mode Docker penuh:** `docker compose up -d`; web di `http://localhost:3000`.
+4. Tunggu ±1–2 menit sampai mesin "Online" di Dashboard, lalu scan.
+
+Berganti jaringan Wi-Fi tidak berpengaruh: mesin memakai adaptor Ethernet dengan IP statis, terpisah dari Wi-Fi.
+
+Scan yang terjadi saat laptop tidak tersambung tetap tersimpan di mesin dan dikirim ulang begitu tersambung (X-02, X-03).
+
 ## Tahap 6 — Skenario uji dengan mesin sungguhan
 
 | No | Skenario | Cara | Hasil yang diharapkan |

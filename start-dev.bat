@@ -42,6 +42,9 @@ if exist ".env" (
 if not defined DB_PORT set "DB_PORT=5432"
 if not defined DB_NAME set "DB_NAME=absensi"
 if not defined DB_URL set "DB_URL=jdbc:postgresql://localhost:%DB_PORT%/%DB_NAME%"
+:: Port kedua backend untuk mesin X401 (K-060, K-086); sama dengan port mesin di mode Docker.
+if not defined DEVICE_PORT set "DEVICE_PORT=8888"
+if not defined DEVICE_EXTRA_PORT set "DEVICE_EXTRA_PORT=%DEVICE_PORT%"
 
 :: 3. Jalankan container database PostgreSQL di Docker
 echo [3/4] Menjalankan container Database di Docker...
@@ -79,6 +82,14 @@ echo ========================================================
 echo   - PostgreSQL Database : localhost:%DB_PORT%
 echo   - Backend Spring Boot : http://localhost:8080
 echo   - Frontend React/Vite : http://localhost:5173
+echo   - Port mesin absensi  : %DEVICE_EXTRA_PORT% (mesin X401 diarahkan ke 172.35.3.55:%DEVICE_EXTRA_PORT%)
+echo.
+ping -n 1 -w 1000 172.35.3.102 | find "TTL=" >nul
+if errorlevel 1 (
+    echo   [INFO] Mesin X401 ^(172.35.3.102^) tidak terjangkau. Cek kabel LAN mesin ke laptop.
+) else (
+    echo   [OK] Mesin X401 ^(172.35.3.102^) tersambung. Scan masuk setelah backend selesai start.
+)
 echo.
 echo Catatan:
 echo   - Backend dan Frontend berjalan di jendela command prompt terpisah.

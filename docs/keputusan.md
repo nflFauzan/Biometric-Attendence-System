@@ -106,6 +106,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-083 | 2026-10-14 | Semua karyawan boleh melihat absensi semua karyawan aktif dengan kolom terbatas, tanpa data sensitif | Disepakati |
 | K-084 | 2026-10-14 | Status rekan kerja disederhanakan; izin tampil tanpa jenis, koreksi tidak terlihat | Disepakati |
 | K-085 | 2026-10-14 | Tema kaca (glassmorphism) penuh, terang/gelap dengan tombol tema, responsif HP/tablet/desktop | Disepakati |
+| K-086 | 2026-10-16 | Backend membuka port kedua untuk mesin (`DEVICE_EXTRA_PORT`) saat dijalankan di luar Docker lewat `start-dev.bat` | Disepakati |
 
 ---
 
@@ -442,6 +443,12 @@ Rincian teknis ada di [rencana-rekan-kerja.md](rencana-rekan-kerja.md). Dipilih 
 Rincian di [rencana-tema-kaca.md](rencana-tema-kaca.md). Dipilih pengguna 2026-10-14.
 
 - **K-085 Glassmorphism penuh.** Semua kartu, panel, tabel, form, dialog, dan kerangka memakai kaca dengan blur asli di semua perangkat, di atas latar gradasi statis. Mode terang dan gelap dengan tombol tema di header (Terang / Gelap / Ikut perangkat). Menggantikan larangan blur di K-017 poin 4; warna brand, font, dan logo K-017 tetap. Pengaman: kontras teks minimal 4.5:1 diuji otomatis dari token, tanpa blur bertumpuk, kaca solid untuk "kurangi transparansi", input dan surat cetak tetap solid.
+
+### Port mesin di mode development (K-086)
+
+Dipilih pengguna 2026-10-16, agar uji dengan mesin X401 yang dibawa dan dicolok kabel langsung ke laptop tetap jalan saat backend dijalankan lewat `start-dev.bat` (lihat [panduan-mesin-x401.md](panduan-mesin-x401.md)).
+
+- **K-086 Port kedua opsional.** Bila `app.device.extra-port` (`DEVICE_EXTRA_PORT`) diisi, backend membuka konektor Tomcat kedua di port itu yang melayani aplikasi yang sama (`config/DevicePortConfig`). `start-dev.bat` mengisinya dengan `DEVICE_PORT` (bawaan `8888`), sehingga mesin tidak perlu diatur ulang antara mode Docker (`8888:8080`, K-060) dan mode development. Kosong = tidak ada port tambahan; Docker dan produksi tidak memakainya. Alternatif `netsh portproxy` ditolak karena butuh hak Administrator dan bentrok dengan port 8888 milik Docker.
 
 ---
 
