@@ -38,11 +38,13 @@ public final class WorkRuleDtos {
 					fraction = 2, message = "Tarif lembur maksimal 2 angka desimal") BigDecimal overtimeRatePerHour,
 			@DecimalMin(value = "0", message = "Gaji pokok tidak boleh negatif") @Digits(integer = 12, fraction = 2,
 					message = "Gaji pokok maksimal 2 angka desimal") BigDecimal baseSalary,
-			@Size(max = 255) String note) {
+			@Size(max = 255) String note,
+			@Min(value = 1, message = "Jeda minimum minimal 1 menit") @Max(value = 240,
+					message = "Jeda minimum maksimal 240 menit") Integer minScanGapMinutes) {
 
 		RuleValues values() {
 			return new RuleValues(workStart, workEnd, breakStart, breakEnd, lateToleranceMinutes, overtimeStart,
-					workDays, dailyWage, overtimeRatePerHour, baseSalary);
+					workDays, dailyWage, overtimeRatePerHour, baseSalary, minScanGapMinutes);
 		}
 
 	}
@@ -52,7 +54,7 @@ public final class WorkRuleDtos {
 			String employeeName, LocalDate effectiveFrom, LocalTime workStart, LocalTime workEnd,
 			LocalTime breakStart, LocalTime breakEnd, Integer lateToleranceMinutes, LocalTime overtimeStart,
 			Set<DayOfWeek> workDays, BigDecimal dailyWage, BigDecimal overtimeRatePerHour, BigDecimal baseSalary,
-			String note, String createdBy, boolean locked) {
+			Integer minScanGapMinutes, String note, String createdBy, boolean locked) {
 
 		static WorkRuleResponse from(WorkRule rule, LocalDate today) {
 			RuleValues v = rule.getValues();
@@ -63,7 +65,7 @@ public final class WorkRuleDtos {
 					rule.getEmployee() == null ? null : rule.getEmployee().getFullName(), rule.getEffectiveFrom(),
 					v.workStart(), v.workEnd(), v.breakStart(), v.breakEnd(), v.lateToleranceMinutes(),
 					v.overtimeStart(), v.workDays(), v.dailyWage(), v.overtimeRatePerHour(), v.baseSalary(),
-					rule.getNote(), rule.getCreatedBy(), !rule.getEffectiveFrom().isAfter(today));
+					v.minScanGapMinutes(), rule.getNote(), rule.getCreatedBy(), !rule.getEffectiveFrom().isAfter(today));
 		}
 
 	}

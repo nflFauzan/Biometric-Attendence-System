@@ -161,6 +161,43 @@ class WorkRuleTests extends IntegrationTest {
 			.andExpect(jsonPath("$.sources.LATE_TOLERANCE.level").value("CATEGORY"));
 	}
 
+	/** K-092: jeda minimum antar scan disimpan, dikembalikan, dan asalnya ditampilkan. */
+	@Test
+	void minScanGapIsSavedAndReturned() throws Exception {
+		long employeeId = createEmployee(1);
+		LocalDate date = today().plusDays(6);
+		createRule(employeeRule(employeeId, date, fullRule("08:00") + ",\"minScanGapMinutes\":5"))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.minScanGapMinutes").value(5));
+
+		mockMvc.perform(get("/api/work-rules/effective").param("employeeId", String.valueOf(employeeId))
+			.param("date", date.toString())
+			.with(HR))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.values.minScanGapMinutes").value(5))
+			.andExpect(jsonPath("$.sources.MIN_SCAN_GAP.level").value("EMPLOYEE"));
+		preview(employeeId, date, "\"08:00:00\",\"08:00:04\",\"08:00:08\"")
+			.andExpect(jsonPath("$.result.status").value("TIDAK_LENGKAP"));
+	}
+
+	@Test
+	void minScanGapRejectsZeroAndAbove240() throws Exception {
+		long employeeId = createEmployee(1);
+		LocalDate date = today().plusDays(6);
+		createRule(employeeRule(employeeId, date, "\"minScanGapMinutes\":0")).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errors.minScanGapMinutes").value("Jeda minimum minimal 1 menit"));
+		createRule(employeeRule(employeeId, date, "\"minScanGapMinutes\":241")).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errors.minScanGapMinutes").value("Jeda minimum maksimal 240 menit"));
+	}
+
+	@Test
+	void minScanGapCanBeOmitted() throws Exception {
+		long employeeId = createEmployee(1);
+		createRule(employeeRule(employeeId, today().plusDays(6), "\"workStart\":\"09:00\""))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.minScanGapMinutes").isEmpty());
+	}
+
 	/** AC-05 / TC-06 lewat API: 15.00–18.00 = 2 jam normal dan 1 jam kandidat lembur. */
 	@Test
 	void previewCalculatesRegularWorkAndOvertimeCandidate() throws Exception {

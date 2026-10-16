@@ -77,6 +77,8 @@ public class WorkRule {
 
 	private BigDecimal baseSalary;
 
+	private Integer minScanGapMinutes;
+
 	private String note;
 
 	@Column(nullable = false, updatable = false)
@@ -144,7 +146,7 @@ public class WorkRule {
 
 	public RuleValues getValues() {
 		return new RuleValues(workStart, workEnd, breakStart, breakEnd, lateToleranceMinutes, overtimeStart, workDays,
-				dailyWage, overtimeRatePerHour, baseSalary);
+				dailyWage, overtimeRatePerHour, baseSalary, minScanGapMinutes);
 	}
 
 	public void setValues(RuleValues values) {
@@ -158,6 +160,7 @@ public class WorkRule {
 		dailyWage = values.dailyWage();
 		overtimeRatePerHour = values.overtimeRatePerHour();
 		baseSalary = values.baseSalary();
+		minScanGapMinutes = values.minScanGapMinutes();
 	}
 
 	public RuleVersion toVersion() {
