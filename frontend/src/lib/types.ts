@@ -136,6 +136,8 @@ export interface RuleValues {
   dailyWage: number | null
   overtimeRatePerHour: number | null
   baseSalary: number | null
+  /** K-092: scan berdekatan dihitung satu kejadian; null = tanpa penggabungan. */
+  minScanGapMinutes: number | null
 }
 
 export interface WorkRule extends RuleValues {
@@ -162,6 +164,7 @@ export type RuleField =
   | 'DAILY_WAGE'
   | 'OVERTIME_RATE'
   | 'BASE_SALARY'
+  | 'MIN_SCAN_GAP'
 
 export interface RuleSource {
   level: RuleLevel

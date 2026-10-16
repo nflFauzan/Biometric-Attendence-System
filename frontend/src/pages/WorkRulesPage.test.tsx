@@ -43,6 +43,7 @@ const rule = (overrides: Partial<WorkRule> = {}): WorkRule => ({
   dailyWage: null,
   overtimeRatePerHour: null,
   baseSalary: null,
+  minScanGapMinutes: null,
   note: null,
   createdBy: 'owner',
   locked: true,
@@ -126,6 +127,38 @@ describe('WorkRulesPage', () => {
     expect(body).toMatchObject({ scope: 'GLOBAL', effectiveFrom: '2099-02-01', workStart: '08:00', workDays: ['MONDAY'] })
     expect(body.workEnd).toBeNull()
     expect(body.dailyWage).toBeNull()
+    expect(body.minScanGapMinutes).toBeNull()
+  })
+
+  it('menampilkan jeda minimum antar scan (K-092)', async () => {
+    mockFetch(baseRoutes('HR_FINANCE', [rule({ minScanGapMinutes: 5 })]))
+    renderAt('/aturan-kerja')
+
+    const version = (await screen.findByText('Berlaku mulai 1 Okt 2026', undefined, LOAD)).closest('li')!
+    expect(within(version).getByText('Jeda minimum antar scan')).toBeInTheDocument()
+    expect(within(version).getByText('5 menit')).toBeInTheDocument()
+  })
+
+  it('jeda minimum yang dikosongkan dikirim sebagai null, bukan 0', async () => {
+    const fetchMock = mockFetch({
+      ...baseRoutes('OWNER', []),
+      'GET /api/auth/csrf': () => ({ status: 204 }),
+      'POST /api/work-rules': () => ({ status: 201, body: rule({ id: 3 }) }),
+    })
+    renderAt('/aturan-kerja')
+
+    fireEvent.click(await screen.findByRole('button', { name: /Tambah versi/ }, LOAD))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText(/Berlaku mulai/), { target: { value: '2099-02-01' } })
+    const gap = within(dialog).getByLabelText(/Jeda minimum antar scan/)
+    fireEvent.change(gap, { target: { value: '7' } })
+    fireEvent.change(gap, { target: { value: '' } })
+    fireEvent.change(within(dialog).getByLabelText('Jam masuk'), { target: { value: '08:00' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')
+    expect(JSON.parse(String(post?.[1]?.body)).minScanGapMinutes).toBeNull()
   })
 
   it('panel aturan berlaku menampilkan asal setiap nilai', async () => {

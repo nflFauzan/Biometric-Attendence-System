@@ -62,6 +62,7 @@ const preview: DailyPreview = {
       dailyWage: null,
       overtimeRatePerHour: null,
       baseSalary: null,
+      minScanGapMinutes: null,
     },
     sources: {},
     missing: [],

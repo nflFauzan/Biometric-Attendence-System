@@ -71,6 +71,11 @@ const PARAMS: { field: RuleField; label: string; render: (v: RuleValues) => stri
     render: (v) => (v.overtimeRatePerHour === null ? null : formatRupiah(v.overtimeRatePerHour)),
   },
   { field: 'BASE_SALARY', label: 'Gaji pokok', render: (v) => (v.baseSalary === null ? null : formatRupiah(v.baseSalary)) },
+  {
+    field: 'MIN_SCAN_GAP',
+    label: 'Jeda minimum antar scan',
+    render: (v) => (v.minScanGapMinutes === null ? null : `${v.minScanGapMinutes} menit`),
+  },
 ]
 
 const FIELDS: FieldDef[] = [
@@ -97,6 +102,12 @@ const FIELDS: FieldDef[] = [
   { name: 'dailyWage', label: 'Upah harian (Rp)', type: 'number' },
   { name: 'overtimeRatePerHour', label: 'Tarif lembur per jam (Rp)', type: 'number' },
   { name: 'baseSalary', label: 'Gaji pokok bulanan (Rp)', type: 'number' },
+  {
+    name: 'minScanGapMinutes',
+    label: 'Jeda minimum antar scan (menit)',
+    type: 'number',
+    hint: 'Scan yang berjarak kurang dari jeda ini dihitung satu kali. Kosongkan jika tidak dipakai.',
+  },
   { name: 'note', label: 'Catatan', placeholder: 'mis. Penyesuaian jadwal Ramadan' },
 ]
 
@@ -118,6 +129,7 @@ function toValues(rule: WorkRule): FormValues {
     dailyWage: num(rule.dailyWage),
     overtimeRatePerHour: num(rule.overtimeRatePerHour),
     baseSalary: num(rule.baseSalary),
+    minScanGapMinutes: num(rule.minScanGapMinutes),
     note: rule.note ?? '',
   }
 }
@@ -125,6 +137,7 @@ function toValues(rule: WorkRule): FormValues {
 function toBody(v: FormValues, scope: RuleLevel, targetId: string) {
   const workDays = String(v.workDays).split(',').filter(Boolean)
   const tolerance = emptyToNull(v.lateToleranceMinutes)
+  const scanGap = emptyToNull(v.minScanGapMinutes)
   return {
     scope,
     categoryId: scope === 'CATEGORY' ? Number(targetId) : null,
@@ -141,6 +154,7 @@ function toBody(v: FormValues, scope: RuleLevel, targetId: string) {
     dailyWage: emptyToNull(v.dailyWage),
     overtimeRatePerHour: emptyToNull(v.overtimeRatePerHour),
     baseSalary: emptyToNull(v.baseSalary),
+    minScanGapMinutes: scanGap === null ? null : Number(scanGap),
     note: emptyToNull(v.note),
   }
 }
