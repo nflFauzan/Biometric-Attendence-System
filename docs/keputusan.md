@@ -107,6 +107,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-084 | 2026-10-14 | Status rekan kerja disederhanakan; izin tampil tanpa jenis, koreksi tidak terlihat | Disepakati |
 | K-085 | 2026-10-14 | Tema kaca (glassmorphism) penuh, terang/gelap dengan tombol tema, responsif HP/tablet/desktop | Disepakati |
 | K-086 | 2026-10-16 | Backend membuka port kedua untuk mesin (`DEVICE_EXTRA_PORT`) saat dijalankan di luar Docker lewat `start-dev.bat` | Disepakati |
+| K-092 | 2026-10-17 | Kolom aturan "Jeda minimum antar scan (menit)": scan berdekatan dihitung satu kejadian; kosong = tanpa penggabungan | Disepakati |
 
 ---
 
@@ -412,6 +413,14 @@ Hal yang belum dikunci:
 
 Nilai-nilai tersebut harus dicatat dalam konfigurasi atau keputusan bisnis yang disetujui, bukan ditebak oleh developer.
 
+
+### K-092 — Jeda Minimum Antar Scan
+
+**Keputusan (2026-10-16, disetujui pengguna; diterapkan 2026-10-17):** Pengaturan Aturan mendapat kolom *Jeda minimum antar scan (menit)*, berlaku per tanggal efektif dan diwariskan per kolom seperti parameter lain (K-046). Saat menentukan jam masuk dan pulang, scan yang berjarak kurang dari jeda dari scan pertama kelompoknya dihitung satu kejadian. Jam masuk adalah scan pertama kelompok pertama, dan jam pulang adalah scan pertama kelompok terakhir. Kolom yang kosong berarti tanpa penggabungan (K-047). Scan asli tetap tersimpan dan tampil di detail absensi. Nilai yang diterima adalah 1–240 menit; batas 240 adalah batas validasi teknis.
+
+**Alasan:** rekap memakai scan pertama dan terakhir, sehingga scan beruntun (misalnya 08.00.00, 08.00.04, 08.00.08 tanpa scan pulang) terbaca sebagai hadir lengkap selama 8 detik, padahal seharusnya tidak lengkap (TC-17). Celah ini berlaku untuk X401 maupun alat rakitan. Rancangan lengkap ada di [`superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md`](./superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md) §8.
+
+**Alternatif yang dipertimbangkan:** jeda dihitung dari scan sebelumnya (ditolak: scan tanpa henti tidak pernah membuka kelompok baru), hanya memberi penanda "perlu ditinjau" tanpa penggabungan (ditolak: rekap tetap salah sampai ditinjau manual), atau nilai jeda ditanam di kode (ditolak: aturan bisnis tidak boleh di-hardcode).
 
 ### Fase 4 — Izin dan Cuti (K-070–K-082)
 

@@ -116,6 +116,8 @@ Namun, aturan ini harus divalidasi terhadap perilaku mesin, scan berulang, scan 
 
 Jika hanya terdapat satu scan atau urutan scan tidak wajar, sistem harus menandai catatan sebagai tidak lengkap atau perlu ditinjau. Sistem tidak boleh mengarang jam masuk atau pulang yang tidak tersedia.
 
+**Scan berdekatan (K-092).** Jika parameter *Jeda minimum antar scan (menit)* diisi di Pengaturan Aturan, scan yang berjarak kurang dari jeda tersebut dari scan pertama kelompoknya dihitung sebagai satu kejadian saat menentukan jam masuk dan pulang. Jam masuk adalah scan pertama kelompok pertama, dan jam pulang adalah scan pertama kelompok terakhir. Contoh dengan jeda 5 menit: scan 08.00.00, 08.00.04, dan 08.00.08 tanpa scan lain dihitung satu kejadian, sehingga catatan berstatus tidak lengkap (TC-17). Parameter yang kosong berarti tanpa penggabungan. Scan asli tetap tersimpan dan tampil di detail absensi.
+
 ### 4.4 Keterlambatan
 
 Rumus dasar keterlambatan:
@@ -500,6 +502,7 @@ Skenario berikut menjadi contoh awal pengujian. Skenario yang bergantung pada at
 | TC-14 | Bonus ditetapkan oleh Owner | Nominal bonus masuk ke payroll tanpa memerlukan rumus otomatis yang belum disetujui |
 | TC-15 | Perangkat mengirim scan yang sama berulang kali | Sistem mencegah kejadian yang sama dihitung ganda berdasarkan identitas kejadian |
 | TC-16 | Pengguna tanpa izin mencoba mengubah payroll | Backend menolak tindakan dan mencatat kejadian sesuai kebijakan audit |
+| TC-17 | Jeda minimum 5 menit; scan 08.00.00, 08.00.04, 08.00.08; tidak ada scan lain | Satu kejadian scan, status Tidak Lengkap, ketiga scan asli tetap tersimpan (K-092) |
 
 Pengujian nominal payroll harus menggunakan data uji yang telah disepakati, termasuk formulir payroll aktual dan hasil perhitungan yang telah diverifikasi klien.
 
