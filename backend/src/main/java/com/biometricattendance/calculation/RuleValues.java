@@ -12,7 +12,7 @@ import java.util.Set;
  */
 public record RuleValues(LocalTime workStart, LocalTime workEnd, LocalTime breakStart, LocalTime breakEnd,
 		Integer lateToleranceMinutes, LocalTime overtimeStart, Set<DayOfWeek> workDays, BigDecimal dailyWage,
-		BigDecimal overtimeRatePerHour, BigDecimal baseSalary) {
+		BigDecimal overtimeRatePerHour, BigDecimal baseSalary, Integer minScanGapMinutes) {
 
 	public RuleValues {
 		workDays = workDays == null ? null : Set.copyOf(workDays);
@@ -30,6 +30,7 @@ public record RuleValues(LocalTime workStart, LocalTime workEnd, LocalTime break
 			case DAILY_WAGE -> dailyWage != null;
 			case OVERTIME_RATE -> overtimeRatePerHour != null;
 			case BASE_SALARY -> baseSalary != null;
+			case MIN_SCAN_GAP -> minScanGapMinutes != null;
 		};
 	}
 
@@ -58,6 +59,7 @@ public record RuleValues(LocalTime workStart, LocalTime workEnd, LocalTime break
 		private BigDecimal dailyWage;
 		private BigDecimal overtimeRatePerHour;
 		private BigDecimal baseSalary;
+		private Integer minScanGapMinutes;
 
 		private Builder() {
 		}
@@ -112,9 +114,14 @@ public record RuleValues(LocalTime workStart, LocalTime workEnd, LocalTime break
 			return this;
 		}
 
+		public Builder minScanGapMinutes(Integer value) {
+			minScanGapMinutes = value;
+			return this;
+		}
+
 		public RuleValues build() {
 			return new RuleValues(workStart, workEnd, breakStart, breakEnd, lateToleranceMinutes, overtimeStart,
-					workDays, dailyWage, overtimeRatePerHour, baseSalary);
+					workDays, dailyWage, overtimeRatePerHour, baseSalary, minScanGapMinutes);
 		}
 
 	}

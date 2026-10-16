@@ -11,7 +11,8 @@ public enum RuleField {
 	WORK_DAYS("hari kerja"),
 	DAILY_WAGE("upah harian"),
 	OVERTIME_RATE("tarif lembur per jam"),
-	BASE_SALARY("gaji pokok");
+	BASE_SALARY("gaji pokok"),
+	MIN_SCAN_GAP("jeda minimum antar scan");
 
 	private final String label;
 

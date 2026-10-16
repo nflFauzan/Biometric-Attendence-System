@@ -23,7 +23,7 @@ import com.biometricattendance.calculation.DailyResult.TimeSource;
 
 /**
  * Test case TC-01 sampai TC-08 dari docs/aturan-bisnis.md §13, ditambah keputusan K-048 (istirahat opsional),
- * K-052 (durasi tanpa pembulatan), dan K-053 (hari libur perlu tinjauan).
+ * K-052 (durasi tanpa pembulatan), K-053 (hari libur perlu tinjauan), dan TC-17 / K-092 (jeda minimum antar scan).
  */
 class DailyAttendanceCalculatorTests {
 
@@ -49,6 +49,18 @@ class DailyAttendanceCalculatorTests {
 		return rule(null, null);
 	}
 
+	private static EffectiveRule ruleWithGap(Integer gapMinutes) {
+		RuleValues values = RuleValues.builder()
+			.workStart(LocalTime.of(8, 0))
+			.workEnd(LocalTime.of(17, 0))
+			.lateToleranceMinutes(0)
+			.overtimeStart(LocalTime.of(17, 0))
+			.workDays(EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.SATURDAY))
+			.minScanGapMinutes(gapMinutes)
+			.build();
+		return RuleResolver.resolve(List.of(new RuleVersion(1L, RuleLevel.GLOBAL, MONDAY, values)), MONDAY);
+	}
+
 	private static List<Instant> scans(LocalDate date, String... times) {
 		List<Instant> result = new ArrayList<>();
 		for (String time : times) {
@@ -60,6 +72,56 @@ class DailyAttendanceCalculatorTests {
 	private static DailyResult calculate(EffectiveRule rule, String... times) {
 		return DailyAttendanceCalculator.calculate(
 				new DailyInput(MONDAY, JAKARTA, scans(MONDAY, times), null, rule, false));
+	}
+
+	@Test
+	void tc17SpamScanWithoutCheckOutIsIncomplete() {
+		DailyResult result = calculate(ruleWithGap(5), "08:00:00", "08:00:04", "08:00:08");
+
+		assertThat(result.status()).isEqualTo(AttendanceStatus.TIDAK_LENGKAP);
+		assertThat(result.scanTimes()).hasSize(3); // scan asli tetap utuh
+	}
+
+	@Test
+	void emptyGapKeepsCurrentBehaviour() {
+		DailyResult result = calculate(ruleWithGap(null), "08:00:00", "08:00:08");
+
+		assertThat(result.checkIn().time()).isEqualTo(LocalTime.of(8, 0, 0));
+		assertThat(result.checkOut().time()).isEqualTo(LocalTime.of(8, 0, 8));
+	}
+
+	@Test
+	void scanExactlyAtGapStartsNewGroup() {
+		DailyResult result = calculate(ruleWithGap(5), "08:00:00", "08:05:00");
+
+		assertThat(result.checkOut().time()).isEqualTo(LocalTime.of(8, 5, 0));
+	}
+
+	@Test
+	void spamAtCheckOutUsesFirstScanOfLastGroup() {
+		DailyResult result = calculate(ruleWithGap(5), "08:00", "17:00:00", "17:00:04");
+
+		assertThat(result.checkOut().time()).isEqualTo(LocalTime.of(17, 0, 0));
+		assertThat(result.status()).isEqualTo(AttendanceStatus.LENGKAP);
+	}
+
+	@Test
+	void continuousSpamLongerThanGapMakesTwoEvents() {
+		// Jeda dihitung dari awal kelompok: 08:00 membuka kelompok 1, 08:05:30 membuka kelompok 2.
+		DailyResult result = calculate(ruleWithGap(5), "08:00:00", "08:02:00", "08:04:00", "08:05:30", "08:07:00");
+
+		assertThat(result.checkIn().time()).isEqualTo(LocalTime.of(8, 0, 0));
+		assertThat(result.checkOut().time()).isEqualTo(LocalTime.of(8, 5, 30));
+	}
+
+	@Test
+	void correctionStillWinsOverGroupedScans() {
+		DailyResult result = DailyAttendanceCalculator.calculate(new DailyInput(MONDAY, JAKARTA,
+				scans(MONDAY, "08:10", "17:00:00", "17:00:03"), new DailyInput.Correction(LocalTime.of(7, 55), null),
+				ruleWithGap(5), false));
+
+		assertThat(result.checkIn().source()).isEqualTo(TimeSource.KOREKSI);
+		assertThat(result.checkOut().time()).isEqualTo(LocalTime.of(17, 0, 0));
 	}
 
 	@Test

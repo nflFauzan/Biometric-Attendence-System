@@ -144,4 +144,38 @@ class RuleResolverTests {
 		assertThat(rule.breakStart()).isNull();
 	}
 
+	@Test
+	void minScanGapIsResolvedPerField() {
+		List<RuleVersion> versions = List.of(
+				new RuleVersion(1L, RuleLevel.GLOBAL, SEP_1, valuesWithGap(5)),
+				new RuleVersion(2L, RuleLevel.EMPLOYEE, SEP_1, RuleValues.builder().lateToleranceMinutes(10).build()));
+
+		EffectiveRule rule = RuleResolver.resolve(versions, OCT_1);
+
+		assertThat(rule.minScanGapMinutes()).isEqualTo(5);
+		assertThat(rule.source(RuleField.MIN_SCAN_GAP).level()).isEqualTo(RuleLevel.GLOBAL);
+		assertThat(rule.missingForDailyCalculation()).doesNotContain(RuleField.MIN_SCAN_GAP);
+	}
+
+	@Test
+	void minScanGapFollowsEffectiveDate() {
+		LocalDate nov1 = LocalDate.of(2026, 11, 1);
+		List<RuleVersion> versions = List.of(new RuleVersion(1L, RuleLevel.GLOBAL, OCT_1, globalValues()),
+				new RuleVersion(2L, RuleLevel.GLOBAL, nov1, valuesWithGap(5)));
+
+		assertThat(RuleResolver.resolve(versions, nov1.minusDays(1)).minScanGapMinutes()).isNull();
+		assertThat(RuleResolver.resolve(versions, nov1).minScanGapMinutes()).isEqualTo(5);
+	}
+
+	private static RuleValues valuesWithGap(int gapMinutes) {
+		return RuleValues.builder()
+			.workStart(LocalTime.of(8, 0))
+			.workEnd(LocalTime.of(17, 0))
+			.lateToleranceMinutes(0)
+			.overtimeStart(LocalTime.of(17, 0))
+			.workDays(EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.SATURDAY))
+			.minScanGapMinutes(gapMinutes)
+			.build();
+	}
+
 }

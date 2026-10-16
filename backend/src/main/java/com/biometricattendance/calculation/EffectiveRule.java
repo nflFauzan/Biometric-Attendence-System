@@ -85,6 +85,10 @@ public final class EffectiveRule {
 		return values.baseSalary();
 	}
 
+	public Integer minScanGapMinutes() {
+		return values.minScanGapMinutes();
+	}
+
 	public List<RuleField> missingForDailyCalculation() {
 		List<RuleField> missing = new ArrayList<>();
 		for (RuleField field : REQUIRED_FOR_DAILY) {

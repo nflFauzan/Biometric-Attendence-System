@@ -2,6 +2,7 @@ package com.biometricattendance.calculation;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -20,7 +21,8 @@ import com.biometricattendance.calculation.DailyResult.TimeValue;
  *
  * <p>Rumus mengikuti docs/aturan-bisnis.md §4–5:
  * <ul>
- * <li>Jam masuk = scan pertama, jam pulang = scan terakhir; koreksi menggantikannya.</li>
+ * <li>Jam masuk = scan pertama, jam pulang = scan terakhir, setelah scan berdekatan digabung menurut jeda
+ * minimum (K-092); koreksi menggantikannya.</li>
  * <li>Keterlambatan = max(0, masuk − (jam masuk + toleransi)).</li>
  * <li>Jam kerja normal = irisan kehadiran dengan jadwal, dikurangi irisan dengan istirahat bila diatur.</li>
  * <li>Kandidat lembur = max(0, pulang − max(batas lembur, masuk)), tanpa syarat 8 jam (K-026).</li>
@@ -57,13 +59,15 @@ public final class DailyAttendanceCalculator {
 		TimeValue in = correction.checkIn() == null ? null : new TimeValue(correction.checkIn(), TimeSource.KOREKSI);
 		TimeValue out = correction.checkOut() == null ? null
 				: new TimeValue(correction.checkOut(), TimeSource.KOREKSI);
-		if (scanTimes.size() >= 2) {
-			in = in != null ? in : new TimeValue(scanTimes.get(0), TimeSource.SCAN);
-			out = out != null ? out : new TimeValue(scanTimes.get(scanTimes.size() - 1), TimeSource.SCAN);
+		// K-092: scan berdekatan dihitung satu kejadian; scanTimes (scan asli) tetap utuh di hasil.
+		List<LocalTime> events = groupStarts(scanTimes, rule.minScanGapMinutes());
+		if (events.size() >= 2) {
+			in = in != null ? in : new TimeValue(events.get(0), TimeSource.SCAN);
+			out = out != null ? out : new TimeValue(events.get(events.size() - 1), TimeSource.SCAN);
 		}
-		else if (scanTimes.size() == 1) {
+		else if (events.size() == 1) {
 			// Satu scan tidak bisa dipastikan masuk atau pulang, kecuali sisi lainnya sudah dikoreksi (TC-07).
-			TimeValue only = new TimeValue(scanTimes.get(0), TimeSource.SCAN);
+			TimeValue only = new TimeValue(events.get(0), TimeSource.SCAN);
 			if (in == null && out != null) {
 				in = only;
 			}
@@ -124,6 +128,24 @@ public final class DailyAttendanceCalculator {
 	private static DailyResult incomplete(DailyInput input, DayType dayType, AttendanceStatus status,
 			List<LocalTime> scanTimes, TimeValue in, TimeValue out, Set<Flag> flags) {
 		return new DailyResult(input.date(), dayType, status, scanTimes, in, out, null, null, null, null, null, flags);
+	}
+
+	/**
+	 * Awal setiap kelompok scan berdekatan (K-092). Kelompok baru dimulai bila jarak dari scan pertama kelompok
+	 * berjalan mencapai jeda; jeda null berarti tanpa penggabungan.
+	 */
+	static List<LocalTime> groupStarts(List<LocalTime> sortedTimes, Integer gapMinutes) {
+		if (gapMinutes == null || sortedTimes.isEmpty()) {
+			return sortedTimes;
+		}
+		Duration gap = Duration.ofMinutes(gapMinutes);
+		List<LocalTime> starts = new ArrayList<>();
+		for (LocalTime time : sortedTimes) {
+			if (starts.isEmpty() || Duration.between(starts.get(starts.size() - 1), time).compareTo(gap) >= 0) {
+				starts.add(time);
+			}
+		}
+		return starts;
 	}
 
 	/** Durasi dari start ke end, atau nol jika end tidak setelah start. */

@@ -59,6 +59,7 @@ public final class RuleResolver {
 			case DAILY_WAGE -> to.dailyWage(from.dailyWage());
 			case OVERTIME_RATE -> to.overtimeRatePerHour(from.overtimeRatePerHour());
 			case BASE_SALARY -> to.baseSalary(from.baseSalary());
+			case MIN_SCAN_GAP -> to.minScanGapMinutes(from.minScanGapMinutes());
 		}
 	}
 
