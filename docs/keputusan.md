@@ -107,7 +107,10 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-084 | 2026-10-14 | Status rekan kerja disederhanakan; izin tampil tanpa jenis, koreksi tidak terlihat | Disepakati |
 | K-085 | 2026-10-14 | Tema kaca (glassmorphism) penuh, terang/gelap dengan tombol tema, responsif HP/tablet/desktop | Disepakati |
 | K-086 | 2026-10-16 | Backend membuka port kedua untuk mesin (`DEVICE_EXTRA_PORT`) saat dijalankan di luar Docker lewat `start-dev.bat` | Disepakati |
+| K-087 | 2026-10-17 | Alat rakitan memakai protokol sendiri `/device/v1` sebagai adapter kedua (K-054); mesin yang menghubungi server, server tidak pernah menghubungi mesin. Menjawab Q-030 | Disepakati |
+| K-088 | 2026-10-17 | Kunci rahasia acak per alat rakitan, hanya tampil sekali, disimpan sebagai SHA-256; "Buat kode baru" langsung mencabut kunci lama | Disepakati (penggantian dua tahap menyusul, Rencana 6) |
 | K-092 | 2026-10-17 | Kolom aturan "Jeda minimum antar scan (menit)": scan berdekatan dihitung satu kejadian; kosong = tanpa penggabungan | Disepakati |
+| K-099 | 2026-10-17 | Rincian kontrak Rencana 2: endpoint terpisah per jenis mesin, jenis mesin tetap, hanya Owner yang menerbitkan kunci, 403 untuk alat rakitan nonaktif, konfirmasi "terhubung" per kunci baru | Disepakati |
 
 ---
 
@@ -421,6 +424,26 @@ Nilai-nilai tersebut harus dicatat dalam konfigurasi atau keputusan bisnis yang 
 **Alasan:** rekap memakai scan pertama dan terakhir, sehingga scan beruntun (misalnya 08.00.00, 08.00.04, 08.00.08 tanpa scan pulang) terbaca sebagai hadir lengkap selama 8 detik, padahal seharusnya tidak lengkap (TC-17). Celah ini berlaku untuk X401 maupun alat rakitan. Rancangan lengkap ada di [`superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md`](./superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md) §8.
 
 **Alternatif yang dipertimbangkan:** jeda dihitung dari scan sebelumnya (ditolak: scan tanpa henti tidak pernah membuka kelompok baru), hanya memberi penanda "perlu ditinjau" tanpa penggabungan (ditolak: rekap tetap salah sampai ditinjau manual), atau nilai jeda ditanam di kode (ditolak: aturan bisnis tidak boleh di-hardcode).
+
+### K-087, K-088, K-099 — Alat Rakitan: Protokol, Kunci, dan Pengaturan Pertama
+
+**Keputusan (2026-10-17, disetujui pengguna; diterapkan di Rencana 2):** alat rakitan ESP32 berbicara protokol `/device/v1` (kontrak lengkap di [`protokol-alat-rakitan.md`](./protokol-alat-rakitan.md)), adapter kedua di samping ZK-Push yang memakai inti penerimaan scan yang sama (K-054).
+
+- **K-087 Protokol sendiri.** Mesin mengirim heartbeat setiap 5 detik dan scan dengan ID UUID buatan mesin serta waktu ber-offset. Balasan scan memuat daftar `accepted`; mesin menghapus scan dari microSD hanya jika ID-nya ada di daftar itu.
+- **K-088 Kunci per mesin.** Saat Owner menambah alat rakitan, server membuat ID `RK-XXXXXX` dan kunci 32 byte acak. Kunci dikirim ke browser sekali, disusun menjadi *kode pengaturan* `BAS1.…` bersama alamat server, lalu ditempel di halaman pengaturan mesin. Server hanya menyimpan SHA-256 kunci; kunci tidak masuk audit log. "Buat kode baru" langsung mencabut kunci lama.
+- **K-099 Rincian kontrak** (keputusan Claude yang disetujui pengguna):
+  - `/iclock/**` hanya menerima mesin `ZK_PUSH` dan `/device/v1/**` hanya `RAKITAN_V1`, supaya ID yang terlihat di layar alat rakitan tidak bisa dipakai lewat `/iclock` tanpa kunci.
+  - Jenis mesin dan ID alat rakitan tidak bisa diubah setelah dibuat.
+  - Hanya Owner yang menambah alat rakitan dan menerbitkan kunci. HR/Finance tetap bisa menambah mesin ZK-Push dan mengubah nama, cabang, serta status semua mesin.
+  - Alat rakitan nonaktif dibalas 403 `MESIN_NONAKTIF` (bukan 401 seperti K-067) agar layar mesin memberi pesan yang benar, dan tidak memperbarui "terakhir terlihat". Kunci salah dan mesin tak dikenal sama-sama 401.
+  - Konfirmasi "Mesin … baru saja terhubung" muncul pada kontak pertama yang berhasil dengan setiap kunci baru (kolom `devices.key_first_used_at`).
+  - Scan rusak disimpan di `rejected_scan_lines` (K-062) dan ID-nya tetap masuk `accepted`, supaya antrean mesin tidak tersangkut.
+  - Isi heartbeat (`uptimeSeconds`, `pendingScans`, `sensor`) disimpan ringkas di `last_info`.
+  - Duplikat dicegah dua aturan unik: mesin + ID scan, dan mesin + PIN + waktu (K-061). X401 tidak berubah karena ID scannya selalu kosong.
+
+**Alasan:** alat rakitan tidak punya tombol, jadi pengaturan pertama harus cukup dengan menempel satu kode dari HP; kunci per mesin menutup celah protokol X401 yang tidak memakai secret (K-055).
+
+**Alternatif yang dipertimbangkan:** meniru protokol ZK-Push (ditolak: tanpa autentikasi dan tanpa ID scan), kunci disimpan terenkripsi agar bisa ditampilkan ulang (ditolak: kunci yang hilang cukup diganti), dan alat rakitan nonaktif dibalas 401 (ditolak: layar mesin tidak bisa membedakan kunci salah dan mesin nonaktif). Penggantian kunci dua tahap tanpa memutus mesin dan konfirmasi ulang password (K-098) dikerjakan di Rencana 6.
 
 ### Fase 4 — Izin dan Cuti (K-070–K-082)
 

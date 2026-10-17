@@ -28,6 +28,7 @@ services:
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
       OPENAPI_ENABLED: ${OPENAPI_ENABLED:-false}
       DEVICE_OFFLINE_AFTER: ${DEVICE_OFFLINE_AFTER:-5m}
+      DEVICE_PUBLIC_URL: ${DEVICE_PUBLIC_URL:-}
       # Surat pendukung izin/cuti (K-078). Volume ini harus ikut dicadangkan bersama database.
       UPLOADS_DIR: /app/uploads
       TZ: Asia/Jakarta

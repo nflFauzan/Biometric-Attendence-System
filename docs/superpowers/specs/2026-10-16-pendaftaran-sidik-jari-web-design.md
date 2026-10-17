@@ -335,3 +335,35 @@ Rinciannya dibuat di rencana implementasi (writing-plans). Gambaran urutannya:
 7. Halaman Firmware dan `UPDATE_FIRMWARE`. **Hanya jika uji OTA lulus.**
 
 Uji kelayakan R503 dan OTA (§2) berjalan paralel dengan langkah 1–3.
+
+## 15. Rincian Rencana 2: protokol, autentikasi, dan penerimaan scan (2026-10-17)
+
+Kontrak lengkap ada di [`docs/protokol-alat-rakitan.md`](../../protokol-alat-rakitan.md). Bagian ini mencatat keputusan yang menyertainya.
+
+**Disepakati pengguna:**
+- Pengaturan pertama dilakukan pengguna dan tim, pertama kali di kampus. Alurnya 4 langkah: daftarkan mesin di web → nyalakan mesin → isi dari HP lewat hotspot mesin → mesin dan web sama-sama mengonfirmasi.
+- **Kode pengaturan** tunggal (alamat server + ID mesin + kunci) yang hanya tampil sekali, supaya di HP cukup ditempel.
+- Layar mesin menyebut langkah yang gagal (Wi-Fi, server, kunci), lalu hotspot muncul lagi.
+- Uji pertama memakai **hotspot HP**, bukan Wi-Fi kampus.
+- Pengguna menyerahkan detail teknis kontrak kepada Claude; detail itu ditandai "keputusan Claude" di bawah dan di kontrak.
+
+**Keputusan Claude (bisa dikoreksi saat review):**
+- ID mesin dibuat server (`RK-XXXXXX`) dan disimpan di kolom `serial_number` yang sudah ada. Admin tidak mengetik nomor seri untuk alat rakitan.
+- Kunci disimpan sebagai SHA-256, cukup untuk kunci acak 32 byte. Server mencari mesin langsung dari hash kunci.
+- **Kode pengaturan disusun di browser** dari kunci (dikirim server sekali) dan alamat server yang diisi admin. Alamat bawaan diambil dari pengaturan `app.device.public-url` jika diisi; alamat tidak disimpan di server.
+- **"Buat kode baru"** langsung mencabut kunci lama. Tombol ini hanya untuk Owner, dengan dialog konfirmasi. Konfirmasi ulang password (K-098) dan penggantian dua tahap (`ROTATE_KEY`) dikerjakan di Rencana 6; sampai saat itu, risiko mencabut kunci mesin yang sedang dipakai diterima karena tombol hanya dipakai saat pengaturan.
+- Mesin alat rakitan yang nonaktif dibalas **403 `MESIN_NONAKTIF`**, bukan 401 seperti ZK-Push (K-067), supaya layar mesin bisa memberi pesan yang benar. Mesin tak dikenal dan kunci salah tetap 401.
+- Schema (migration Flyway baru): `devices.key_hash` (teks 64, unik, boleh kosong untuk X401) dan `attendance_scans.device_scan_id` (UUID, boleh kosong, unik per mesin). Query simpan scan memakai `on conflict do nothing` tanpa target, sehingga kedua aturan unik (ID scan dan mesin + PIN + waktu) sama-sama mencegah duplikat.
+- Waktu scan dikirim dengan offset. Adapter mengubahnya ke jam lokal cabang mesin sebelum masuk inti penerimaan scan, sehingga inti tidak berubah. Teks asli kiriman tetap disimpan sebagai baris mentah.
+- `accepted` di balasan scan mencakup semua ID yang sudah diproses, termasuk yang ditolak, supaya antrean microSD tidak tersangkut oleh satu scan rusak (sejalan dengan K-062).
+- **Pop-up "Mesin … baru saja terhubung"** muncul untuk Owner dan HR/Finance saat mesin pertama kali lolos autentikasi (sebelumnya belum pernah terlihat), lewat SSE yang sudah ada.
+- Simulator `tools/device-simulator` ditambah mode rakitan: menerima kode pengaturan, lalu menjalankan heartbeat, scan, scan offline (batch), kirim ulang ID yang sama, dan kunci salah.
+- **Hanya Owner yang bisa menambah alat rakitan dan membuat kode pengaturan**, karena keduanya menerbitkan kunci (sejalan dengan K-098). HR/Finance tetap bisa melihat, mengubah nama/cabang, dan menonaktifkan mesin, serta tetap bisa menambah mesin ZK-Push seperti sekarang.
+- **Jenis mesin (protokol) tidak bisa diubah setelah mesin dibuat.** Untuk mengganti jenis, buat mesin baru. Nomor seri alat rakitan juga tidak bisa diubah.
+- **Endpoint terpisah per jenis mesin:** `/iclock/**` hanya menerima mesin `ZK_PUSH`, dan `/device/v1/**` hanya menerima mesin `RAKITAN_V1`. Tanpa ini, siapa pun yang melihat ID mesin di layar alat rakitan bisa mengirim scan lewat `/iclock` tanpa kunci.
+- **Mesin nonaktif tidak memperbarui "terakhir terlihat"** (sama dengan K-067), walaupun kuncinya benar dan dibalas 403.
+- **Konfirmasi "baru saja terhubung"** muncul pada kontak pertama yang berhasil **dengan setiap kunci baru**, jadi pengaturan ulang setelah "Buat kode baru" juga mendapat konfirmasi. Untuk itu kolom `devices.key_first_used_at` (kosong saat kunci dibuat) ditambahkan di migration yang sama.
+- **Isi heartbeat:** `firmware` dan `ip` disimpan di kolom yang sudah ada (`firmware`, `last_ip`). `pendingScans`, `sensor`, dan `uptimeSeconds` disimpan sebagai teks ringkas di `last_info` dan tampil di detail mesin. Kolom khusus kapasitas sensor dibuat di Rencana 4 saat peringatan kapasitas dibangun.
+- Perubahan `on conflict` tanpa target tidak mengubah perilaku X401: `device_scan_id` X401 selalu kosong, dan aturan unik mengabaikan nilai kosong, sehingga X401 tetap hanya memakai kunci mesin + PIN + waktu.
+- **Perubahan kontrak API web** `/api/devices`: request tambah mesin mendapat field `protocol` (`ZK_PUSH` bawaan atau `RAKITAN_V1`), `serialNumber` hanya wajib untuk `ZK_PUSH`, dan response tambah mesin alat rakitan membawa `deviceKey` (sekali saja). Endpoint baru `POST /api/devices/{id}/key` (Owner) untuk "Buat kode baru".
+- Di luar Rencana 2: perintah ke mesin, sidik jari, pengaturan jarak jauh, update firmware, dan HTTPS produksi (Fase 7).

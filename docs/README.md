@@ -18,6 +18,7 @@ Indeks dokumentasi proyek. Semua dokumen ditulis dalam Bahasa Indonesia.
 | [rencana-rekan-kerja.md](rencana-rekan-kerja.md) | Daftar rekan kerja untuk karyawan: absensi semua karyawan aktif tanpa data sensitif |
 | [rencana-tema-kaca.md](rencana-tema-kaca.md) | Tema kaca (glassmorphism) terang/gelap, responsif, dengan pengaman kontras dan performa |
 | [panduan-mesin-x401.md](panduan-mesin-x401.md) | Langkah menyambungkan dan menguji mesin uji Solution X401 (mode ADMS) |
+| [protokol-alat-rakitan.md](protokol-alat-rakitan.md) | Kontrak protokol alat rakitan ESP32 (`/device/v1`): kode pengaturan, kunci, heartbeat, kiriman scan, dan uji dengan simulator |
 
 ## Status label
 
