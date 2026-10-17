@@ -73,6 +73,10 @@ const device: Device = {
   lastIp: '172.35.3.102',
   firmware: 'Ver 6.5.4(build 162)',
   online: true,
+  keyIssued: false,
+  keyFirstUsedAt: null,
+  lastInfo: null,
+  issuedKey: null,
 }
 
 describe('Halaman absensi Fase 3', () => {

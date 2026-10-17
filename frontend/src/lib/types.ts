@@ -47,14 +47,25 @@ export interface Employee {
   devicePin: string | null
 }
 
+/** Jenis mesin; tidak bisa diubah setelah dibuat (K-099). */
+export type DeviceProtocol = 'ZK_PUSH' | 'RAKITAN_V1'
+
+/** Kunci alat rakitan yang baru diterbitkan; hanya ada di response penerbitan (K-088). */
+export interface IssuedKey {
+  deviceKey: string
+  /** Alamat server bawaan untuk kode pengaturan (DEVICE_PUBLIC_URL), atau null. */
+  setupServerUrl: string | null
+}
+
 export interface Device {
   id: number
   name: string
+  /** Nomor seri ZK-Push, atau ID `RK-…` buatan server untuk alat rakitan. */
   serialNumber: string
   branchId: number
   branchName: string
   active: boolean
-  protocol: string
+  protocol: DeviceProtocol
   /** Scan yang lebih lama tidak disimpan (K-057). */
   acceptScansFrom: string
   ignoredScanCount: number
@@ -62,6 +73,13 @@ export interface Device {
   lastIp: string | null
   firmware: string | null
   online: boolean
+  /** Alat rakitan yang sudah punya kunci. */
+  keyIssued: boolean
+  /** Kontak pertama dengan kunci saat ini; null = belum diatur di mesin. */
+  keyFirstUsedAt: string | null
+  /** Ringkasan heartbeat terakhir, mis. "uptime=3600s; antrean=2; sensor=12/150". */
+  lastInfo: string | null
+  issuedKey: IssuedKey | null
 }
 
 export interface UnregisteredAttempt {

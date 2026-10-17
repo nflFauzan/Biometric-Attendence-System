@@ -1,14 +1,26 @@
-import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, KeyRound } from 'lucide-react'
+import { useState } from 'react'
 
+import { useAuth } from '@/auth/AuthContext'
 import { ActiveBadge, CrudPage } from '@/components/CrudPage'
+import { ErrorAlert } from '@/components/feedback'
+import { SetupCodeDialog } from '@/components/SetupCodeDialog'
 import { Badge } from '@/components/ui/badge'
-import { api } from '@/lib/api'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { api, ApiError } from '@/lib/api'
 import { toId } from '@/lib/form'
 import { useDashboardStream } from '@/lib/useDashboardStream'
 import { formatDateTime, fromDateTimeLocal, toDateTimeLocal } from '@/lib/format'
-import type { Device, UnregisteredAttempt } from '@/lib/types'
+import type { Device, IssuedKey, UnregisteredAttempt } from '@/lib/types'
+import { dialogSheetClass } from '@/lib/ui'
 import { useBranchOptions } from '@/pages/options'
+
+const PROTOCOL_LABELS: Record<Device['protocol'], string> = {
+  ZK_PUSH: 'ZK-Push',
+  RAKITAN_V1: 'Alat rakitan',
+}
 
 /** Mesin yang mencoba terhubung tetapi nomor serinya belum terdaftar (K-067). */
 function UnregisteredBanner() {
@@ -44,72 +56,191 @@ function UnregisteredBanner() {
   )
 }
 
+/** "Buat kode baru": kunci lama langsung tidak berlaku (K-088), jadi minta konfirmasi dulu. */
+function NewKeyDialog({ device, onClose, onIssued }: { device: Device; onClose: () => void; onIssued: (d: Device) => void }) {
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const issue = async () => {
+    setSaving(true)
+    setError(null)
+    try {
+      onIssued(await api<Device>(`/api/devices/${device.id}/key`, { method: 'POST' }))
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Terjadi kesalahan. Coba lagi.')
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className={dialogSheetClass}>
+        <DialogHeader>
+          <DialogTitle className="font-heading text-lg">Buat kode pengaturan baru?</DialogTitle>
+          <DialogDescription>
+            Kunci lama {device.name} langsung tidak berlaku. Mesin harus diatur ulang dengan kode baru.
+          </DialogDescription>
+        </DialogHeader>
+        {error && <ErrorAlert message={error} />}
+        <DialogFooter className="mt-2 gap-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Batal
+          </Button>
+          <Button type="button" onClick={issue} disabled={saving}>
+            {saving ? 'Membuat…' : 'Ya, buat kode baru'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function DevicesPage() {
   const branchOptions = useBranchOptions()
+  const queryClient = useQueryClient()
+  const { me } = useAuth()
+  // K-099: hanya Owner yang menerbitkan kunci alat rakitan.
+  const isOwner = me?.role === 'OWNER'
+  const [setup, setSetup] = useState<{ device: Device; issuedKey: IssuedKey } | null>(null)
+  const [newKeyFor, setNewKeyFor] = useState<Device | null>(null)
   // Status online/offline dan banner SN tak terdaftar ikut diperbarui tanpa memuat ulang halaman.
   useDashboardStream()
+
+  const showSetup = (device: Device) => {
+    if (device.issuedKey) {
+      setSetup({ device, issuedKey: device.issuedKey })
+    }
+  }
+
   return (
-    <CrudPage<Device>
-      title="Mesin Absensi"
-      description="Mesin dikenali dari serial number-nya. Status online berdasarkan kontak terakhir mesin ke server."
-      endpoint="/api/devices"
-      toolbar={<UnregisteredBanner />}
-      columns={[
-        { header: 'Nama', cell: (d) => d.name, role: 'primary' },
-        { header: 'Serial number', cell: (d) => d.serialNumber, mono: true },
-        { header: 'Cabang', cell: (d) => d.branchName },
-        {
-          header: 'Koneksi',
-          cell: (d) => (
-            <span className="flex flex-col gap-0.5">
-              <Badge variant={d.online ? 'success' : 'neutral'}>{d.online ? 'Online' : 'Offline'}</Badge>
-              <span className="text-xs text-muted-foreground">
-                {d.lastSeenAt ? `${formatDateTime(d.lastSeenAt)}${d.lastIp ? ` · ${d.lastIp}` : ''}` : 'Belum pernah terhubung'}
+    <>
+      <CrudPage<Device>
+        title="Mesin Absensi"
+        description="Mesin ZK-Push dikenali dari serial number-nya, alat rakitan dari kuncinya. Status online berdasarkan kontak terakhir mesin ke server."
+        endpoint="/api/devices"
+        toolbar={<UnregisteredBanner />}
+        onSaved={(saved, editing) => {
+          if (!editing) {
+            showSetup(saved)
+          }
+        }}
+        rowActions={(d) =>
+          isOwner && d.protocol === 'RAKITAN_V1' ? (
+            <Button variant="ghost" size="sm" onClick={() => setNewKeyFor(d)}>
+              <KeyRound />
+              Buat kode baru
+            </Button>
+          ) : null
+        }
+        columns={[
+          { header: 'Nama', cell: (d) => d.name, role: 'primary' },
+          { header: 'Jenis', cell: (d) => PROTOCOL_LABELS[d.protocol] },
+          { header: 'Serial number / ID', cell: (d) => d.serialNumber, mono: true },
+          { header: 'Cabang', cell: (d) => d.branchName },
+          {
+            header: 'Koneksi',
+            cell: (d) =>
+              d.protocol === 'RAKITAN_V1' && d.keyIssued && !d.keyFirstUsedAt ? (
+                <Badge variant="warning">Menunggu pengaturan</Badge>
+              ) : (
+                <span className="flex flex-col gap-0.5">
+                  <Badge variant={d.online ? 'success' : 'neutral'}>{d.online ? 'Online' : 'Offline'}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {d.lastSeenAt
+                      ? `${formatDateTime(d.lastSeenAt)}${d.lastIp ? ` · ${d.lastIp}` : ''}`
+                      : 'Belum pernah terhubung'}
+                  </span>
+                </span>
+              ),
+          },
+          {
+            header: 'Firmware',
+            cell: (d) => (
+              <span className="flex flex-col gap-0.5">
+                {d.firmware ?? '—'}
+                {d.lastInfo && <span className="text-xs text-muted-foreground">{d.lastInfo}</span>}
               </span>
-            </span>
-          ),
-        },
-        { header: 'Firmware', cell: (d) => d.firmware ?? '—' },
-        {
-          header: 'Terima scan sejak',
-          cell: (d) => (
-            <span className="flex flex-col gap-0.5">
-              {formatDateTime(d.acceptScansFrom)}
-              {d.ignoredScanCount > 0 && (
-                <span className="text-xs text-muted-foreground">{d.ignoredScanCount} scan lama diabaikan</span>
-              )}
-            </span>
-          ),
-        },
-        { header: 'Status', cell: (d) => <ActiveBadge active={d.active} />, role: 'status' },
-      ]}
-      fields={() => [
-        { name: 'name', label: 'Nama', required: true },
-        { name: 'serialNumber', label: 'Serial number', required: true, hint: 'Persis seperti di menu info mesin.' },
-        { name: 'branchId', label: 'Cabang', type: 'select', options: branchOptions, required: true },
-        {
-          name: 'acceptScansFrom',
-          label: 'Terima scan sejak',
-          type: 'datetime-local',
-          hint: 'Scan sebelum waktu ini (riwayat lama di mesin) tidak disimpan. Kosongkan = sejak sekarang.',
-        },
-        { name: 'active', label: 'Aktif', type: 'checkbox' },
-      ]}
-      emptyValues={{ name: '', serialNumber: '', branchId: '', acceptScansFrom: '', active: true }}
-      toValues={(d) => ({
-        name: d.name,
-        serialNumber: d.serialNumber,
-        branchId: String(d.branchId),
-        acceptScansFrom: toDateTimeLocal(d.acceptScansFrom),
-        active: d.active,
-      })}
-      toBody={(v) => ({
-        name: v.name,
-        serialNumber: v.serialNumber,
-        branchId: toId(v.branchId),
-        acceptScansFrom: fromDateTimeLocal(String(v.acceptScansFrom)),
-        active: v.active,
-      })}
-    />
+            ),
+          },
+          {
+            header: 'Terima scan sejak',
+            cell: (d) => (
+              <span className="flex flex-col gap-0.5">
+                {formatDateTime(d.acceptScansFrom)}
+                {d.ignoredScanCount > 0 && (
+                  <span className="text-xs text-muted-foreground">{d.ignoredScanCount} scan lama diabaikan</span>
+                )}
+              </span>
+            ),
+          },
+          { header: 'Status', cell: (d) => <ActiveBadge active={d.active} />, role: 'status' },
+        ]}
+        fields={(editing) => [
+          // Jenis mesin hanya dipilih saat membuat; tidak bisa diubah (K-099).
+          ...(editing
+            ? []
+            : [
+                {
+                  name: 'protocol',
+                  label: 'Jenis mesin',
+                  type: 'select' as const,
+                  required: true,
+                  options: [
+                    { value: 'ZK_PUSH', label: 'Mesin ZK-Push (X401)' },
+                    ...(isOwner ? [{ value: 'RAKITAN_V1', label: 'Alat rakitan' }] : []),
+                  ],
+                },
+              ]),
+          { name: 'name', label: 'Nama', required: true },
+          ...(editing?.protocol === 'RAKITAN_V1'
+            ? []
+            : [
+                {
+                  name: 'serialNumber',
+                  label: 'Serial number',
+                  hint: editing
+                    ? 'Persis seperti di menu info mesin.'
+                    : 'Wajib untuk mesin ZK-Push, persis seperti di menu info mesin. Kosongkan untuk alat rakitan; ID dibuat otomatis.',
+                },
+              ]),
+          { name: 'branchId', label: 'Cabang', type: 'select', options: branchOptions, required: true },
+          {
+            name: 'acceptScansFrom',
+            label: 'Terima scan sejak',
+            type: 'datetime-local',
+            hint: 'Scan sebelum waktu ini (riwayat lama di mesin) tidak disimpan. Kosongkan = sejak sekarang.',
+          },
+          { name: 'active', label: 'Aktif', type: 'checkbox' },
+        ]}
+        emptyValues={{ protocol: 'ZK_PUSH', name: '', serialNumber: '', branchId: '', acceptScansFrom: '', active: true }}
+        toValues={(d) => ({
+          name: d.name,
+          serialNumber: d.serialNumber,
+          branchId: String(d.branchId),
+          acceptScansFrom: toDateTimeLocal(d.acceptScansFrom),
+          active: d.active,
+        })}
+        toBody={(v, editing) => ({
+          ...(editing ? {} : { protocol: v.protocol }),
+          name: v.name,
+          serialNumber: v.serialNumber,
+          branchId: toId(v.branchId),
+          acceptScansFrom: fromDateTimeLocal(String(v.acceptScansFrom)),
+          active: v.active,
+        })}
+      />
+
+      {newKeyFor && (
+        <NewKeyDialog
+          device={newKeyFor}
+          onClose={() => setNewKeyFor(null)}
+          onIssued={(device) => {
+            setNewKeyFor(null)
+            void queryClient.invalidateQueries({ queryKey: ['/api/devices'] })
+            showSetup(device)
+          }}
+        />
+      )}
+      {setup && <SetupCodeDialog device={setup.device} issuedKey={setup.issuedKey} onClose={() => setSetup(null)} />}
+    </>
   )
 }

@@ -34,6 +34,8 @@ interface CrudPageProps<T extends { id: number }> {
   listParams?: Record<string, string>
   /** Kontrol tambahan di atas tabel, mis. pemilih tahun. */
   toolbar?: ReactNode
+  /** Dipanggil dengan hasil PUT/POST setelah tersimpan, mis. untuk menampilkan data yang hanya ada sekali. */
+  onSaved?: (saved: T, editing: T | null) => void
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {
@@ -66,12 +68,11 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
   const save = async (values: FormValues) => {
     const editing = dialog?.editing ?? null
     const body = props.toBody(values, editing)
-    if (editing) {
-      await api(`${props.endpoint}/${editing.id}`, { method: 'PUT', body })
-    } else {
-      await api(props.endpoint, { method: 'POST', body })
-    }
+    const saved = editing
+      ? await api<T>(`${props.endpoint}/${editing.id}`, { method: 'PUT', body })
+      : await api<T>(props.endpoint, { method: 'POST', body })
     await queryClient.invalidateQueries({ queryKey: [props.endpoint] })
+    props.onSaved?.(saved, editing)
   }
 
   const openCreate = () => setDialog({ editing: null })

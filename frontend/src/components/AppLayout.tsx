@@ -4,6 +4,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
 import { BrandMark, Wordmark } from '@/components/Brand'
+import { DeviceNotifications } from '@/components/DeviceNotifications'
 import { LeaveNotifications } from '@/components/LeaveNotifications'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
@@ -88,6 +89,7 @@ export function AppLayout() {
           <div className="flex items-center gap-2 md:gap-3">
             <ThemeToggle />
             {me.role !== 'EMPLOYEE' && <LeaveNotifications />}
+            {me.role !== 'EMPLOYEE' && <DeviceNotifications />}
             <div className="hidden text-right sm:block">
               <p className="text-sm leading-tight font-semibold">{displayName}</p>
               <p className="text-xs text-muted-foreground">{ROLE_LABELS[me.role]}</p>

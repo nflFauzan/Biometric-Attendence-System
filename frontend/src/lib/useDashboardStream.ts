@@ -3,7 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 
 /** Isi event dari backend; hanya berarti "ada perubahan" (+ sedikit konteks untuk notifikasi). */
 export interface StreamEvent {
-  type: 'CONNECTED' | 'SCAN' | 'CORRECTION' | 'DEVICE_STATUS' | 'LEAVE'
+  type: 'CONNECTED' | 'SCAN' | 'CORRECTION' | 'DEVICE_STATUS' | 'DEVICE_CONNECTED' | 'LEAVE'
+  /** DEVICE_CONNECTED: alat rakitan baru saja terhubung dengan kunci baru (K-099). */
+  deviceId?: number
+  deviceName?: string
   action?: 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'ATTACHMENT_ADDED'
   requestId?: number
   employeeName?: string
