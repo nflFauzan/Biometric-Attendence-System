@@ -294,6 +294,16 @@ class AccessControlTests extends IntegrationTest {
 		mockMvc.perform(build(method, url, body)).andExpect(status().isUnauthorized());
 	}
 
+	/** Rencana 2: menerbitkan kunci alat rakitan hanya untuk Owner (K-099). */
+	@Test
+	void deviceKeyIsOwnerOnly() throws Exception {
+		String url = "/api/devices/" + MISSING + "/key";
+		mockMvc.perform(build(HttpMethod.POST, url, null).with(OWNER)).andExpect(status().isNotFound());
+		mockMvc.perform(build(HttpMethod.POST, url, null).with(HR_FINANCE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(HttpMethod.POST, url, null).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(HttpMethod.POST, url, null)).andExpect(status().isUnauthorized());
+	}
+
 	@ParameterizedTest
 	@ValueSource(strings = { "/api/branches", "/api/employee-categories", "/api/employees", "/api/devices",
 			"/api/users" })

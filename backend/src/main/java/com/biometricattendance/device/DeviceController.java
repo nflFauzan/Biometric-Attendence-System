@@ -44,6 +44,12 @@ public class DeviceController {
 		return service.create(request);
 	}
 
+	/** "Buat kode baru" untuk alat rakitan; hanya Owner (SecurityConfig). Kunci hanya ada di response ini. */
+	@PostMapping("/{id}/key")
+	DeviceResponse issueKey(@PathVariable Long id) {
+		return service.issueKey(id);
+	}
+
 	@PutMapping("/{id}")
 	DeviceResponse update(@PathVariable Long id, @Valid @RequestBody DeviceRequest request) {
 		return service.update(id, request);

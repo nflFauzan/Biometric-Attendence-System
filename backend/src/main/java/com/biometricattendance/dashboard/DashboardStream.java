@@ -80,6 +80,11 @@ public class DashboardStream {
 
 	@TransactionalEventListener
 	void onDeviceContact(DeviceContactEvent event) {
+		// K-099: konfirmasi "Mesin … baru saja terhubung" saat pengaturan pertama dengan kunci baru.
+		if (event.firstConnect()) {
+			broadcast(Map.of("type", "DEVICE_CONNECTED", "deviceId", event.deviceId(), "deviceName",
+					event.deviceName()));
+		}
 		if (event.cameOnline()) {
 			broadcast(Map.of("type", "DEVICE_STATUS", "deviceId", event.deviceId()));
 		}

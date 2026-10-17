@@ -37,6 +37,8 @@ public class SecurityConfig {
 				.requestMatchers("/actuator/health").permitAll()
 				// Endpoint mesin (adapter ZK-Push): tanpa login; mesin divalidasi dari nomor seri terdaftar (K-055).
 				.requestMatchers("/iclock/**").permitAll()
+				// Endpoint alat rakitan: tanpa login; mesin divalidasi dari kunci per mesin di controller (K-088).
+				.requestMatchers("/device/v1/**").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 				.requestMatchers("/api/auth/**", "/api/me/**").authenticated()
@@ -46,6 +48,8 @@ public class SecurityConfig {
 				// Dokumentasi API hanya ada jika OPENAPI_ENABLED=true, dan tetap butuh login pengelola.
 				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
 				.hasAnyRole(OWNER, HR_FINANCE)
+				// Rencana 2: menerbitkan kunci alat rakitan hanya Owner (K-099). Harus sebelum /api/devices/**.
+				.requestMatchers(HttpMethod.POST, "/api/devices/*/key").hasRole(OWNER)
 				.requestMatchers("/api/branches/**", "/api/employee-categories/**", "/api/employees/**",
 						"/api/devices/**", "/api/users/**")
 				.hasAnyRole(OWNER, HR_FINANCE)
@@ -61,8 +65,8 @@ public class SecurityConfig {
 				.requestMatchers("/api/leave-types/**").hasRole(OWNER)
 				.requestMatchers("/api/leave-requests/**").hasAnyRole(OWNER, HR_FINANCE)
 				.anyRequest().denyAll())
-			// Mesin tidak memakai cookie sesi, jadi CSRF tidak relevan untuk /iclock/**.
-			.csrf(csrf -> csrf.spa().ignoringRequestMatchers("/iclock/**"))
+			// Mesin tidak memakai cookie sesi, jadi CSRF tidak relevan untuk /iclock/** dan /device/v1/**.
+			.csrf(csrf -> csrf.spa().ignoringRequestMatchers("/iclock/**", "/device/v1/**"))
 			.securityContext(context -> context.securityContextRepository(securityContextRepository))
 			.exceptionHandling(ex -> ex
 				.authenticationEntryPoint((request, response, exception) -> ProblemResponses.write(response,
