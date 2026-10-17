@@ -14,21 +14,24 @@ import org.springframework.data.repository.query.Param;
 public interface AttendanceScanRepository extends JpaRepository<AttendanceScan, Long> {
 
 	/**
-	 * Menyimpan satu scan; scan yang sama (mesin + PIN + waktu) diabaikan database, termasuk bila dua
-	 * request datang bersamaan (K-061). Mengembalikan 1 jika tersimpan, 0 jika duplikat.
+	 * Menyimpan satu scan; scan yang sama diabaikan database, termasuk bila dua request datang bersamaan (K-061).
+	 * "Sama" berarti mesin + PIN + waktu, atau mesin + ID scan buatan mesin (alat rakitan, K-099). Tanpa target
+	 * conflict, kedua aturan unik berlaku. Mengembalikan 1 jika tersimpan, 0 jika duplikat.
 	 */
 	@Modifying
 	@Query(value = """
 			insert into attendance_scans (device_id, device_pin, employee_id, scanned_at, device_local_time,
-			    status_code, verify_mode, flags, raw_line)
+			    status_code, verify_mode, flags, raw_line, device_scan_id)
 			values (:deviceId, :pin, cast(:employeeId as bigint), :scannedAt, :localTime,
-			    cast(:statusCode as varchar), cast(:verifyMode as varchar), cast(:flags as varchar), :rawLine)
-			on conflict (device_id, device_pin, scanned_at) do nothing
+			    cast(:statusCode as varchar), cast(:verifyMode as varchar), cast(:flags as varchar), :rawLine,
+			    cast(cast(:deviceScanId as varchar) as uuid))
+			on conflict do nothing
 			""", nativeQuery = true)
 	int insertIgnoringDuplicate(@Param("deviceId") long deviceId, @Param("pin") String pin,
 			@Param("employeeId") Long employeeId, @Param("scannedAt") Instant scannedAt,
 			@Param("localTime") LocalDateTime localTime, @Param("statusCode") String statusCode,
-			@Param("verifyMode") String verifyMode, @Param("flags") String flags, @Param("rawLine") String rawLine);
+			@Param("verifyMode") String verifyMode, @Param("flags") String flags, @Param("rawLine") String rawLine,
+			@Param("deviceScanId") String deviceScanId);
 
 	@Query("""
 			select s from AttendanceScan s join fetch s.device

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Simulator mesin absensi yang berbicara protokol push ZKTeco (ADMS) seperti mesin uji Solution X401
 // (format dari tangkapan asli, docs/panduan-mesin-x401.md §7). Data sintetis; tanpa dependency.
+// Untuk alat rakitan ESP32 (/device/v1) pakai rakitan.mjs di folder yang sama.
 //
 // Pemakaian:  node tools/device-simulator/simulate.mjs <perintah> [opsi]
 //

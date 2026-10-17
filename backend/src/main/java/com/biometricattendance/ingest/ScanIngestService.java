@@ -91,7 +91,7 @@ public class ScanIngestService {
 			}
 			saved += scans.insertIgnoringDuplicate(deviceId, event.pin(), employee.map(Employee::getId).orElse(null),
 					scannedAt, event.localTime(), event.statusCode(), event.verifyMode(), ScanFlag.join(flags),
-					event.rawLine());
+					event.rawLine(), event.deviceScanId() == null ? null : event.deviceScanId().toString());
 		}
 
 		if (ignored > 0) {
