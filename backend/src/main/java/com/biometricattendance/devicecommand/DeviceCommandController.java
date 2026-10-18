@@ -1,5 +1,6 @@
 package com.biometricattendance.devicecommand;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,9 +25,20 @@ public class DeviceCommandController {
 		return service.get(id);
 	}
 
+	@PostMapping("/{id}/retry")
+	CommandResponse retry(@PathVariable String id) {
+		return service.retry(id);
+	}
+
 	@PostMapping("/{id}/cancel")
 	CommandResponse cancel(@PathVariable String id) {
-		return service.cancel(id);
+		try {
+			return service.cancel(id);
+		}
+		catch (ObjectOptimisticLockingFailureException ex) {
+			// Mesin melapor bersamaan; coba sekali lagi dengan status terbaru agar yang tersimpan lebih dulu berlaku.
+			return service.cancel(id);
+		}
 	}
 
 }

@@ -27,22 +27,25 @@ public class DeviceService {
 	private final DeviceStatus status;
 	private final UnregisteredDeviceTracker unregistered;
 	private final String setupServerUrl;
+	private final int sensorWarningPercent;
 
 	public DeviceService(DeviceRepository repository, BranchRepository branches, AuditService audit,
 			DeviceStatus status, UnregisteredDeviceTracker unregistered,
-			@Value("${app.device.public-url:}") String setupServerUrl) {
+			@Value("${app.device.public-url:}") String setupServerUrl,
+			@Value("${app.device.sensor-warning-percent:90}") int sensorWarningPercent) {
 		this.repository = repository;
 		this.branches = branches;
 		this.audit = audit;
 		this.status = status;
 		this.unregistered = unregistered;
 		this.setupServerUrl = StringUtils.hasText(setupServerUrl) ? setupServerUrl.trim() : null;
+		this.sensorWarningPercent = sensorWarningPercent;
 	}
 
 	@Transactional(readOnly = true)
 	public List<DeviceResponse> list() {
 		Instant now = Instant.now();
-		return repository.findAllWithBranch().stream().map(d -> DeviceResponse.from(d, status.isOnline(d, now))).toList();
+		return repository.findAllWithBranch().stream().map(d -> DeviceResponse.from(d, status.isOnline(d, now), sensorWarningPercent)).toList();
 	}
 
 	public List<UnregisteredDeviceTracker.Attempt> unregisteredAttempts() {
@@ -139,7 +142,7 @@ public class DeviceService {
 	}
 
 	private DeviceResponse response(Device device) {
-		return DeviceResponse.from(device, status.isOnline(device, Instant.now()));
+		return DeviceResponse.from(device, status.isOnline(device, Instant.now()), sensorWarningPercent);
 	}
 
 	private void apply(Device device, DeviceRequest request) {

@@ -1,5 +1,7 @@
 package com.biometricattendance.employee;
 
+import java.time.LocalDate;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +25,14 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
 	@Query("select e from Employee e join fetch e.branch where e.devicePin = :pin")
 	Optional<Employee> findByDevicePin(@Param("pin") String pin);
+
+	/**
+	 * Kandidat penghapusan sidik jari terjadwal (spec §17.4): belum ditandai, dan nonaktif atau tanggal keluarnya
+	 * sebelum {@code maxEndDate}. Zona waktu cabang diperiksa oleh pemanggil.
+	 */
+	@Query("select e from Employee e join fetch e.branch where e.fingerprintsRemovedAt is null"
+			+ " and (e.active = false or (e.endDate is not null and e.endDate < :maxEndDate))")
+	List<Employee> findDepartureCandidates(@Param("maxEndDate") LocalDate maxEndDate);
 
 	boolean existsByDevicePin(String devicePin);
 

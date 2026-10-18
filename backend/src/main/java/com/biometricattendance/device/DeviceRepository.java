@@ -28,6 +28,15 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
 	@Query("update Device d set d.keyFirstUsedAt = :at where d.id = :id and d.keyHash = :keyHash and d.keyFirstUsedAt is null")
 	int claimKeyFirstUse(@Param("id") Long id, @Param("keyHash") String keyHash, @Param("at") Instant at);
 
+	/**
+	 * Tujuan perintah hapus (spec §17.2): alat rakitan yang pernah tersambung, aktif maupun nonaktif. Yang belum pernah
+	 * heartbeat dilewati karena sensornya pasti kosong.
+	 */
+	@Query("select d from Device d where d.protocol = 'RAKITAN_V1' and d.lastSeenAt is not null order by d.id")
+	List<Device> findConnectedRakitan();
+
+	boolean existsByProtocolAndActiveTrue(String protocol);
+
 	@Query("select d from Device d join fetch d.branch where d.id = :id")
 	Optional<Device> findWithBranch(@Param("id") Long id);
 

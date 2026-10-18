@@ -1,6 +1,8 @@
 package com.biometricattendance.fingerprint;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import com.biometricattendance.device.Device;
@@ -59,6 +61,16 @@ public class EmployeeFingerprint {
 		this.device = device;
 		this.commandId = commandId;
 		this.enrolledAt = enrolledAt;
+	}
+
+	/** Isi audit: hanya metadata, template sidik jari tidak pernah masuk audit. */
+	public Map<String, Object> snapshot() {
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("finger", finger);
+		data.put("deviceId", device.getId());
+		data.put("commandId", commandId.toString());
+		data.put("enrolledAt", enrolledAt.toString());
+		return data;
 	}
 
 	public Long getId() {

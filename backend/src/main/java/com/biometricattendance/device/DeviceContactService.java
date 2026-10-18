@@ -55,7 +55,8 @@ public class DeviceContactService {
 
 	/** Mengenali alat rakitan dari kunci di header {@code Authorization: Bearer} dan mencatat kontaknya. */
 	@Transactional
-	public KeyContact contactByKey(String bearerKey, String ip, String firmware, String info) {
+	public KeyContact contactByKey(String bearerKey, String ip, String firmware, String info, Integer sensorUsed,
+			Integer sensorCapacity) {
 		if (bearerKey == null || bearerKey.isBlank()) {
 			return KeyContact.rejected();
 		}
@@ -76,6 +77,7 @@ public class DeviceContactService {
 			device.markKeyFirstUsed(now);
 		}
 		record(device, now, ip, firmware, info, firstConnect);
+		device.recordSensor(sensorUsed, sensorCapacity);
 		return new KeyContact(KeyContact.Status.ACCEPTED, device);
 	}
 

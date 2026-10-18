@@ -27,7 +27,7 @@ import com.biometricattendance.employee.EmployeeRepository;
 @Service
 public class DeviceCommandService {
 
-	static final String SYSTEM_ACTOR = "sistem";
+	public static final String SYSTEM_ACTOR = "sistem";
 	private static final String JARI_SUDAH_TERDAFTAR = "JARI_SUDAH_TERDAFTAR";
 
 	private final DeviceCommandRepository commands;
@@ -94,7 +94,8 @@ public class DeviceCommandService {
 		if (step == null || step < 1 || step > 3) {
 			return CommandUpdate.BAD_REQUEST;
 		}
-		if (!command.isActive()) {
+		// Perintah hapus tidak punya langkah tempelan jari.
+		if (!command.isActive() || command.isDelete()) {
 			return CommandUpdate.NOT_ACTIVE;
 		}
 		Map<String, Object> before = snapshot(command);
@@ -125,10 +126,12 @@ public class DeviceCommandService {
 		Map<String, Object> before = snapshot(command);
 		if (success) {
 			command.succeed(now);
-			events.publishEvent(new EnrollSucceededEvent(command.getId(), command.getEmployee().getId(),
-					command.getFinger(), device.getId(), now));
 		}
-		else {
+		if (success && !command.isDelete()) {
+			events.publishEvent(new EnrollSucceededEvent(command.getId(), command.getEmployee().getId(),
+					command.getFinger(), device.getId(), machineActor(device), now));
+		}
+		else if (!success) {
 			String code = error.trim();
 			command.fail(code, JARI_SUDAH_TERDAFTAR.equals(code) ? ownerOf(pin) : null, now);
 		}
@@ -172,7 +175,7 @@ public class DeviceCommandService {
 		}
 		for (DeviceCommand command : commands.findSentBefore(now.minus(resultTimeout))) {
 			Map<String, Object> before = snapshot(command);
-			command.fail(DeviceCommand.WAKTU_HABIS, null, now);
+			command.fail(DeviceCommand.TIDAK_ADA_HASIL, null, now);
 			changed(SYSTEM_ACTOR, "COMMAND_EXPIRED", command, before);
 			changed++;
 		}
@@ -185,9 +188,15 @@ public class DeviceCommandService {
 	 */
 	@Transactional
 	public void create(DeviceCommand command) {
+		create(command, CurrentUser.username());
+	}
+
+	/** Seperti {@link #create(DeviceCommand)} dengan pelaku audit eksplisit, mis. {@code sistem} untuk tugas terjadwal. */
+	@Transactional
+	public void create(DeviceCommand command, String actor) {
 		commands.saveAndFlush(command);
-		audit.record(CurrentUser.username(), "ENROLL_REQUEST", "DeviceCommand", command.getId(), null,
-				snapshot(command), null);
+		audit.record(actor, command.isDelete() ? "DELETE_REQUEST" : "ENROLL_REQUEST", "DeviceCommand", command.getId(),
+				null, snapshot(command), null);
 		events.publishEvent(new DeviceCommandChangedEvent(command.getId(),
 				command.getEmployee() == null ? null : command.getEmployee().getId()));
 	}
@@ -200,6 +209,9 @@ public class DeviceCommandService {
 	@Transactional
 	public CommandResponse cancel(String id) {
 		DeviceCommand command = find(id);
+		if (command.isDelete()) {
+			throw ApiException.conflict("Perintah penghapusan tidak bisa dibatalkan.");
+		}
 		if (!command.isActive()) {
 			throw ApiException.conflict("Perintah sudah selesai.");
 		}
@@ -207,6 +219,31 @@ public class DeviceCommandService {
 		command.cancel(Instant.now());
 		changed(CurrentUser.username(), "CANCEL_COMMAND", command, before);
 		return CommandResponse.from(command);
+	}
+
+	/** "Coba lagi" untuk penghapusan yang gagal (spec §17.7): perintah yang sama kembali MENUNGGU. */
+	@Transactional
+	public CommandResponse retry(String id) {
+		DeviceCommand command = find(id);
+		if (!command.isDelete() || !DeviceCommand.GAGAL.equals(command.getStatus())) {
+			throw ApiException.conflict("Hanya penghapusan yang gagal yang bisa dicoba lagi.");
+		}
+		Map<String, Object> before = snapshot(command);
+		command.requeue();
+		changed(CurrentUser.username(), "COMMAND_RETRY", command, before);
+		return CommandResponse.from(command);
+	}
+
+	/** Membatalkan ENROLL aktif karyawan yang keluar/nonaktif (spec §17.4); perintah hapus tidak disentuh. */
+	@Transactional
+	public int cancelActiveEnrolls(Long employeeId, String actor, Instant now) {
+		List<DeviceCommand> active = commands.findActiveForEmployee(employeeId);
+		for (DeviceCommand command : active) {
+			Map<String, Object> before = snapshot(command);
+			command.cancel(now);
+			changed(actor, "CANCEL_COMMAND", command, before);
+		}
+		return active.size();
 	}
 
 	private DeviceCommand find(String id) {

@@ -67,6 +67,11 @@ public class Device {
 
 	private String lastInfo;
 
+	/** Isi dan kapasitas sensor sidik jari dari heartbeat terakhir yang melaporkannya (alat rakitan). */
+	private Integer sensorUsed;
+
+	private Integer sensorCapacity;
+
 	private String lastAttlogStamp;
 
 	/** SHA-256 kunci alat rakitan (K-088); kosong untuk ZK-Push. */
@@ -202,6 +207,22 @@ public class Device {
 		if (info != null) {
 			this.lastInfo = info;
 		}
+	}
+
+	/** Mencatat isi sensor; laporan tanpa angka lengkap atau dengan kapasitas tidak masuk akal diabaikan. */
+	public void recordSensor(Integer used, Integer capacity) {
+		if (used != null && capacity != null && capacity > 0) {
+			this.sensorUsed = used;
+			this.sensorCapacity = capacity;
+		}
+	}
+
+	public Integer getSensorUsed() {
+		return sensorUsed;
+	}
+
+	public Integer getSensorCapacity() {
+		return sensorCapacity;
 	}
 
 }

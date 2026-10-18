@@ -30,6 +30,12 @@ public class DeviceCommand implements Persistable<UUID> {
 
 	public static final String TYPE_ENROLL = "ENROLL";
 
+	/** Hapus satu jari (PIN + jari) dari sensor; tidak kedaluwarsa dan tidak bisa dibatalkan (spec §17). */
+	public static final String TYPE_DELETE_TEMPLATE = "DELETE_TEMPLATE";
+
+	/** Hapus semua jari milik satu PIN dari sensor (K-090). */
+	public static final String TYPE_DELETE_EMPLOYEE = "DELETE_EMPLOYEE";
+
 	public static final String MENUNGGU = "MENUNGGU";
 	public static final String DIKIRIM = "DIKIRIM";
 	public static final String BERHASIL = "BERHASIL";
@@ -37,8 +43,11 @@ public class DeviceCommand implements Persistable<UUID> {
 	public static final String KEDALUWARSA = "KEDALUWARSA";
 	public static final String DIBATALKAN = "DIBATALKAN";
 
-	/** Kode gagal saat mesin tidak melaporkan hasil dalam batas waktu (spec §9). */
+	/** Kode dari mesin: tidak ada jari yang ditempelkan dalam batas waktunya (spec §9). */
 	public static final String WAKTU_HABIS = "WAKTU_HABIS";
+
+	/** Kode yang hanya diisi server: mesin tidak melaporkan hasil dalam batas waktu (K-101). */
+	public static final String TIDAK_ADA_HASIL = "TIDAK_ADA_HASIL";
 
 	static final int MAX_ERROR_CODE = 40;
 	static final int MAX_ERROR_DETAIL = 255;
@@ -108,6 +117,34 @@ public class DeviceCommand implements Persistable<UUID> {
 		return command;
 	}
 
+	public static DeviceCommand deleteTemplate(Device device, Employee employee, String pin, int finger,
+			String createdBy, Instant now) {
+		DeviceCommand command = delete(device, employee, pin, createdBy, now);
+		command.type = TYPE_DELETE_TEMPLATE;
+		command.finger = finger;
+		return command;
+	}
+
+	public static DeviceCommand deleteEmployee(Device device, Employee employee, String pin, String createdBy,
+			Instant now) {
+		DeviceCommand command = delete(device, employee, pin, createdBy, now);
+		command.type = TYPE_DELETE_EMPLOYEE;
+		return command;
+	}
+
+	private static DeviceCommand delete(Device device, Employee employee, String pin, String createdBy, Instant now) {
+		DeviceCommand command = new DeviceCommand();
+		command.id = UUID.randomUUID();
+		command.isNew = true;
+		command.device = device;
+		command.status = MENUNGGU;
+		command.employee = employee;
+		command.devicePin = pin;
+		command.createdBy = createdBy;
+		command.createdAt = now;
+		return command;
+	}
+
 	@Override
 	public UUID getId() {
 		return id;
@@ -126,6 +163,23 @@ public class DeviceCommand implements Persistable<UUID> {
 
 	public boolean isActive() {
 		return MENUNGGU.equals(status) || DIKIRIM.equals(status);
+	}
+
+	public boolean isDelete() {
+		return TYPE_DELETE_TEMPLATE.equals(type) || TYPE_DELETE_EMPLOYEE.equals(type);
+	}
+
+	/** "Coba lagi" untuk penghapusan yang gagal: perintah yang sama dikirim ulang dari awal. */
+	public void requeue() {
+		if (!isDelete() || !GAGAL.equals(status)) {
+			throw new IllegalStateException("Perintah " + id + " tidak bisa dicoba lagi");
+		}
+		status = MENUNGGU;
+		step = null;
+		errorCode = null;
+		errorDetail = null;
+		sentAt = null;
+		finishedAt = null;
 	}
 
 	/** Pertama kali ikut di balasan heartbeat. */

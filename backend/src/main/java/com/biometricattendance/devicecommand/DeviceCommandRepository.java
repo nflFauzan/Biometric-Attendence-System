@@ -23,16 +23,34 @@ public interface DeviceCommandRepository extends JpaRepository<DeviceCommand, UU
 			+ " and c.type = 'ENROLL' and c.status in ('MENUNGGU', 'DIKIRIM')")
 	boolean existsActiveEnroll(@Param("employeeId") Long employeeId, @Param("finger") int finger);
 
+	/** Perintah hapus untuk PIN ini di mesin ini yang belum BERHASIL; ENROLL baru harus menunggu (spec §17.6). */
+	@Query("select count(c) > 0 from DeviceCommand c where c.device.id = :deviceId and c.devicePin = :pin"
+			+ " and c.type in ('DELETE_TEMPLATE', 'DELETE_EMPLOYEE') and c.status in ('MENUNGGU', 'DIKIRIM', 'GAGAL')")
+	boolean existsUnfinishedDeleteOnDevice(@Param("deviceId") Long deviceId, @Param("pin") String pin);
+
+	/** PIN menunggu penghapusan (K-093, spec §17.5): perintah hapus di mesin aktif yang belum BERHASIL. */
+	@Query("select count(c) > 0 from DeviceCommand c where c.devicePin = :pin and c.device.active = true"
+			+ " and c.type in ('DELETE_TEMPLATE', 'DELETE_EMPLOYEE') and c.status in ('MENUNGGU', 'DIKIRIM', 'GAGAL')")
+	boolean existsPendingDeleteForPin(@Param("pin") String pin);
+
+	/** Daftar "Penghapusan di mesin" (spec §17.8): perintah hapus karyawan ini yang belum BERHASIL. */
 	@Query("select c from DeviceCommand c join fetch c.device where c.employee.id = :employeeId"
-			+ " and c.status in ('MENUNGGU', 'DIKIRIM') order by c.createdAt")
+			+ " and c.type in ('DELETE_TEMPLATE', 'DELETE_EMPLOYEE') and c.status in ('MENUNGGU', 'DIKIRIM', 'GAGAL')"
+			+ " order by c.createdAt, c.device.id")
+	List<DeviceCommand> findUnfinishedDeletesForEmployee(@Param("employeeId") Long employeeId);
+
+	/** ENROLL aktif karyawan ini; perintah hapus punya daftarnya sendiri. */
+	@Query("select c from DeviceCommand c join fetch c.device where c.employee.id = :employeeId"
+			+ " and c.type = 'ENROLL' and c.status in ('MENUNGGU', 'DIKIRIM') order by c.createdAt")
 	List<DeviceCommand> findActiveForEmployee(@Param("employeeId") Long employeeId);
 
 	/**
 	 * Perintah aktif mesin ini yang belum lewat batas waktu. Yang sudah lewat tidak dikirim dan dibiarkan untuk sweeper,
 	 * supaya heartbeat tidak pernah menulis perintah mesin lain.
 	 */
-	@Query("select c from DeviceCommand c where c.device.id = :deviceId and ((c.status = 'MENUNGGU'"
-			+ " and c.createdAt >= :pickupCutoff) or (c.status = 'DIKIRIM' and c.sentAt >= :resultCutoff))"
+	@Query("select c from DeviceCommand c where c.device.id = :deviceId and ((c.type <> 'ENROLL'"
+			+ " and c.status in ('MENUNGGU', 'DIKIRIM')) or (c.type = 'ENROLL' and ((c.status = 'MENUNGGU'"
+			+ " and c.createdAt >= :pickupCutoff) or (c.status = 'DIKIRIM' and c.sentAt >= :resultCutoff))))"
 			+ " order by c.createdAt")
 	List<DeviceCommand> findDeliverable(@Param("deviceId") Long deviceId, @Param("pickupCutoff") Instant pickupCutoff,
 			@Param("resultCutoff") Instant resultCutoff);
@@ -47,12 +65,12 @@ public interface DeviceCommandRepository extends JpaRepository<DeviceCommand, UU
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@QueryHints(@QueryHint(name = SKIP_LOCKED_HINT, value = SKIP_LOCKED))
-	@Query("select c from DeviceCommand c where c.status = 'MENUNGGU' and c.createdAt < :cutoff")
+	@Query("select c from DeviceCommand c where c.type = 'ENROLL' and c.status = 'MENUNGGU' and c.createdAt < :cutoff")
 	List<DeviceCommand> findUnpickedBefore(@Param("cutoff") Instant cutoff);
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@QueryHints(@QueryHint(name = SKIP_LOCKED_HINT, value = SKIP_LOCKED))
-	@Query("select c from DeviceCommand c where c.status = 'DIKIRIM' and c.sentAt < :cutoff")
+	@Query("select c from DeviceCommand c where c.type = 'ENROLL' and c.status = 'DIKIRIM' and c.sentAt < :cutoff")
 	List<DeviceCommand> findSentBefore(@Param("cutoff") Instant cutoff);
 
 	String SKIP_LOCKED_HINT = "jakarta.persistence.lock.timeout";

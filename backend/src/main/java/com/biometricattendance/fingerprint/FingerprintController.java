@@ -1,6 +1,7 @@
 package com.biometricattendance.fingerprint;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +35,11 @@ public class FingerprintController {
 	@PostMapping("/fingerprint-consent")
 	FingerprintOverview consent(@PathVariable Long employeeId) {
 		return service.consent(employeeId);
+	}
+
+	@DeleteMapping("/fingerprints/{finger}")
+	FingerprintOverview delete(@PathVariable Long employeeId, @PathVariable int finger) {
+		return service.deleteFinger(employeeId, finger);
 	}
 
 	@PostMapping("/fingerprints/enroll")

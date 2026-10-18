@@ -3,6 +3,7 @@ package com.biometricattendance.employee;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,14 +25,17 @@ public class EmployeeService {
 	private final EmployeeCategoryRepository categories;
 	private final AuditService audit;
 	private final AttendanceScanRepository scans;
+	private final ApplicationEventPublisher events;
 
 	public EmployeeService(EmployeeRepository repository, BranchRepository branches,
-			EmployeeCategoryRepository categories, AuditService audit, AttendanceScanRepository scans) {
+			EmployeeCategoryRepository categories, AuditService audit, AttendanceScanRepository scans,
+			ApplicationEventPublisher events) {
 		this.repository = repository;
 		this.branches = branches;
 		this.categories = categories;
 		this.audit = audit;
 		this.scans = scans;
+		this.events = events;
 	}
 
 	@Transactional(readOnly = true)
@@ -56,6 +60,7 @@ public class EmployeeService {
 		}
 		Employee employee = new Employee();
 		apply(employee, request);
+		events.publishEvent(new EmployeeChangedEvent(employee, null, true));
 		EmployeeResponse created = EmployeeResponse.from(repository.save(employee));
 		audit.record("CREATE", ENTITY, created.id(), null, created);
 		linkUnmatchedScans(employee, null);
@@ -74,6 +79,7 @@ public class EmployeeService {
 		}
 		EmployeeResponse before = EmployeeResponse.from(employee);
 		apply(employee, request);
+		events.publishEvent(new EmployeeChangedEvent(employee, before.devicePin(), false));
 		EmployeeResponse after = EmployeeResponse.from(repository.save(employee));
 		audit.record("UPDATE", ENTITY, id, before, after);
 		linkUnmatchedScans(employee, before.devicePin());

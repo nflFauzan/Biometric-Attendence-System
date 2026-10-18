@@ -7,6 +7,9 @@ public final class DeviceCommandMessages {
 	}
 
 	public static String message(DeviceCommand command) {
+		if (command.isDelete()) {
+			return deletion(command);
+		}
 		if (command.isActive()) {
 			return command.getStep() == null ? "Menunggu mesin…" : "Tempelkan jari (" + command.getStep() + "/3)";
 		}
@@ -18,13 +21,25 @@ public final class DeviceCommandMessages {
 		};
 	}
 
+	private static String deletion(DeviceCommand command) {
+		if (command.isActive()) {
+			return "Menunggu mesin…";
+		}
+		if (DeviceCommand.BERHASIL.equals(command.getStatus())) {
+			return "Terhapus";
+		}
+		return "SENSOR_ERROR".equals(command.getErrorCode()) ? "Sensor bermasalah. Hubungi teknisi."
+				: "Penghapusan gagal (" + command.getErrorCode() + ").";
+	}
+
 	private static String failure(String code, String detail) {
 		return switch (code == null ? "" : code) {
 			case "JARI_TIDAK_COCOK" -> "Tiga tempelan tidak cocok satu sama lain. Ulangi dengan jari yang sama.";
 			case "KUALITAS_BURUK" -> "Sidik jari tidak terbaca jelas. Bersihkan jari atau sensor, lalu ulangi.";
 			case "JARI_SUDAH_TERDAFTAR" -> "Sidik jari ini sudah terdaftar atas nama " + detail + ".";
 			case "SENSOR_PENUH" -> "Kapasitas sensor mesin penuh.";
-			case DeviceCommand.WAKTU_HABIS -> "Mesin tidak merespons. Periksa koneksi mesin.";
+			case DeviceCommand.WAKTU_HABIS -> "Tidak ada jari yang ditempelkan. Ulangi pendaftaran.";
+			case DeviceCommand.TIDAK_ADA_HASIL -> "Mesin tidak merespons. Periksa koneksi mesin.";
 			case "SENSOR_ERROR" -> "Sensor bermasalah. Hubungi teknisi.";
 			default -> "Pendaftaran gagal (" + code + ").";
 		};

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.biometricattendance.branch.Branch;
@@ -19,8 +20,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
-/** Data karyawan. Tidak pernah dihapus permanen: isi endDate dan nonaktifkan. */
+/**
+ * Data karyawan. Tidak pernah dihapus permanen: isi endDate dan nonaktifkan. UPDATE hanya menulis kolom yang berubah,
+ * agar persetujuan sidik jari dan edit HR yang bersamaan tidak saling menimpa.
+ */
 @Entity
+@DynamicUpdate
 @Table(name = "employees")
 public class Employee {
 
@@ -61,6 +66,9 @@ public class Employee {
 	private Instant fingerprintConsentAt;
 
 	private String fingerprintConsentBy;
+
+	/** Kapan sidik jari karyawan keluar/nonaktif dihapus (spec §17.4); null = belum atau aktif kembali. */
+	private Instant fingerprintsRemovedAt;
 
 	@CreationTimestamp
 	@Column(nullable = false, updatable = false)
@@ -160,6 +168,18 @@ public class Employee {
 
 	public String getFingerprintConsentBy() {
 		return fingerprintConsentBy;
+	}
+
+	public Instant getFingerprintsRemovedAt() {
+		return fingerprintsRemovedAt;
+	}
+
+	public void markFingerprintsRemoved(Instant at) {
+		this.fingerprintsRemovedAt = at;
+	}
+
+	public void clearFingerprintsRemoved() {
+		this.fingerprintsRemovedAt = null;
 	}
 
 	public void recordFingerprintConsent(String by, Instant at) {

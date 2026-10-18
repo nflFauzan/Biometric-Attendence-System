@@ -18,9 +18,11 @@ import com.biometricattendance.device.DeviceStatus;
 import com.biometricattendance.devicecommand.DeviceCommand;
 import com.biometricattendance.devicecommand.DeviceCommandDtos.CommandResponse;
 import com.biometricattendance.devicecommand.DeviceCommandRepository;
+import com.biometricattendance.devicecommand.DeviceCommandMessages;
 import com.biometricattendance.devicecommand.DeviceCommandService;
 import com.biometricattendance.employee.Employee;
 import com.biometricattendance.employee.EmployeeRepository;
+import com.biometricattendance.fingerprint.FingerprintDtos.DeletionResponse;
 import com.biometricattendance.fingerprint.FingerprintDtos.EnrollRequest;
 import com.biometricattendance.fingerprint.FingerprintDtos.FingerResponse;
 import com.biometricattendance.fingerprint.FingerprintDtos.FingerprintOverview;
@@ -43,10 +45,11 @@ public class FingerprintService {
 	private final DeviceCommandService commandService;
 	private final EmployeeFingerprintRepository fingerprints;
 	private final AuditService audit;
+	private final FingerprintRemoval removal;
 
 	public FingerprintService(EmployeeRepository employees, DeviceRepository devices, DeviceStatus deviceStatus,
 			DeviceCommandRepository commands, DeviceCommandService commandService,
-			EmployeeFingerprintRepository fingerprints, AuditService audit) {
+			EmployeeFingerprintRepository fingerprints, AuditService audit, FingerprintRemoval removal) {
 		this.employees = employees;
 		this.devices = devices;
 		this.deviceStatus = deviceStatus;
@@ -54,6 +57,7 @@ public class FingerprintService {
 		this.commandService = commandService;
 		this.fingerprints = fingerprints;
 		this.audit = audit;
+		this.removal = removal;
 	}
 
 	@Transactional(readOnly = true)
@@ -78,7 +82,7 @@ public class FingerprintService {
 	@Transactional
 	public CommandResponse startEnroll(Long employeeId, EnrollRequest request) {
 		Employee employee = employee(employeeId);
-		if (!employee.isActive() || employee.getEndDate() != null) {
+		if (removal.isDeparted(employee, Instant.now())) {
 			throw ApiException.badRequest("Karyawan nonaktif tidak bisa didaftarkan sidik jarinya.");
 		}
 		if (!StringUtils.hasText(employee.getDevicePin())) {
@@ -103,6 +107,9 @@ public class FingerprintService {
 		if (commands.existsActiveEnrollForDevice(device.getId())) {
 			throw ApiException.conflict(DEVICE_BUSY);
 		}
+		if (commands.existsUnfinishedDeleteOnDevice(device.getId(), employee.getDevicePin())) {
+			throw ApiException.conflict("Tunggu sampai sidik jari lama selesai dihapus di mesin ini.");
+		}
 		if (commands.existsActiveEnroll(employeeId, request.finger())) {
 			throw ApiException.conflict(FINGER_BUSY);
 		}
@@ -117,6 +124,19 @@ public class FingerprintService {
 		return CommandResponse.from(command);
 	}
 
+	/** Tombol "Hapus" per jari (spec §17.3). */
+	@Transactional
+	public FingerprintOverview deleteFinger(Long employeeId, int finger) {
+		Employee employee = employee(employeeId);
+		EmployeeFingerprint record = fingerprints.findByEmployeeIdAndFinger(employeeId, finger)
+			.orElseThrow(() -> ApiException.notFound("Sidik jari"));
+		if (commands.existsActiveEnroll(employeeId, finger)) {
+			throw ApiException.conflict(FINGER_BUSY);
+		}
+		removal.deleteFinger(employee, record, CurrentUser.username(), Instant.now());
+		return overview(employee);
+	}
+
 	private FingerprintOverview overview(Employee employee) {
 		return new FingerprintOverview(employee.getFingerprintConsentAt(), employee.getFingerprintConsentBy(),
 				fingerprints.findByEmployeeIdOrderByFinger(employee.getId())
@@ -124,7 +144,22 @@ public class FingerprintService {
 					.map(f -> new FingerResponse(f.getFinger(), f.getDevice().getId(), f.getDevice().getName(),
 							f.getEnrolledAt()))
 					.toList(),
-				commands.findActiveForEmployee(employee.getId()).stream().map(CommandResponse::from).toList());
+				commands.findActiveForEmployee(employee.getId()).stream().map(CommandResponse::from).toList(),
+				commands.findUnfinishedDeletesForEmployee(employee.getId()).stream().map(this::deletion).toList(),
+				devices.existsByProtocolAndActiveTrue(Device.PROTOCOL_ZK_PUSH));
+	}
+
+	private DeletionResponse deletion(DeviceCommand command) {
+		Device device = command.getDevice();
+		String message = DeviceCommandMessages.message(command);
+		if (command.isActive() && !device.isActive()) {
+			message = "Menunggu (mesin nonaktif)";
+		}
+		else if (command.isActive() && !deviceStatus.isOnline(device, Instant.now())) {
+			message = "Menunggu (mesin offline)";
+		}
+		return new DeletionResponse(command.getId(), command.getType(), command.getFinger(), device.getId(),
+				device.getName(), command.getStatus(), message, DeviceCommand.GAGAL.equals(command.getStatus()));
 	}
 
 	private Employee employee(Long id) {

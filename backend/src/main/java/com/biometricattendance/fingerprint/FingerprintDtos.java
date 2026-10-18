@@ -2,6 +2,7 @@ package com.biometricattendance.fingerprint;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import com.biometricattendance.devicecommand.DeviceCommandDtos.CommandResponse;
 
@@ -23,8 +24,17 @@ public final class FingerprintDtos {
 	public record FingerResponse(int finger, Long deviceId, String deviceName, Instant enrolledAt) {
 	}
 
+	/**
+	 * Penghapusan di satu mesin yang belum selesai (spec §17.8). {@code message} sudah memperhitungkan mesin offline atau
+	 * nonaktif; {@code retryable} = boleh "Coba lagi".
+	 */
+	public record DeletionResponse(UUID commandId, String type, Integer finger, Long deviceId, String deviceName,
+			String status, String message, boolean retryable) {
+	}
+
+	/** {@code zkPushDeviceActive}: ada mesin X401 aktif, jadi web mengingatkan untuk menghapus langsung di mesin. */
 	public record FingerprintOverview(Instant consentAt, String consentBy, List<FingerResponse> fingers,
-			List<CommandResponse> activeCommands) {
+			List<CommandResponse> activeCommands, List<DeletionResponse> deletions, boolean zkPushDeviceActive) {
 	}
 
 }
