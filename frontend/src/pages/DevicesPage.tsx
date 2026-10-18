@@ -158,6 +158,14 @@ export function DevicesPage() {
               <span className="flex flex-col gap-0.5">
                 {d.firmware ?? '—'}
                 {d.lastInfo && <span className="text-xs text-muted-foreground">{d.lastInfo}</span>}
+                {d.sensorUsed !== null && d.sensorCapacity !== null && (
+                  <span className="text-xs text-muted-foreground">
+                    Sensor {d.sensorUsed}/{d.sensorCapacity}
+                  </span>
+                )}
+                {d.sensorAlmostFull && (
+                  <span className="text-xs font-semibold text-warning">Kapasitas sensor hampir penuh.</span>
+                )}
               </span>
             ),
           },

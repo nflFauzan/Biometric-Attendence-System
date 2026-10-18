@@ -26,9 +26,12 @@ public final class RakitanDtos {
 			List<CommandItem> commands, List<String> cancel) {
 	}
 
-	/** Isi perintah tanpa data rahasia (spec §4). {@code timeoutSeconds} adalah batas mesin menunggu jari. */
-	public record CommandItem(String id, String type, String pin, int finger, String displayName,
-			long timeoutSeconds) {
+	/**
+	 * Isi perintah tanpa data rahasia (spec §4). {@code timeoutSeconds} adalah batas mesin menunggu jari (ENROLL saja);
+	 * perintah hapus tidak membawa nama maupun batas waktu, dan {@code DELETE_EMPLOYEE} tanpa jari (spec §17).
+	 */
+	public record CommandItem(String id, String type, String pin, Integer finger, String displayName,
+			Long timeoutSeconds) {
 	}
 
 	/** Langkah tempelan jari 1–3. */

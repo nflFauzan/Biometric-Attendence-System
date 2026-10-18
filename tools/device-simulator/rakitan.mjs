@@ -20,6 +20,10 @@
 //        [--enroll-delay 2]             Hasil lain: kode error, mis. KUALITAS_BURUK atau JARI_SUDAH_TERDAFTAR
 //        [--owner-pin 9002]             (dengan --owner-pin = PIN pemilik sidik jari yang sudah ada). Jeda antar
 //                                       langkah dalam detik. Selama pendaftaran tidak ada scan absensi (kontrak §6).
+//        [--delete-result BERHASIL]     juga mengerjakan DELETE_TEMPLATE/DELETE_EMPLOYEE sesuai urutan daftar.
+//                                       Hasil lain: kode error, mis. SENSOR_ERROR (kontrak §6a).
+//        [--sensor-used 12]             isi dan kapasitas sensor yang dilaporkan di setiap heartbeat
+//        [--sensor-capacity 150]        (peringatan "hampir penuh" di halaman Mesin di atas 90%).
 
 import { randomUUID } from 'node:crypto';
 
@@ -89,12 +93,14 @@ async function post(path, body, key = setup.key) {
   }
 }
 
+const sensorUsed = Number(option('sensor-used', '12'));
+const sensorCapacity = Number(option('sensor-capacity', '150'));
 const heartbeatBody = () => ({
   firmware: 'sim-0.1.0',
   ip: '127.0.0.1',
   uptimeSeconds: Math.round(process.uptime()),
   pendingScans: 0,
-  sensor: { used: 0, capacity: 150 },
+  sensor: { used: sensorUsed, capacity: sensorCapacity },
 });
 const heartbeat = (key) => post('/device/v1/heartbeat', heartbeatBody(), key);
 const sendScans = (scans) => post('/device/v1/scans', { scans });
@@ -138,6 +144,26 @@ async function runEnroll(cmd) {
     const res = await post(`/device/v1/commands/${cmd.id}/result`, resultBody());
     if (res.status !== 0 && res.status < 500) {
       console.log(enrollResult === 'BERHASIL' ? 'Layar: Berhasil' : `Layar: Gagal (${enrollResult})`);
+      return;
+    }
+    await sleep(5000);
+  }
+}
+
+// Penghapusan sidik jari (kontrak §6a) untuk `live`.
+const deleteResult = option('delete-result', 'BERHASIL');
+
+/** Hapus dari sensor; jari yang tidak ada tetap BERHASIL. Hasil dikirim ulang sampai server menjawab. */
+async function runDelete(cmd) {
+  const target = cmd.type === 'DELETE_EMPLOYEE' ? `semua jari PIN ${cmd.pin}` : `jari ${cmd.finger} PIN ${cmd.pin}`;
+  console.log(`Layar: Menghapus ${target}`);
+  const body = deleteResult === 'BERHASIL' ? { status: 'BERHASIL' } : { status: 'GAGAL', error: deleteResult };
+  for (;;) {
+    const res = await post(`/device/v1/commands/${cmd.id}/result`, body);
+    if (res.status !== 0 && res.status < 500) {
+      console.log(deleteResult === 'BERHASIL' ? 'Layar: Sidik jari dihapus' : `Layar: Gagal hapus (${deleteResult})`);
+      // Hasil sudah diterima server; ID yang sama muncul lagi hanya karena "Coba lagi" di web.
+      seen.delete(cmd.id);
       return;
     }
     await sleep(5000);
@@ -227,6 +253,10 @@ async function main() {
             continue;
           }
           seen.add(cmd.id);
+          if (cmd.type === 'DELETE_TEMPLATE' || cmd.type === 'DELETE_EMPLOYEE') {
+            await runDelete(cmd);
+            continue;
+          }
           if (cmd.type !== 'ENROLL') {
             console.log(`Perintah ${cmd.type} belum didukung simulator; diabaikan`);
             continue;

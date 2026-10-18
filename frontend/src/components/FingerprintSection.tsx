@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Fingerprint } from 'lucide-react'
-import { useState } from 'react'
+import { Fingerprint, Trash2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
 
 import { EnrollDialog } from '@/components/EnrollDialog'
 import { ErrorAlert, SkeletonLines } from '@/components/feedback'
@@ -8,14 +8,15 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
-import type { Employee, FingerprintOverview } from '@/lib/types'
+import type { Deletion, Employee, FingerprintOverview } from '@/lib/types'
 import { dialogSheetClass } from '@/lib/ui'
+import { type StreamEvent, useDashboardStream } from '@/lib/useDashboardStream'
 
 const FINGERS = [1, 2] as const
 
 /**
- * Bagian "Sidik Jari" di Detail Karyawan (spec §3.2): persetujuan karyawan (K-091), status jari ke-1 dan ke-2,
- * dan tombol pendaftaran lewat alat rakitan. Template tidak pernah tampil di web.
+ * Bagian "Sidik Jari" di Detail Karyawan (spec §3.2, §17.8): persetujuan karyawan (K-091), status jari ke-1 dan
+ * ke-2, pendaftaran dan penghapusan lewat alat rakitan. Template tidak pernah tampil di web.
  */
 export function FingerprintSection({ employee }: { employee: Employee }) {
   const queryClient = useQueryClient()
@@ -31,6 +32,34 @@ export function FingerprintSection({ employee }: { employee: Employee }) {
     mutationFn: () => api<FingerprintOverview>(`/api/employees/${employee.id}/fingerprint-consent`, { method: 'POST' }),
     onSuccess: (data) => queryClient.setQueryData(queryKey, data),
   })
+
+  const [deleteFinger, setDeleteFinger] = useState<number | null>(null)
+
+  const retry = useMutation({
+    mutationFn: (commandId: string) => api(`/api/device-commands/${commandId}/retry`, { method: 'POST' }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+  })
+
+  const remove = useMutation({
+    mutationFn: (finger: number) =>
+      api<FingerprintOverview>(`/api/employees/${employee.id}/fingerprints/${finger}`, { method: 'DELETE' }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(queryKey, updated)
+      setDeleteFinger(null)
+    },
+  })
+
+  // Status penghapusan berubah saat mesin melapor; ambil ulang hanya untuk perintah milik karyawan ini.
+  const deletionIds = (overview.data?.deletions ?? []).map((d) => d.commandId).join(',')
+  const onEvent = useCallback(
+    (event: StreamEvent) => {
+      if (event.type === 'DEVICE_COMMAND' && event.commandId && deletionIds.split(',').includes(event.commandId)) {
+        void queryClient.invalidateQueries({ queryKey: ['/api/employees', String(employee.id), 'fingerprints'] })
+      }
+    },
+    [deletionIds, queryClient, employee.id],
+  )
+  useDashboardStream(onEvent)
 
   const data = overview.data
   const consented = Boolean(data?.consentAt)
@@ -98,20 +127,62 @@ export function FingerprintSection({ employee }: { employee: Employee }) {
                     Lihat proses
                   </Button>
                 ) : (
-                  <Button
-                    size="sm"
-                    variant={record ? 'outline' : 'default'}
-                    disabled={Boolean(blocked)}
-                    onClick={() => (record ? setConfirmFinger(finger) : setEnrolling({ finger }))}
-                  >
-                    {record ? 'Daftar ulang' : 'Daftarkan'}
-                  </Button>
+                  <span className="flex flex-wrap items-center gap-1">
+                    {record && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-danger"
+                        aria-label={`Hapus jari ke-${finger}`}
+                        onClick={() => {
+                          remove.reset()
+                          setDeleteFinger(finger)
+                        }}
+                      >
+                        <Trash2 />
+                        Hapus
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant={record ? 'outline' : 'default'}
+                      disabled={Boolean(blocked)}
+                      onClick={() => (record ? setConfirmFinger(finger) : setEnrolling({ finger }))}
+                    >
+                      {record ? 'Daftar ulang' : 'Daftarkan'}
+                    </Button>
+                  </span>
                 )}
               </div>
             )
           })}
 
           {blocked && <p className="px-5 py-3 text-sm text-muted-foreground">{blocked}</p>}
+
+          {data.deletions.length > 0 && (
+            <section aria-labelledby="penghapusan-di-mesin" className="px-5 py-3">
+              <h3 id="penghapusan-di-mesin" className="text-sm font-semibold">
+                Penghapusan di mesin
+              </h3>
+              <ul className="mt-2 flex flex-col gap-2">
+                {data.deletions.map((d) => (
+                  <DeletionRow
+                    key={d.commandId}
+                    deletion={d}
+                    retrying={retry.isPending && retry.variables === d.commandId}
+                    onRetry={() => retry.mutate(d.commandId)}
+                  />
+                ))}
+              </ul>
+              {retry.error && <ErrorAlert className="mt-2" message={retry.error.message} />}
+            </section>
+          )}
+
+          {data.zkPushDeviceActive && (data.deletions.length > 0 || !employee.active) && (
+            <p className="px-5 py-3 text-sm text-muted-foreground">
+              Hapus juga langsung di mesin X401 jika karyawan pernah didaftarkan di sana.
+            </p>
+          )}
         </div>
       )}
 
@@ -142,6 +213,31 @@ export function FingerprintSection({ employee }: { employee: Employee }) {
         </Dialog>
       )}
 
+      {deleteFinger !== null && (
+        <Dialog open onOpenChange={(open) => !open && !remove.isPending && setDeleteFinger(null)}>
+          <DialogContent className={dialogSheetClass}>
+            <DialogHeader>
+              <DialogTitle className="font-heading text-lg">
+                Hapus sidik jari jari ke-{deleteFinger} {employee.fullName} dari semua mesin?
+              </DialogTitle>
+              <DialogDescription>
+                Catatan jari ini langsung dihapus. Mesin menghapusnya dari sensor saat tersambung; statusnya tampil di
+                daftar "Penghapusan di mesin".
+              </DialogDescription>
+            </DialogHeader>
+            {remove.error && <ErrorAlert message={remove.error.message} />}
+            <DialogFooter className="mt-2 gap-2">
+              <Button variant="outline" disabled={remove.isPending} onClick={() => setDeleteFinger(null)}>
+                Batal
+              </Button>
+              <Button variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate(deleteFinger)}>
+                {remove.isPending ? 'Menghapus…' : 'Ya, hapus'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {enrolling && (
         <EnrollDialog
           employee={employee}
@@ -151,5 +247,29 @@ export function FingerprintSection({ employee }: { employee: Employee }) {
         />
       )}
     </section>
+  )
+}
+
+function DeletionRow({ deletion, retrying, onRetry }: { deletion: Deletion; retrying: boolean; onRetry: () => void }) {
+  const failed = deletion.status === 'GAGAL'
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-2 text-sm">
+      <span className="flex flex-col">
+        <span className="font-medium">{deletion.deviceName}</span>
+        <span className="text-xs text-muted-foreground">
+          {deletion.finger === null ? 'Semua jari' : `Jari ke-${deletion.finger}`}
+        </span>
+      </span>
+      <span className="flex items-center gap-2">
+        <span className={failed ? 'text-danger' : 'text-muted-foreground'}>
+          {failed ? `Gagal: ${deletion.message}` : deletion.message}
+        </span>
+        {deletion.retryable && (
+          <Button size="sm" variant="outline" disabled={retrying} onClick={onRetry}>
+            Coba lagi
+          </Button>
+        )}
+      </span>
+    </li>
   )
 }

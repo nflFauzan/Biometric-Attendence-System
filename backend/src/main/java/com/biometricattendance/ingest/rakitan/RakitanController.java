@@ -78,7 +78,7 @@ public class RakitanController {
 	@PostMapping("/scans")
 	ResponseEntity<?> scans(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
 			@RequestBody ScanBatch body, HttpServletRequest request) {
-		KeyContact contact = contacts.contactByKey(key(authorization), request.getRemoteAddr(), null, null);
+		KeyContact contact = contacts.contactByKey(key(authorization), request.getRemoteAddr(), null, null, null, null);
 		if (contact.status() != KeyContact.Status.ACCEPTED) {
 			return refused(contact);
 		}
@@ -100,7 +100,9 @@ public class RakitanController {
 	ResponseEntity<?> heartbeat(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
 			@RequestBody HeartbeatRequest body, HttpServletRequest request) {
 		String ip = body.ip() != null && !body.ip().isBlank() ? body.ip().trim() : request.getRemoteAddr();
-		KeyContact contact = contacts.contactByKey(key(authorization), ip, body.firmware(), info(body));
+		KeyContact contact = contacts.contactByKey(key(authorization), ip, body.firmware(), info(body),
+				body.sensor() == null ? null : body.sensor().used(),
+				body.sensor() == null ? null : body.sensor().capacity());
 		if (contact.status() != KeyContact.Status.ACCEPTED) {
 			return refused(contact);
 		}
@@ -111,7 +113,7 @@ public class RakitanController {
 		List<CommandItem> items = delivery.commands()
 			.stream()
 			.map(c -> new CommandItem(c.getId().toString(), c.getType(), c.getDevicePin(), c.getFinger(),
-					c.getDisplayName(), machineTimeout.toSeconds()))
+					c.getDisplayName(), c.isDelete() ? null : machineTimeout.toSeconds()))
 			.toList();
 		return ResponseEntity.ok(new HeartbeatResponse(formatServerTime(now, zone), zone.getId(), device.getName(),
 				device.getBranch().getName(), items, delivery.cancel().stream().map(UUID::toString).toList()));
@@ -121,7 +123,7 @@ public class RakitanController {
 	@PostMapping("/commands/{id}/progress")
 	ResponseEntity<?> progress(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
 			@PathVariable String id, @RequestBody ProgressRequest body, HttpServletRequest request) {
-		KeyContact contact = contacts.contactByKey(key(authorization), request.getRemoteAddr(), null, null);
+		KeyContact contact = contacts.contactByKey(key(authorization), request.getRemoteAddr(), null, null, null, null);
 		if (contact.status() != KeyContact.Status.ACCEPTED) {
 			return refused(contact);
 		}
@@ -132,7 +134,7 @@ public class RakitanController {
 	@PostMapping("/commands/{id}/result")
 	ResponseEntity<?> result(@RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authorization,
 			@PathVariable String id, @RequestBody ResultRequest body, HttpServletRequest request) {
-		KeyContact contact = contacts.contactByKey(key(authorization), request.getRemoteAddr(), null, null);
+		KeyContact contact = contacts.contactByKey(key(authorization), request.getRemoteAddr(), null, null, null, null);
 		if (contact.status() != KeyContact.Status.ACCEPTED) {
 			return refused(contact);
 		}

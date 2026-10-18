@@ -53,7 +53,7 @@ export type CommandStatus = 'MENUNGGU' | 'DIKIRIM' | 'BERHASIL' | 'GAGAL' | 'KED
 /** Perintah ke alat rakitan; `message` adalah teks status siap tampil dari server. */
 export interface DeviceCommand {
   id: string
-  type: 'ENROLL'
+  type: 'ENROLL' | 'DELETE_TEMPLATE' | 'DELETE_EMPLOYEE'
   status: CommandStatus
   deviceId: number
   deviceName: string
@@ -80,6 +80,24 @@ export interface FingerprintOverview {
   consentBy: string | null
   fingers: FingerRecord[]
   activeCommands: DeviceCommand[]
+  /** Perintah hapus di mesin yang belum berhasil, satu baris per mesin (spec §17.8). */
+  deletions: Deletion[]
+  /** Ada mesin X401 aktif; sidik jari di sana harus dihapus langsung di mesin. */
+  zkPushDeviceActive: boolean
+}
+
+/** Penghapusan sidik jari di satu alat rakitan; `message` sudah dalam Bahasa Indonesia. */
+export interface Deletion {
+  commandId: string
+  type: 'DELETE_TEMPLATE' | 'DELETE_EMPLOYEE'
+  /** Null untuk DELETE_EMPLOYEE (semua jari). */
+  finger: number | null
+  deviceId: number
+  deviceName: string
+  status: CommandStatus
+  message: string
+  /** Hanya penghapusan GAGAL yang bisa dicoba lagi. */
+  retryable: boolean
 }
 
 /** Jenis mesin; tidak bisa diubah setelah dibuat (K-099). */
@@ -114,6 +132,11 @@ export interface Device {
   keyFirstUsedAt: string | null
   /** Ringkasan heartbeat terakhir, mis. "uptime=3600s; antrean=2; sensor=12/150". */
   lastInfo: string | null
+  /** Isi dan kapasitas sensor dari heartbeat terakhir alat rakitan; null = belum dilaporkan. */
+  sensorUsed: number | null
+  sensorCapacity: number | null
+  /** Terisi melewati ambang app.device.sensor-warning-percent. */
+  sensorAlmostFull: boolean
   issuedKey: IssuedKey | null
 }
 
