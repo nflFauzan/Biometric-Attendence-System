@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router'
 
 import { ActiveBadge } from '@/components/CrudPage'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
+import { FingerprintSection } from '@/components/FingerprintSection'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -133,6 +134,8 @@ export function EmployeeDetailPage() {
             </p>
           )}
         </section>
+
+        {data && <FingerprintSection employee={data} />}
       </div>
     </div>
   )

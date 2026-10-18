@@ -19,10 +19,31 @@ public final class RakitanDtos {
 
 	/**
 	 * @param serverTime waktu server di zona cabang, ISO-8601 dengan offset dan detik
-	 * @param commands selalu kosong di versi ini
+	 * @param commands perintah aktif untuk mesin ini; dikirim ulang sampai mesin melaporkan hasil
+	 * @param cancel ID perintah yang dibatalkan setelah sempat dikirim; mesin menghentikannya
 	 */
 	public record HeartbeatResponse(String serverTime, String timezone, String deviceName, String branchName,
-			List<Object> commands) {
+			List<CommandItem> commands, List<String> cancel) {
+	}
+
+	/** Isi perintah tanpa data rahasia (spec §4). {@code timeoutSeconds} adalah batas mesin menunggu jari. */
+	public record CommandItem(String id, String type, String pin, int finger, String displayName,
+			long timeoutSeconds) {
+	}
+
+	/** Langkah tempelan jari 1–3. */
+	public record ProgressRequest(Integer step) {
+	}
+
+	/**
+	 * Hasil perintah. Sengaja tanpa field {@code template}: template di body diabaikan dan tidak pernah disimpan
+	 * (spec §16).
+	 *
+	 * @param status {@code BERHASIL} atau {@code GAGAL}
+	 * @param error kode error mesin, wajib jika GAGAL
+	 * @param pin PIN pemilik sidik jari yang sudah ada, untuk {@code JARI_SUDAH_TERDAFTAR}
+	 */
+	public record ResultRequest(String status, String error, String pin) {
 	}
 
 	/** Setiap scan dibaca sebagai objek bebas supaya satu scan rusak tidak membuat seluruh kiriman ditolak. */

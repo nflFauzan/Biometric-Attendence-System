@@ -15,7 +15,11 @@
 //   bad-scan --pin 9001                 satu scan valid + satu scan tanpa offset
 //   oversize                            201 scan dalam satu kiriman (harus 413)
 //   wrong-key                           heartbeat dengan kunci salah (harus 401)
-//   live --pin 9001 [--every 10]        heartbeat setiap 5 detik + scan setiap N detik (Ctrl+C untuk berhenti)
+//   live --pin 9001 [--every 10]        heartbeat setiap 5 detik + scan setiap N detik (Ctrl+C untuk berhenti).
+//        [--enroll-result BERHASIL]     juga mengerjakan perintah ENROLL dari heartbeat: progress 1–3 lalu hasil.
+//        [--enroll-delay 2]             Hasil lain: kode error, mis. KUALITAS_BURUK atau JARI_SUDAH_TERDAFTAR
+//        [--owner-pin 9002]             (dengan --owner-pin = PIN pemilik sidik jari yang sudah ada). Jeda antar
+//                                       langkah dalam detik. Selama pendaftaran tidak ada scan absensi (kontrak §6).
 
 import { randomUUID } from 'node:crypto';
 
@@ -95,6 +99,51 @@ const heartbeatBody = () => ({
 const heartbeat = (key) => post('/device/v1/heartbeat', heartbeatBody(), key);
 const sendScans = (scans) => post('/device/v1/scans', { scans });
 
+// Pendaftaran sidik jari (kontrak §6) untuk `live`.
+const enrollResult = option('enroll-result', 'BERHASIL');
+const enrollDelay = Number(option('enroll-delay', '2')) * 1000;
+const ownerPin = option('owner-pin', undefined);
+const seen = new Set();
+const cancelled = new Set();
+
+function resultBody() {
+  if (enrollResult === 'BERHASIL') {
+    return { status: 'BERHASIL' };
+  }
+  return { status: 'GAGAL', error: enrollResult, ...(ownerPin ? { pin: ownerPin } : {}) };
+}
+
+/** Tiru layar mesin: tiga tempelan, lalu kirim hasil. Berhenti jika dibatalkan dari web. */
+async function runEnroll(cmd) {
+  console.log(`Layar: Daftarkan jari ${cmd.finger} — ${cmd.displayName}`);
+  for (let step = 1; step <= 3; step++) {
+    await sleep(enrollDelay);
+    if (cancelled.has(cmd.id)) {
+      console.log('Layar: Pendaftaran dibatalkan dari web');
+      return;
+    }
+    console.log(`Layar: Tempelkan jari (${step}/3)`);
+    const res = await post(`/device/v1/commands/${cmd.id}/progress`, { step });
+    if (res.status === 409 || res.status === 404) {
+      console.log('Layar: Perintah sudah tidak aktif; pendaftaran dihentikan');
+      return;
+    }
+  }
+  if (cancelled.has(cmd.id)) {
+    console.log('Layar: Pendaftaran dibatalkan dari web');
+    return;
+  }
+  // Hasil dikirim ulang sampai server menjawab; 200 untuk perintah yang sudah selesai juga berarti berhenti.
+  for (;;) {
+    const res = await post(`/device/v1/commands/${cmd.id}/result`, resultBody());
+    if (res.status !== 0 && res.status < 500) {
+      console.log(enrollResult === 'BERHASIL' ? 'Layar: Berhasil' : `Layar: Gagal (${enrollResult})`);
+      return;
+    }
+    await sleep(5000);
+  }
+}
+
 async function main() {
   switch (command) {
     case 'decode':
@@ -103,7 +152,7 @@ async function main() {
       console.log(`Kunci  : ${setup.key.slice(0, 6)}… (${setup.key.length} karakter)`);
       break;
     case 'setup': {
-      // Langkah Wi-Fi diwakili komputer ini; simulator mulai dari langkah server (kontrak §6).
+      // Langkah Wi-Fi diwakili komputer ini; simulator mulai dari langkah server (kontrak §7).
       const res = await heartbeat();
       if (res.status === 0) {
         console.log(`✗ Server ${setup.server} tidak terjangkau. Laptop menyala? Satu jaringan?`);
@@ -166,9 +215,27 @@ async function main() {
     case 'live': {
       const every = Number(option('every', '10')) * 1000;
       let last = 0;
+      let enrolling = null;
       for (;;) {
-        await heartbeat();
-        if (Date.now() - last >= every) {
+        const res = await heartbeat();
+        for (const id of res.json?.cancel ?? []) {
+          cancelled.add(id);
+        }
+        for (const cmd of res.json?.commands ?? []) {
+          // Server mengirim ulang perintah sampai ada hasil; mesin mengerjakan setiap ID sekali saja (kontrak §4).
+          if (seen.has(cmd.id) || enrolling) {
+            continue;
+          }
+          seen.add(cmd.id);
+          if (cmd.type !== 'ENROLL') {
+            console.log(`Perintah ${cmd.type} belum didukung simulator; diabaikan`);
+            continue;
+          }
+          enrolling = runEnroll(cmd).finally(() => {
+            enrolling = null;
+          });
+        }
+        if (!enrolling && Date.now() - last >= every) {
           await sendScans([scan(pin, isoWithOffset(new Date()))]);
           last = Date.now();
         }

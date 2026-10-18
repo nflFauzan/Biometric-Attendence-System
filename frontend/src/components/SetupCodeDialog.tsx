@@ -20,7 +20,7 @@ interface SetupCodeDialogProps {
 
 /**
  * Kode pengaturan alat rakitan yang hanya tampil sekali (K-088). Kode disusun di browser dari kunci dan alamat
- * server yang dijangkau mesin, lalu ditempel di halaman pengaturan mesin lewat HP (docs/protokol-alat-rakitan.md §6).
+ * server yang dijangkau mesin, lalu ditempel di halaman pengaturan mesin lewat HP (docs/protokol-alat-rakitan.md §7).
  */
 export function SetupCodeDialog({ device, issuedKey, onClose }: SetupCodeDialogProps) {
   const [server, setServer] = useState(() => defaultServerUrl(issuedKey))

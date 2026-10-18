@@ -47,6 +47,41 @@ export interface Employee {
   devicePin: string | null
 }
 
+/** Status perintah mesin; "aktif" = MENUNGGU atau DIKIRIM (spec §16). */
+export type CommandStatus = 'MENUNGGU' | 'DIKIRIM' | 'BERHASIL' | 'GAGAL' | 'KEDALUWARSA' | 'DIBATALKAN'
+
+/** Perintah ke alat rakitan; `message` adalah teks status siap tampil dari server. */
+export interface DeviceCommand {
+  id: string
+  type: 'ENROLL'
+  status: CommandStatus
+  deviceId: number
+  deviceName: string
+  employeeId: number | null
+  finger: number | null
+  step: number | null
+  errorCode: string | null
+  message: string
+  createdAt: string
+  finishedAt: string | null
+}
+
+/** Jari yang sudah terdaftar; template tidak pernah dikirim ke web. */
+export interface FingerRecord {
+  finger: number
+  deviceId: number
+  deviceName: string
+  enrolledAt: string
+}
+
+export interface FingerprintOverview {
+  /** Persetujuan karyawan (K-091); null = belum disetujui. */
+  consentAt: string | null
+  consentBy: string | null
+  fingers: FingerRecord[]
+  activeCommands: DeviceCommand[]
+}
+
 /** Jenis mesin; tidak bisa diubah setelah dibuat (K-099). */
 export type DeviceProtocol = 'ZK_PUSH' | 'RAKITAN_V1'
 
