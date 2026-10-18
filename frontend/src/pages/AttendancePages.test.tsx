@@ -76,6 +76,9 @@ const device: Device = {
   keyIssued: false,
   keyFirstUsedAt: null,
   lastInfo: null,
+  sensorUsed: null,
+  sensorCapacity: null,
+  sensorAlmostFull: false,
   issuedKey: null,
 }
 

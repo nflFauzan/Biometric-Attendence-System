@@ -43,6 +43,9 @@ const device = (overrides: Partial<Device> = {}): Device => ({
   keyIssued: false,
   keyFirstUsedAt: null,
   lastInfo: null,
+  sensorUsed: null,
+  sensorCapacity: null,
+  sensorAlmostFull: false,
   issuedKey: null,
   ...overrides,
 })
@@ -226,5 +229,18 @@ describe('DevicesPage', () => {
 
     expect(within(setup).getByText('Alamat harus diawali http:// atau https://')).toBeInTheDocument()
     expect(within(setup).queryByLabelText('Kode pengaturan')).not.toBeInTheDocument()
+  })
+  it('rakitan shows sensor usage and warns when almost full', async () => {
+    mockFetch(
+      routes('OWNER', [
+        rakitan({ keyFirstUsedAt: '2026-10-18T02:00:00Z', sensorUsed: 12, sensorCapacity: 150 }),
+        rakitan({ id: 6, name: 'Uji Gudang', keyFirstUsedAt: '2026-10-18T02:00:00Z', sensorUsed: 140, sensorCapacity: 150, sensorAlmostFull: true }),
+      ]),
+    )
+    renderAt('/mesin')
+
+    expect((await screen.findAllByText('Sensor 12/150', {}, LOAD)).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Sensor 140/150').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Kapasitas sensor hampir penuh.').length).toBe(screen.getAllByText('Sensor 140/150').length)
   })
 })

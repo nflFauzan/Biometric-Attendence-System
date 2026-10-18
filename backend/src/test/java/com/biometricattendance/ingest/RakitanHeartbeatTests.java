@@ -145,6 +145,43 @@ class RakitanHeartbeatTests extends RakitanFixtures {
 		assertThat(connectedEvents(stream)).isEqualTo(2);
 	}
 
+	@Test
+	void heartbeatStoresSensorCapacity() throws Exception {
+		Rakitan rakitan = createRakitan(createBranch());
+
+		heartbeat(rakitan.key(), "{\"sensor\":{\"used\":12,\"capacity\":150}}").andExpect(status().isOk());
+
+		Map<String, Object> device = device(rakitan.id());
+		assertThat(device.get("sensorUsed")).isEqualTo(12);
+		assertThat(device.get("sensorCapacity")).isEqualTo(150);
+		assertThat(device.get("sensorAlmostFull")).isEqualTo(false);
+	}
+
+	/** Peringatan saat terisi lebih dari app.device.sensor-warning-percent (90%); tepat 90% belum. */
+	@Test
+	void sensorAboveThresholdIsFlagged() throws Exception {
+		Rakitan rakitan = createRakitan(createBranch());
+
+		heartbeat(rakitan.key(), "{\"sensor\":{\"used\":136,\"capacity\":150}}").andExpect(status().isOk());
+		assertThat(device(rakitan.id()).get("sensorAlmostFull")).isEqualTo(true);
+
+		heartbeat(rakitan.key(), "{\"sensor\":{\"used\":135,\"capacity\":150}}").andExpect(status().isOk());
+		assertThat(device(rakitan.id()).get("sensorAlmostFull")).isEqualTo(false);
+	}
+
+	@Test
+	void heartbeatWithoutSensorKeepsLastValue() throws Exception {
+		Rakitan rakitan = createRakitan(createBranch());
+		heartbeat(rakitan.key(), "{\"sensor\":{\"used\":12,\"capacity\":150}}").andExpect(status().isOk());
+
+		heartbeat(rakitan.key(), "{}").andExpect(status().isOk());
+		heartbeat(rakitan.key(), "{\"sensor\":{\"used\":20,\"capacity\":0}}").andExpect(status().isOk());
+
+		Map<String, Object> device = device(rakitan.id());
+		assertThat(device.get("sensorUsed")).isEqualTo(12);
+		assertThat(device.get("sensorCapacity")).isEqualTo(150);
+	}
+
 	private static int connectedEvents(MvcResult stream) throws Exception {
 		return stream.getResponse().getContentAsString().split("\"DEVICE_CONNECTED\"", -1).length - 1;
 	}

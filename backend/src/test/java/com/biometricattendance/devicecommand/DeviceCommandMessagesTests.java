@@ -48,9 +48,30 @@ class DeviceCommandMessagesTests {
 			.isEqualTo("Sidik jari tidak terbaca jelas. Bersihkan jari atau sensor, lalu ulangi.");
 		assertThat(failed("JARI_SUDAH_TERDAFTAR", "Budi")).isEqualTo("Sidik jari ini sudah terdaftar atas nama Budi.");
 		assertThat(failed("SENSOR_PENUH", null)).isEqualTo("Kapasitas sensor mesin penuh.");
-		assertThat(failed("WAKTU_HABIS", null)).isEqualTo("Mesin tidak merespons. Periksa koneksi mesin.");
+		assertThat(failed("WAKTU_HABIS", null)).isEqualTo("Tidak ada jari yang ditempelkan. Ulangi pendaftaran.");
+		assertThat(failed("TIDAK_ADA_HASIL", null)).isEqualTo("Mesin tidak merespons. Periksa koneksi mesin.");
 		assertThat(failed("SENSOR_ERROR", null)).isEqualTo("Sensor bermasalah. Hubungi teknisi.");
 		assertThat(failed("KODE_ANEH", null)).isEqualTo("Pendaftaran gagal (KODE_ANEH).");
+	}
+
+	@Test
+	void deleteMessages() {
+		assertThat(DeviceCommandMessages.message(delete())).isEqualTo("Menunggu mesin…");
+		DeviceCommand done = delete();
+		done.succeed(NOW);
+		assertThat(DeviceCommandMessages.message(done)).isEqualTo("Terhapus");
+		DeviceCommand odd = delete();
+		odd.fail("X", null, NOW);
+		assertThat(DeviceCommandMessages.message(odd)).isEqualTo("Penghapusan gagal (X).");
+		DeviceCommand sensor = delete();
+		sensor.fail("SENSOR_ERROR", null, NOW);
+		assertThat(DeviceCommandMessages.message(sensor)).isEqualTo("Sensor bermasalah. Hubungi teknisi.");
+	}
+
+	private static DeviceCommand delete() {
+		Employee employee = new Employee();
+		employee.setDevicePin("9001");
+		return DeviceCommand.deleteTemplate(new Device(), employee, "9001", 1, "owner", NOW);
 	}
 
 	private static String failed(String code, String detail) {

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '@/App'
 import { AuthProvider } from '@/auth/AuthContext'
-import type { Device, DeviceCommand, Employee, FingerprintOverview, Me } from '@/lib/types'
+import type { Deletion, Device, DeviceCommand, Employee, FingerprintOverview, Me } from '@/lib/types'
 import { mockFetch } from '@/test/fetchMock'
 
 function renderAt(path: string) {
@@ -51,6 +51,23 @@ const overview = (overrides: Partial<FingerprintOverview> = {}): FingerprintOver
   consentBy: 'owner',
   fingers: [],
   activeCommands: [],
+  deletions: [],
+  zkPushDeviceActive: false,
+  ...overrides,
+})
+
+const CMD2 = '7c1d2e3f-4a5b-4c6d-8e9f-0a1b2c3d4e5f'
+const X401_NOTE = 'Hapus juga langsung di mesin X401 jika karyawan pernah didaftarkan di sana.'
+
+const deletion = (overrides: Partial<Deletion> = {}): Deletion => ({
+  commandId: CMD,
+  type: 'DELETE_TEMPLATE',
+  finger: 1,
+  deviceId: 5,
+  deviceName: 'Rakitan Pusat',
+  status: 'MENUNGGU',
+  message: 'Menunggu mesin…',
+  retryable: false,
   ...overrides,
 })
 
@@ -71,6 +88,9 @@ const device = (overrides: Partial<Device> = {}): Device => ({
   keyIssued: true,
   keyFirstUsedAt: null,
   lastInfo: null,
+  sensorUsed: null,
+  sensorCapacity: null,
+  sensorAlmostFull: false,
   issuedKey: null,
   ...overrides,
 })
@@ -225,7 +245,7 @@ describe('Sidik jari di detail karyawan', () => {
       ...routes(),
       'POST /api/employees/12/fingerprints/enroll': () => ({
         status: 201,
-        body: command({ status: 'GAGAL', errorCode: 'WAKTU_HABIS', message: 'Mesin tidak merespons. Periksa koneksi mesin.' }),
+        body: command({ status: 'GAGAL', errorCode: 'TIDAK_ADA_HASIL', message: 'Mesin tidak merespons. Periksa koneksi mesin.' }),
       }),
     })
     renderAt('/karyawan/12')
@@ -273,5 +293,83 @@ describe('Sidik jari di detail karyawan', () => {
     const confirm = await screen.findByRole('dialog', { name: 'Daftar ulang jari ke-1?' })
     fireEvent.click(within(confirm).getByRole('button', { name: 'Lanjutkan' }))
     expect(await screen.findByRole('button', { name: 'Mulai' })).toBeInTheDocument()
+  })
+  it('delete finger confirms in dialog then calls DELETE', async () => {
+    const fetchMock = mockFetch({
+      ...routes({
+        fp: overview({
+          fingers: [{ finger: 1, deviceId: 5, deviceName: 'Rakitan Pusat', enrolledAt: '2026-10-17T03:00:00Z' }],
+        }),
+      }),
+      'DELETE /api/employees/12/fingerprints/1': () => ({ status: 200, body: overview({ deletions: [deletion()] }) }),
+    })
+    renderAt('/karyawan/12')
+
+    const row = await fingerRow(1)
+    expect((await fingerRow(2)).queryByRole('button', { name: 'Hapus jari ke-2' })).not.toBeInTheDocument()
+    fireEvent.click(await row.findByRole('button', { name: 'Hapus jari ke-1' }))
+    const confirm = await screen.findByRole('dialog', { name: 'Hapus sidik jari jari ke-1 Budi Santoso dari semua mesin?' })
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Ya, hapus' }))
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url, init]) => url === '/api/employees/12/fingerprints/1' && init?.method === 'DELETE'),
+      ).toBe(true),
+    )
+    expect(await (await fingerRow(1)).findByText('Belum terdaftar')).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Penghapusan di mesin' })).toBeInTheDocument()
+  })
+
+  it('deletion list shows machine status and retries failed delete', async () => {
+    const fetchMock = mockFetch({
+      ...routes({
+        fp: overview({
+          deletions: [
+            deletion(),
+            deletion({
+              commandId: CMD2,
+              deviceId: 6,
+              deviceName: 'Rakitan Gudang',
+              status: 'GAGAL',
+              message: 'Sensor bermasalah. Hubungi teknisi.',
+              retryable: true,
+            }),
+          ],
+        }),
+      }),
+      [`POST /api/device-commands/${CMD2}/retry`]: () => ({ status: 200, body: command({ id: CMD2, type: 'DELETE_TEMPLATE' }) }),
+    })
+    renderAt('/karyawan/12')
+
+    const list = within(await screen.findByRole('region', { name: 'Penghapusan di mesin' }, LOAD))
+    expect(list.getByText('Rakitan Pusat')).toBeInTheDocument()
+    expect(list.getByText('Menunggu mesin…')).toBeInTheDocument()
+    expect(list.getByText('Gagal: Sensor bermasalah. Hubungi teknisi.')).toBeInTheDocument()
+    expect(list.getAllByRole('button', { name: 'Coba lagi' })).toHaveLength(1)
+
+    fireEvent.click(list.getByRole('button', { name: 'Coba lagi' }))
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url, init]) => url === `/api/device-commands/${CMD2}/retry` && init?.method === 'POST'),
+      ).toBe(true),
+    )
+  })
+
+  it('X401 note shows only with pending deletions or inactive employee', async () => {
+    mockFetch(routes({ fp: overview({ zkPushDeviceActive: true }) }))
+    const first = renderAt('/karyawan/12')
+    await fingerRow(1)
+    expect(screen.queryByText(X401_NOTE)).not.toBeInTheDocument()
+    first.unmount()
+
+    mockFetch(routes({ fp: overview({ zkPushDeviceActive: true, deletions: [deletion()] }) }))
+    const second = renderAt('/karyawan/12')
+    expect(await screen.findByText(X401_NOTE, {}, LOAD)).toBeInTheDocument()
+    second.unmount()
+
+    mockFetch(routes({ emp: employee({ active: false }), fp: overview({ zkPushDeviceActive: true }) }))
+    renderAt('/karyawan/12')
+    expect(await screen.findByText(X401_NOTE, {}, LOAD)).toBeInTheDocument()
   })
 })

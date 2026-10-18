@@ -312,7 +312,9 @@ class AccessControlTests extends IntegrationTest {
 				{ HttpMethod.POST, "/api/employees/" + MISSING + "/fingerprint-consent", null },
 				{ HttpMethod.POST, "/api/employees/" + MISSING + "/fingerprints/enroll",
 						"{\"deviceId\":1,\"finger\":1}" },
-				{ HttpMethod.GET, command, null }, { HttpMethod.POST, command + "/cancel", null } };
+				{ HttpMethod.DELETE, "/api/employees/" + MISSING + "/fingerprints/1", null },
+				{ HttpMethod.GET, command, null }, { HttpMethod.POST, command + "/cancel", null },
+				{ HttpMethod.POST, command + "/retry", null } };
 		for (Object[] endpoint : endpoints) {
 			HttpMethod method = (HttpMethod) endpoint[0];
 			String url = (String) endpoint[1];

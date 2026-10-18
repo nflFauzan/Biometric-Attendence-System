@@ -172,10 +172,7 @@ class RakitanScanIngestTests extends RakitanFixtures {
 
 		postScans("salah", body).andExpect(status().isUnauthorized())
 			.andExpect(content().json("{\"error\":\"KUNCI_DITOLAK\"}"));
-		mockMvc.perform(put("/api/devices/" + rakitan.id()).with(OWNER).with(csrf())
-			.contentType(MediaType.APPLICATION_JSON)
-			.content("{\"name\":\"" + rakitan.name() + "\",\"branchId\":" + branch + ",\"active\":false}"))
-			.andExpect(status().isOk());
+		deactivate(rakitan, branch);
 		postScans(rakitan.key(), body).andExpect(status().isForbidden())
 			.andExpect(content().json("{\"error\":\"MESIN_NONAKTIF\"}"));
 

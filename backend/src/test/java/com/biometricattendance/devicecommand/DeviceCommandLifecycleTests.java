@@ -99,7 +99,7 @@ class DeviceCommandLifecycleTests extends RakitanFixtures {
 		service.expireStale(t.plusSeconds(76));
 		assertThat(status(id)).isEqualTo(DeviceCommand.GAGAL);
 		assertThat(jdbc.queryForObject("select error_code from device_commands where id = ?", String.class, id))
-			.isEqualTo("WAKTU_HABIS");
+			.isEqualTo("TIDAK_ADA_HASIL");
 	}
 
 	@Test
@@ -149,6 +149,46 @@ class DeviceCommandLifecycleTests extends RakitanFixtures {
 
 		holder.join();
 		assertThat(status(id)).isEqualTo(DeviceCommand.DIBATALKAN);
+	}
+
+	@Test
+	void deleteCommandsNeverExpire() throws Exception {
+		long branch = createBranch();
+		Instant t = Instant.now();
+		long device = createRakitan(branch).id();
+		long employee = createEmployee(branch, pin());
+		UUID unpicked = saveDelete(device, employee, t);
+		UUID sent = saveDelete(device, employee, t);
+		tx().executeWithoutResult(s -> commands.findById(sent).orElseThrow().markSent(t));
+
+		service.expireStale(t.plusSeconds(3600));
+
+		assertThat(status(unpicked)).isEqualTo(DeviceCommand.MENUNGGU);
+		assertThat(status(sent)).isEqualTo(DeviceCommand.DIKIRIM);
+	}
+
+	@Test
+	void cancelActiveEnrollsCancelsOnlyEnroll() throws Exception {
+		long branch = createBranch();
+		long device = createRakitan(branch).id();
+		long employee = createEmployee(branch, pin());
+		UUID enroll = save(device, employee, Instant.now());
+		UUID delete = saveDelete(device, employee, Instant.now());
+
+		tx().executeWithoutResult(s -> service.cancelActiveEnrolls(employee, "hr-absensi", Instant.now()));
+
+		assertThat(status(enroll)).isEqualTo(DeviceCommand.DIBATALKAN);
+		assertThat(status(delete)).isEqualTo(DeviceCommand.MENUNGGU);
+		assertThat(jdbc.queryForObject("select actor_username from audit_logs where action = 'CANCEL_COMMAND'"
+				+ " and entity_id = ?", String.class, enroll.toString())).isEqualTo("hr-absensi");
+	}
+
+	private UUID saveDelete(long deviceId, long employeeId, Instant at) {
+		return tx().execute(s -> {
+			var employee = employees.findById(employeeId).orElseThrow();
+			return commands.saveAndFlush(DeviceCommand.deleteEmployee(devices.findById(deviceId).orElseThrow(),
+					employee, employee.getDevicePin(), "owner-absensi", at)).getId();
+		});
 	}
 
 	private UUID save(long deviceId, long employeeId, Instant at) {

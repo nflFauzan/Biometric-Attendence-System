@@ -1,8 +1,12 @@
 package com.biometricattendance.ingest;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
@@ -50,6 +54,20 @@ public abstract class RakitanFixtures extends AttendanceFixtures {
 		return rakitan;
 	}
 
+	/** Menonaktifkan alat rakitan lewat API, seperti yang dilakukan Owner. */
+	protected void deactivate(Rakitan rakitan, long branchId) throws Exception {
+		setActive(rakitan, branchId, false);
+	}
+
+	protected void setActive(Rakitan rakitan, long branchId, boolean active) throws Exception {
+		mockMvc.perform(put("/api/devices/" + rakitan.id()).with(OWNER)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"" + rakitan.name() + "\",\"branchId\":" + branchId + ",\"active\":" + active
+					+ "}"))
+			.andExpect(status().isOk());
+	}
+
 	/** Karyawan aktif dengan PIN mesin dan persetujuan sidik jari (K-091). */
 	protected long readyEmployee(long branchId) throws Exception {
 		long id = createEmployee(branchId, unique("P"));
@@ -75,6 +93,49 @@ public abstract class RakitanFixtures extends AttendanceFixtures {
 			.getResponse()
 			.getContentAsString();
 		return JsonPath.read(body, "$.id");
+	}
+
+	/** Simpan ulang karyawan lewat API dengan PIN yang sama, mengubah status aktif dan tanggal keluar saja. */
+	protected ResultActions saveEmployee(long employeeId, String endDate, boolean active) throws Exception {
+		Map<String, Object> row = jdbc.queryForMap(
+				"select employee_number, branch_id, device_pin from employees where id = ?", employeeId);
+		return saveEmployee(employeeId, (String) row.get("device_pin"), endDate, active);
+	}
+
+	/** Seperti {@link #saveEmployee(long, String, boolean)} dengan PIN pilihan (null = kosongkan). */
+	protected ResultActions saveEmployee(long employeeId, String pin, String endDate, boolean active)
+			throws Exception {
+		Map<String, Object> row = jdbc.queryForMap("select employee_number, branch_id from employees where id = ?",
+				employeeId);
+		String json = employeeJson(((Number) row.get("branch_id")).longValue(), (String) row.get("employee_number"),
+				pin).replace("\"active\":true", "\"active\":" + active
+						+ (endDate == null ? "" : ",\"endDate\":\"" + endDate + "\""));
+		return mockMvc.perform(put("/api/employees/" + employeeId).with(HR)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(json));
+	}
+
+	/** Jari yang terdaftar penuh: ENROLL dibuat, diambil mesin, lalu dilaporkan BERHASIL. */
+	protected void registerFinger(long employeeId, Rakitan rakitan, int finger) throws Exception {
+		String id = enrollOk(employeeId, rakitan.id(), finger);
+		heartbeat(rakitan.key(), "{}").andExpect(status().isOk());
+		result(rakitan.key(), id, "{\"status\":\"BERHASIL\"}").andExpect(status().isOk());
+	}
+
+	protected ResultActions deleteFinger(long employeeId, int finger) throws Exception {
+		return mockMvc.perform(delete("/api/employees/" + employeeId + "/fingerprints/" + finger).with(HR).with(csrf()));
+	}
+
+	/** ID perintah hapus terbaru untuk karyawan di mesin ini, atau null. */
+	protected String deleteCommandFor(long employeeId, long deviceId) {
+		return jdbc.query("select id::text from device_commands where employee_id = ? and device_id = ?"
+				+ " and type in ('DELETE_TEMPLATE', 'DELETE_EMPLOYEE') order by created_at desc limit 1",
+				(rs, n) -> rs.getString(1), employeeId, deviceId).stream().findFirst().orElse(null);
+	}
+
+	protected String commandStatus(String commandId) {
+		return jdbc.queryForObject("select status from device_commands where id = ?::uuid", String.class, commandId);
 	}
 
 	protected ResultActions heartbeat(String key, String json) throws Exception {
