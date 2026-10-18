@@ -109,8 +109,11 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-086 | 2026-10-16 | Backend membuka port kedua untuk mesin (`DEVICE_EXTRA_PORT`) saat dijalankan di luar Docker lewat `start-dev.bat` | Disepakati |
 | K-087 | 2026-10-17 | Alat rakitan memakai protokol sendiri `/device/v1` sebagai adapter kedua (K-054); mesin yang menghubungi server, server tidak pernah menghubungi mesin. Menjawab Q-030 | Disepakati |
 | K-088 | 2026-10-17 | Kunci rahasia acak per alat rakitan, hanya tampil sekali, disimpan sebagai SHA-256; "Buat kode baru" langsung mencabut kunci lama | Disepakati (penggantian dua tahap menyusul, Rencana 6) |
+| K-091 | 2026-10-18 | Pendaftaran sidik jari butuh centang persetujuan karyawan, sekali per karyawan, tercatat di audit; formulir kertas diurus klien | Disepakati |
 | K-092 | 2026-10-17 | Kolom aturan "Jeda minimum antar scan (menit)": scan berdekatan dihitung satu kejadian; kosong = tanpa penggabungan | Disepakati |
+| K-094 | 2026-10-18 | Maksimal 2 jari per karyawan; satu `ENROLL` aktif per mesin dan per karyawan + jari; batas pengambilan 30 detik, batas di mesin 60 detik + cadangan 15 detik | Disepakati |
 | K-099 | 2026-10-17 | Rincian kontrak Rencana 2: endpoint terpisah per jenis mesin, jenis mesin tetap, hanya Owner yang menerbitkan kunci, 403 untuk alat rakitan nonaktif, konfirmasi "terhubung" per kunci baru | Disepakati |
+| K-100 | 2026-10-18 | Rincian Rencana 3: template belum disimpan, perintah dikirim ulang lewat heartbeat, daftar `cancel`, laporan setelah batal diabaikan, unique index untuk satu `ENROLL` aktif | Disepakati |
 
 ---
 
@@ -444,6 +447,30 @@ Nilai-nilai tersebut harus dicatat dalam konfigurasi atau keputusan bisnis yang 
 **Alasan:** alat rakitan tidak punya tombol, jadi pengaturan pertama harus cukup dengan menempel satu kode dari HP; kunci per mesin menutup celah protokol X401 yang tidak memakai secret (K-055).
 
 **Alternatif yang dipertimbangkan:** meniru protokol ZK-Push (ditolak: tanpa autentikasi dan tanpa ID scan), kunci disimpan terenkripsi agar bisa ditampilkan ulang (ditolak: kunci yang hilang cukup diganti), dan alat rakitan nonaktif dibalas 401 (ditolak: layar mesin tidak bisa membedakan kunci salah dan mesin nonaktif). Penggantian kunci dua tahap tanpa memutus mesin dan konfirmasi ulang password (K-098) dikerjakan di Rencana 6.
+
+### K-091, K-094, K-100 — Pendaftaran Sidik Jari dari Web
+
+**Keputusan (2026-10-17, disetujui pengguna: "approve semua"; diterapkan di Rencana 3 pada 2026-10-18):** admin mendaftarkan sidik jari dari Detail Karyawan → **Sidik Jari**, lewat perintah `ENROLL` ke alat rakitan (kontrak [`protokol-alat-rakitan.md`](./protokol-alat-rakitan.md) §4 dan §6; spec §16).
+
+- **K-091 Persetujuan.** Tombol pendaftaran terkunci sampai centang *"Karyawan sudah menyetujui penyimpanan sidik jari"* dicentang. Persetujuan dicatat sekali per karyawan (siapa dan kapan, kolom `employees.fingerprint_consent_*`) dan masuk audit `FINGERPRINT_CONSENT`. Centang berikutnya tidak mengubah catatan. Formulir persetujuan kertas diurus klien.
+- **K-094 Batasan pendaftaran.**
+  - Maksimal 2 jari per karyawan (jari ke-1 dan ke-2).
+  - Satu `ENROLL` aktif (`MENUNGGU`/`DIKIRIM`) per mesin dan per karyawan + jari, dijaga partial unique index sehingga dua klik bersamaan menghasilkan satu perintah dan pesan *"Mesin sedang dipakai untuk pendaftaran."* atau *"Jari ini sedang didaftarkan."*
+  - Batas waktu adalah parameter teknis di `application.properties`, bukan aturan bisnis: belum diambil 30 detik → `KEDALUWARSA`; mesin menunggu jari 60 detik; tanpa hasil 75 detik (60 + 15 cadangan) → `GAGAL` + `WAKTU_HABIS`. Pemeriksaan berjalan setiap 5 detik dan sebelum membuat perintah baru.
+  - Syarat: karyawan aktif, PIN mesin terisi, persetujuan tercatat, alat rakitan aktif dan Online. X401 tidak mendukung pendaftaran dari web.
+- **K-100 Rincian Rencana 3** (keputusan Claude yang disetujui pengguna):
+  - **Template belum disimpan.** Server hanya mencatat jari mana, di mesin mana, kapan, dan dari perintah mana (`employee_fingerprints`). Field `template` di laporan hasil diabaikan dan tidak masuk database, log, maupun audit. Penyimpanan terenkripsi (K-089) menyusul di Rencana 4 jika uji R503 lulus (Q-035).
+  - **Antrean umum `device_commands`** dengan ID UUID; isi perintah hanya PIN, jari, dan nama tampilan.
+  - **Pengiriman ulang lewat heartbeat** sampai ada hasil; mesin mengerjakan setiap ID sekali. Pembatalan dikirim lewat daftar `cancel` (2 menit setelah dibatalkan).
+  - **Laporan setelah batal diabaikan.** Hasil untuk perintah yang tidak aktif dibalas 200 tanpa efek, supaya mesin berhenti mengirim; status tetap `DIBATALKAN`. Laporan langkah untuk perintah tidak aktif dibalas 409 `PERINTAH_TIDAK_AKTIF`.
+  - **Pendaftaran ulang** jari yang sama mengganti catatan lama (satu baris per karyawan + jari).
+  - **Audit.** Mulai, batal, diambil mesin, langkah, hasil, dan kedaluwarsa dicatat. Pelaku laporan mesin `mesin <ID mesin>`, kedaluwarsa `sistem`.
+  - **Web** mengikuti status lewat SSE (event `DEVICE_COMMAND`) dengan polling 3 detik sebagai cadangan. Teks status dibuat server.
+  - Di luar Rencana 3: kunci PIN (K-093), hapus sidik jari, penyalinan ke mesin lain, dan jenis perintah lain.
+
+**Alasan:** sensor R503 belum diuji, jadi penyimpanan template ditunda tanpa menahan alur pendaftaran. Heartbeat 5 detik sudah ada dan cukup cepat untuk pendaftaran interaktif, tanpa koneksi dari server ke mesin (K-087).
+
+**Alternatif yang dipertimbangkan:** menyimpan template sekarang (ditolak: format dan kemampuan R503 belum terbukti), perintah dikirim sekali saja (ditolak: balasan heartbeat yang hilang membuat perintah tersangkut), dan menerima hasil setelah batal (ditolak: admin sudah melihat "dibatalkan"; selisih isi sensor dibereskan lewat rekonsiliasi Rencana 4).
 
 ### Fase 4 — Izin dan Cuti (K-070–K-082)
 

@@ -350,6 +350,18 @@ Saat ini pengajuan untuk tanggal lampau diizinkan tanpa batas hari (K-080), kare
 
 **Dampak:** validasi pengajuan di Fase 4 dan penguncian periode di Fase 5.
 
+### Q-034. Lokasi dan pengerjaan firmware
+
+Siapa yang menulis firmware ESP32, dan apakah disimpan di repo ini (misalnya `firmware/`) atau repo terpisah? Sementara ini repo ini hanya menyediakan kontrak protokol dan simulator.
+
+### Q-035. Hasil uji kelayakan R503
+
+Apakah sensor bisa mengirim dan menerima template, berapa kapasitas varian yang dibeli, apakah pencarian 1:N dan password modul berfungsi? Menentukan apakah penyalinan template (K-089) dijalankan atau diganti dengan pendaftaran ulang per mesin.
+
+### Q-036. Hasil uji kelayakan OTA
+
+Berapa ukuran flash ESP32 DevKit yang dipakai, apakah dua partisi firmware muat, dan apakah rollback otomatis berfungsi? Menentukan apakah K-097 dijalankan.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
@@ -358,7 +370,7 @@ Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan k
 |---|---|---|
 | P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
 | P0 — Sebelum Fase 3 (uji X401) | Q-029 (sebagian terjawab 2026-10-12), Q-031, Q-032 | Menentukan format adapter ZK-Push dan pemetaan PIN karyawan. |
-| P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
+| P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030, Q-034, Q-035, Q-036 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
 | P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
 | P1 — Sebelum rilis produksi | Q-023 | Menentukan tata kelola data biometrik dan kontrol aksesnya. |
 | P2 — Sebelum UI final | Q-024, Q-025 | Menyelesaikan identitas visual dan nama aplikasi. |

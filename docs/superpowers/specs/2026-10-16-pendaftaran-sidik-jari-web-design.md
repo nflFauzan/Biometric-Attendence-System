@@ -367,3 +367,21 @@ Kontrak lengkap ada di [`docs/protokol-alat-rakitan.md`](../../protokol-alat-rak
 - Perubahan `on conflict` tanpa target tidak mengubah perilaku X401: `device_scan_id` X401 selalu kosong, dan aturan unik mengabaikan nilai kosong, sehingga X401 tetap hanya memakai kunci mesin + PIN + waktu.
 - **Perubahan kontrak API web** `/api/devices`: request tambah mesin mendapat field `protocol` (`ZK_PUSH` bawaan atau `RAKITAN_V1`), `serialNumber` hanya wajib untuk `ZK_PUSH`, dan response tambah mesin alat rakitan membawa `deviceKey` (sekali saja). Endpoint baru `POST /api/devices/{id}/key` (Owner) untuk "Buat kode baru".
 - Di luar Rencana 2: perintah ke mesin, sidik jari, pengaturan jarak jauh, update firmware, dan HTTPS produksi (Fase 7).
+
+## 16. Rincian Rencana 3: antrean perintah, `ENROLL`, dan pendaftaran dari web (2026-10-17)
+
+**Konteks:** sensor R503 belum diuji (Q-035). Pengguna menyerahkan semua detail kepada Claude dan menyetujui keputusan di bawah ("approve semua").
+
+**Yang dibangun:** bagian **"Sidik Jari"** di Detail Karyawan: centang persetujuan (K-091), tombol "Daftarkan sidik jari" (pilih jari ke-1/2 dan mesin), dialog status langsung lewat SSE (*Menunggu mesin… → Tempelkan jari 1/3 → 2/3 → 3/3 → Berhasil*) dengan tombol **Batal**, dan status per jari (*Terdaftar di {mesin}, {tanggal}* atau *Belum terdaftar*). Jari yang sudah terdaftar bisa didaftar ulang setelah konfirmasi.
+
+**Keputusan:**
+1. **Template belum disimpan di server.** Server hanya mencatat pendaftaran (karyawan, jari, mesin, waktu, perintah asal). Jika hasil `ENROLL` membawa template, server membuangnya tanpa menyimpan atau mencatatnya. Penyimpanan terenkripsi (K-089) dibangun di Rencana 4 jika uji R503 lulus; pendaftaran dari Rencana 3 lalu didaftar ulang.
+2. **Tabel antrean perintah umum** `device_commands` dengan ID UUID. Di Rencana 3 hanya jenis `ENROLL`. Payload hanya PIN, jari, dan nama tampilan (tanpa data rahasia). Kolom karyawan dan jari terpisah agar bisa dijaga unique index.
+3. **Pengiriman lewat heartbeat.** Perintah yang belum selesai (`MENUNGGU`/`DIKIRIM`) ikut di setiap balasan heartbeat; mesin mengabaikan ID yang sedang atau sudah dikerjakan. Perintah pertama kali ikut di balasan → `DIKIRIM`. Pembatalan dikirim lewat daftar `cancel` di heartbeat; laporan progress untuk perintah yang tidak lagi aktif dibalas 409 `PERINTAH_TIDAK_AKTIF`.
+4. **Endpoint mesin:** `POST /device/v1/commands/{id}/progress` (`step` 1–3) dan `POST /device/v1/commands/{id}/result` (`BERHASIL`, atau `GAGAL` + kode §9). Laporan hasil ulang atau untuk perintah yang sudah tidak aktif dibalas 200 tanpa efek. Perintah milik mesin lain atau tidak dikenal: 404 `PERINTAH_TIDAK_DIKENAL`.
+5. **Batas waktu (K-094) adalah parameter teknis** di `application.properties`: belum diambil 30 detik → `KEDALUWARSA`; sudah diambil tanpa hasil 75 detik (60 detik di mesin + 15 detik cadangan) → `GAGAL` dengan kode `WAKTU_HABIS`. Pemeriksaan terjadwal setiap 5 detik, dan juga dijalankan sebelum membuat perintah baru.
+6. **Satu `ENROLL` aktif per mesin dan per karyawan + jari** dijaga partial unique index di database (aman terhadap klik bersamaan), dengan pesan *"Mesin sedang dipakai untuk pendaftaran."* dan *"Jari ini sedang didaftarkan."*
+7. **Syarat:** karyawan aktif, PIN mesin terisi, persetujuan tercatat, mesin `RAKITAN_V1` aktif dan Online. Jika tidak ada alat rakitan Online, web menampilkan bahwa X401 tidak mendukung pendaftaran dari web (§3.7).
+8. **API web** (Owner dan HR/Finance, semua tercatat di audit): persetujuan, daftar sidik jari karyawan, mulai pendaftaran, batalkan, dan lihat status perintah. Perubahan status perintah dikirim lewat SSE yang sudah ada (event `DEVICE_COMMAND`). `JARI_SUDAH_TERDAFTAR` membawa PIN pemilik; server menerjemahkannya ke nama karyawan.
+9. **Di luar Rencana 3:** kunci PIN (K-093) dan hapus sidik jari (Rencana 5), penyalinan ke mesin lain (Rencana 4), dan jenis perintah lain.
+10. Simulator `rakitan.mjs live` menjalankan `ENROLL` (berhasil atau gagal dengan kode pilihan). Kontrak `protokol-alat-rakitan.md` diperbarui; K-091 dan K-094 masuk `keputusan.md`; Q-034–Q-036 masuk `pertanyaan-terbuka.md`.

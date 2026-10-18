@@ -1,8 +1,8 @@
 # Kontrak Protokol Alat Rakitan (`/device/v1`)
 
-**Status:** berlaku sejak Rencana 2 (2026-10-17; K-087, K-088, K-099) (spec [`superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md`](./superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md) §5, §6). Dokumen ini acuan bersama untuk backend, simulator (`tools/device-simulator`), dan firmware ESP32.
+**Status:** berlaku sejak Rencana 2 (2026-10-17; K-087, K-088, K-099); perintah sejak Rencana 3 (2026-10-18; K-091, K-094, K-100) (spec [`superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md`](./superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md) §5, §6, §16). Dokumen ini acuan bersama untuk backend, simulator (`tools/device-simulator`), dan firmware ESP32.
 
-Cakupan versi ini: pengaturan pertama, autentikasi, heartbeat, dan pengiriman scan. Perintah ke mesin (`commands`), sidik jari, pengaturan jarak jauh, dan update firmware ditambahkan di rencana berikutnya. Field yang belum dikenal **wajib diabaikan** oleh kedua sisi, supaya versi berikutnya tidak memutus mesin lama.
+Cakupan versi ini: pengaturan pertama, autentikasi, heartbeat, pengiriman scan, dan perintah `ENROLL` (pendaftaran sidik jari dari web, §6). Penyalinan dan penghapusan sidik jari, pengaturan jarak jauh, dan update firmware ditambahkan di rencana berikutnya. Field yang belum dikenal **wajib diabaikan** oleh kedua sisi, supaya versi berikutnya tidak memutus mesin lama.
 
 ## 1. Identitas mesin dan kode pengaturan
 
@@ -43,6 +43,8 @@ BAS1.<base64url tanpa padding dari JSON berikut>
 | 403 | `{"error":"MESIN_NONAKTIF"}` | Kunci benar, tetapi mesin dinonaktifkan di web | Layar: *"Mesin dinonaktifkan di web."* Scan tetap disimpan. |
 | 400 | `{"error":"FORMAT_SALAH"}` | Body bukan JSON yang sesuai kontrak | Kiriman tidak dihapus; dicoba lagi. Ini tanda bug firmware. |
 | 413 | `{"error":"BATCH_TERLALU_BESAR"}` | Lebih dari 200 scan dalam satu kiriman | Kirim ulang dalam batch lebih kecil. |
+| 404 | `{"error":"PERINTAH_TIDAK_DIKENAL"}` | ID perintah tidak ada, bukan UUID, atau milik mesin lain (§6) | Hentikan perintah itu dan jangan kirim ulang laporannya. |
+| 409 | `{"error":"PERINTAH_TIDAK_AKTIF"}` | Laporan langkah untuk perintah yang sudah selesai, dibatalkan, atau kedaluwarsa (§6) | Hentikan pendaftaran, kembali ke "Siap absen". |
 | 5xx / tidak ada balasan | `{"error":"GAGAL_SIMPAN"}` atau kosong | Server bermasalah atau tidak terjangkau | Coba lagi dengan jeda bertahap sampai maksimal 60 detik. Scan tetap disimpan. |
 
 Mesin yang tidak dikenal tidak dibedakan dari kunci salah (401), supaya kunci tidak bisa ditebak lewat pesan error.
@@ -73,13 +75,24 @@ Response `200`:
   "timezone": "Asia/Jakarta",
   "deviceName": "Uji Kampus",
   "branchName": "Cabang Uji",
-  "commands": []
+  "commands": [
+    {
+      "id": "0b6f6c7e-3a43-4c47-9d0e-6d2b8d1f0a11",
+      "type": "ENROLL",
+      "pin": "1696",
+      "finger": 1,
+      "displayName": "Budi Santoso",
+      "timeoutSeconds": 60
+    }
+  ],
+  "cancel": []
 }
 ```
 
 - `serverTime` memakai zona waktu cabang mesin. Mesin menyetel RTC jika selisihnya lebih dari 2 detik.
 - `deviceName` dan `branchName` ditampilkan di layar "Siap absen".
-- `commands` selalu kosong di versi ini.
+- `commands` berisi perintah yang belum selesai untuk mesin ini (kosong jika tidak ada). Server **mengirim ulang** perintah yang sama di setiap heartbeat sampai mesin melaporkan hasil, jadi mesin wajib **mengerjakan setiap `id` sekali saja** dan mengabaikan ID yang sedang atau sudah dikerjakan. Jenis perintah yang tidak dikenal firmware diabaikan.
+- `cancel` berisi ID perintah yang dibatalkan dari web setelah sempat dikirim ke mesin (selama 2 menit setelah dibatalkan). Jika mesin sedang mengerjakan salah satunya, mesin menghentikannya tanpa mengirim hasil.
 
 ## 5. `POST /device/v1/scans`
 
@@ -113,7 +126,65 @@ Response `200`, **dikirim hanya setelah scan tersimpan** (K-020):
 - Scan disimpan lewat inti penerimaan scan yang sama dengan X401 (K-054): penanda `PIN_TIDAK_DIKENAL`, `CABANG_BERBEDA`, `WAKTU_DI_MASA_DEPAN`, rekap, dan dashboard tetap berlaku.
 - Pencegahan scan ganda: ID scan dari mesin, ditambah kunci lama mesin + PIN + waktu (K-061).
 
-## 6. Pengaturan pertama di mesin (kontrak firmware)
+## 6. Perintah dan pendaftaran sidik jari
+
+Admin memulai pendaftaran dari web (Detail Karyawan → **Sidik Jari**). Server membuat perintah `ENROLL` dan mengirimnya lewat heartbeat (§4). Mesin tidak punya tombol, jadi semua langkah diikuti dari layar mesin dan dari web.
+
+**Siklus status** (dilihat dari web):
+
+| Status | Arti |
+|---|---|
+| `MENUNGGU` | Dibuat, belum ikut di balasan heartbeat. |
+| `DIKIRIM` | Sudah ikut di balasan heartbeat; menunggu laporan mesin. |
+| `BERHASIL` / `GAGAL` | Mesin melaporkan hasil. |
+| `KEDALUWARSA` | Tidak diambil mesin dalam **30 detik**. |
+| `DIBATALKAN` | Admin menekan **Batal** di web. |
+
+**Batas waktu** (K-094; parameter teknis server, bukan aturan bisnis):
+
+- Belum diambil mesin dalam 30 detik → `KEDALUWARSA`.
+- Mesin menunggu jari paling lama `timeoutSeconds` (**60 detik**), lalu melaporkan `WAKTU_HABIS`.
+- Sudah diambil tanpa hasil dalam 75 detik (60 + 15 detik cadangan, misalnya mesin putus) → server menandai `GAGAL` + `WAKTU_HABIS`.
+
+**Selama pendaftaran** layar menampilkan *"Daftarkan jari {finger} — {displayName}"* lalu *"Tempelkan jari (n/3)"*. Mesin **tidak menerima absensi** sampai pendaftaran selesai, dibatalkan, atau habis waktunya. Satu mesin hanya mengerjakan satu `ENROLL` pada satu waktu.
+
+### `POST /device/v1/commands/{id}/progress`
+
+Dikirim setiap kali satu tempelan berhasil dibaca (3 tempelan per jari).
+
+```json
+{ "step": 2 }
+```
+
+`step` 1–3. Balasan `200 {}`. Langkah di luar 1–3 dibalas 400 `FORMAT_SALAH`. Perintah yang sudah tidak aktif dibalas 409 `PERINTAH_TIDAK_AKTIF`: mesin menghentikan pendaftaran.
+
+### `POST /device/v1/commands/{id}/result`
+
+Dikirim sekali di akhir. Jika tidak ada balasan atau 5xx, kirim ulang dengan jeda bertahap seperti scan.
+
+```json
+{ "status": "BERHASIL" }
+{ "status": "GAGAL", "error": "JARI_SUDAH_TERDAFTAR", "pin": "1702" }
+```
+
+- `status` wajib `BERHASIL` atau `GAGAL`; `GAGAL` wajib membawa `error`. Selain itu dibalas 400 `FORMAT_SALAH`.
+- Balasan `200 {}`, **dikirim hanya setelah hasil tersimpan**. Hasil yang dikirim ulang, atau hasil untuk perintah yang sudah selesai/dibatalkan, juga dibalas `200 {}` **tanpa efek**, supaya mesin berhenti mengirim. Jika admin membatalkan tepat saat mesin selesai, status tetap `DIBATALKAN`; selisih isi sensor dibereskan lewat rekonsiliasi (Rencana 4).
+- **Template sidik jari tidak dikirim di versi ini.** Jika body membawa field `template`, server mengabaikannya: tidak disimpan, tidak dicatat di log maupun audit (K-100).
+
+**Kode error** (`error`):
+
+| Kode | Arti | Pesan di web |
+|---|---|---|
+| `JARI_TIDAK_COCOK` | Tiga tempelan tidak cocok satu sama lain | Tiga tempelan tidak cocok satu sama lain. Ulangi dengan jari yang sama. |
+| `KUALITAS_BURUK` | Gambar sidik jari tidak terbaca jelas | Sidik jari tidak terbaca jelas. Bersihkan jari atau sensor, lalu ulangi. |
+| `JARI_SUDAH_TERDAFTAR` | Sidik jari sudah ada di sensor; sertakan `pin` pemiliknya | Sidik jari ini sudah terdaftar atas nama {nama}. (`PIN {pin}` jika PIN tidak dikenal server) |
+| `SENSOR_PENUH` | Kapasitas sensor penuh | Kapasitas sensor mesin penuh. |
+| `WAKTU_HABIS` | Tidak ada jari dalam `timeoutSeconds` | Mesin tidak merespons. Periksa koneksi mesin. |
+| `SENSOR_ERROR` | Sensor tidak menjawab atau error lain | Sensor bermasalah. Hubungi teknisi. |
+
+Kode lain disimpan apa adanya (maksimal 40 karakter) dan tampil sebagai *"Pendaftaran gagal ({kode})."*
+
+## 7. Pengaturan pertama di mesin (kontrak firmware)
 
 1. Mesin tanpa pengaturan membuat hotspot `BAS-Setup-<4 hex terakhir MAC>` dengan sandi 8 digit yang tertera di label casing, lalu menampilkan keduanya di layar.
 2. HP yang tersambung diarahkan ke halaman pengaturan (captive portal). Halaman itu menampilkan daftar Wi-Fi hasil pindai, isian sandi Wi-Fi, dan isian kode pengaturan.
@@ -131,7 +202,7 @@ Uji pertama di kampus memakai **hotspot HP**: laptop dan mesin tersambung ke hot
 
 Alamat server bawaan di dialog kode pengaturan diambil dari `DEVICE_PUBLIC_URL` (`.env`) jika diisi, misalnya `http://192.168.43.20:8888`. Jika kosong, web memakai `http://<alamat web>:8888`. Alamat ini bisa diubah sebelum kode disalin.
 
-## 7. Uji dengan simulator
+## 8. Uji dengan simulator
 
 Sampai firmware siap, [`tools/device-simulator/rakitan.mjs`](../tools/device-simulator/rakitan.mjs) berperan sebagai alat rakitan:
 
@@ -153,4 +224,7 @@ Hasil yang benar: "✓ Server ditemukan", "✓ Kunci diterima", "Siap absen — 
 | `bad-scan --pin 9001` | `saved: 1`, `rejected: 1`, kedua ID ada di `accepted` |
 | `oversize` | 413 `BATCH_TERLALU_BESAR` |
 | `wrong-key` | 401 `KUNCI_DITOLAK` |
-| `live --pin 9001` | Status mesin Online selama simulator berjalan |
+| `live --pin 9001` | Status mesin Online selama simulator berjalan. Klik **Daftarkan** di Detail Karyawan → layar simulator *"Daftarkan jari 1 — …"*, progress 1–3, lalu dialog web *"Berhasil"* |
+| `live --enroll-result KUALITAS_BURUK` | Dialog web menampilkan *"Sidik jari tidak terbaca jelas. Bersihkan jari atau sensor, lalu ulangi."* |
+| `live --enroll-result JARI_SUDAH_TERDAFTAR --owner-pin 9002` | Dialog web menyebut nama karyawan pemilik PIN 9002 |
+| `live` lalu **Batal** di web saat progress | Simulator mencetak *"Pendaftaran dibatalkan dari web"* dan tidak mengirim hasil |
