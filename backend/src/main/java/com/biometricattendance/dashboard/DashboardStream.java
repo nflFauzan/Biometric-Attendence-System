@@ -22,6 +22,7 @@ import com.biometricattendance.device.Device;
 import com.biometricattendance.device.DeviceContactEvent;
 import com.biometricattendance.device.DeviceRepository;
 import com.biometricattendance.device.DeviceStatus;
+import com.biometricattendance.devicecommand.DeviceCommandChangedEvent;
 import com.biometricattendance.ingest.ScansSavedEvent;
 import com.biometricattendance.leave.LeaveChangedEvent;
 
@@ -88,6 +89,12 @@ public class DashboardStream {
 		if (event.cameOnline()) {
 			broadcast(Map.of("type", "DEVICE_STATUS", "deviceId", event.deviceId()));
 		}
+	}
+
+	/** Status pendaftaran sidik jari berubah (spec §16); dialog web mengambil status terbaru lewat API. */
+	@TransactionalEventListener
+	void onDeviceCommandChanged(DeviceCommandChangedEvent event) {
+		broadcast(Map.of("type", "DEVICE_COMMAND", "commandId", event.commandId().toString()));
 	}
 
 	/** Keepalive agar koneksi tidak diputus proxy, sekaligus mendeteksi mesin yang berubah offline (K-064). */

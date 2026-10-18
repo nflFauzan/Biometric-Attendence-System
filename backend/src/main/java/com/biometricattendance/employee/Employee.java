@@ -57,6 +57,11 @@ public class Employee {
 	/** PIN/User ID karyawan di mesin absensi, sama di semua mesin (K-056). */
 	private String devicePin;
 
+	/** Persetujuan penyimpanan sidik jari (K-091): sekali per karyawan, siapa dan kapan. */
+	private Instant fingerprintConsentAt;
+
+	private String fingerprintConsentBy;
+
 	@CreationTimestamp
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
@@ -147,6 +152,19 @@ public class Employee {
 
 	public void setDevicePin(String devicePin) {
 		this.devicePin = devicePin;
+	}
+
+	public Instant getFingerprintConsentAt() {
+		return fingerprintConsentAt;
+	}
+
+	public String getFingerprintConsentBy() {
+		return fingerprintConsentBy;
+	}
+
+	public void recordFingerprintConsent(String by, Instant at) {
+		this.fingerprintConsentBy = by;
+		this.fingerprintConsentAt = at;
 	}
 
 }

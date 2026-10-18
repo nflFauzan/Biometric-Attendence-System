@@ -51,7 +51,7 @@ public class SecurityConfig {
 				// Rencana 2: menerbitkan kunci alat rakitan hanya Owner (K-099). Harus sebelum /api/devices/**.
 				.requestMatchers(HttpMethod.POST, "/api/devices/*/key").hasRole(OWNER)
 				.requestMatchers("/api/branches/**", "/api/employee-categories/**", "/api/employees/**",
-						"/api/devices/**", "/api/users/**")
+						"/api/devices/**", "/api/device-commands/**", "/api/users/**")
 				.hasAnyRole(OWNER, HR_FINANCE)
 				// Aturan kerja: HR/Finance hanya membaca; mengubah hanya Owner (K-049).
 				.requestMatchers(HttpMethod.GET, "/api/work-rules/**").hasAnyRole(OWNER, HR_FINANCE)
