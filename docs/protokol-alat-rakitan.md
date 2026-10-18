@@ -65,7 +65,7 @@ Request:
 }
 ```
 
-Semua field opsional. `sensor` boleh tidak dikirim jika belum tersedia.
+Semua field opsional. `sensor` boleh tidak dikirim jika belum tersedia. Server menyimpan `used` dan `capacity` terakhir (hanya jika keduanya ada dan `capacity` > 0) dan menampilkan *"Sensor 12/150"* di halaman Mesin. Di atas 90% terisi muncul peringatan *"Kapasitas sensor hampir penuh."* (`app.device.sensor-warning-percent`, parameter teknis; K-102).
 
 Response `200`:
 
@@ -91,7 +91,7 @@ Response `200`:
 
 - `serverTime` memakai zona waktu cabang mesin. Mesin menyetel RTC jika selisihnya lebih dari 2 detik.
 - `deviceName` dan `branchName` ditampilkan di layar "Siap absen".
-- `commands` berisi perintah yang belum selesai untuk mesin ini (kosong jika tidak ada). Server **mengirim ulang** perintah yang sama di setiap heartbeat sampai mesin melaporkan hasil, jadi mesin wajib **mengerjakan setiap `id` sekali saja** dan mengabaikan ID yang sedang atau sudah dikerjakan. Jenis perintah yang tidak dikenal firmware diabaikan.
+- `commands` berisi perintah yang belum selesai untuk mesin ini (kosong jika tidak ada). Server **mengirim ulang** perintah yang sama di setiap heartbeat sampai mesin melaporkan hasil, jadi mesin wajib **mengerjakan setiap `id` sekali saja** dan mengabaikan ID yang sedang dikerjakan atau yang hasilnya belum diterima server. Setelah server membalas `200` untuk hasilnya, mesin boleh melupakan ID itu: perintah hapus yang muncul lagi dengan ID yang sama berarti admin menekan **"Coba lagi"** dan harus dikerjakan ulang (§6a). Jenis perintah yang tidak dikenal firmware diabaikan.
 - `cancel` berisi ID perintah yang dibatalkan dari web setelah sempat dikirim ke mesin (selama 2 menit setelah dibatalkan). Jika mesin sedang mengerjakan salah satunya, mesin menghentikannya tanpa mengirim hasil.
 
 ## 5. `POST /device/v1/scans`
@@ -144,7 +144,7 @@ Admin memulai pendaftaran dari web (Detail Karyawan → **Sidik Jari**). Server 
 
 - Belum diambil mesin dalam 30 detik → `KEDALUWARSA`.
 - Mesin menunggu jari paling lama `timeoutSeconds` (**60 detik**), lalu melaporkan `WAKTU_HABIS`.
-- Sudah diambil tanpa hasil dalam 75 detik (60 + 15 detik cadangan, misalnya mesin putus) → server menandai `GAGAL` + `WAKTU_HABIS`.
+- Sudah diambil tanpa hasil dalam 75 detik (60 + 15 detik cadangan, misalnya mesin putus) → server menandai `GAGAL` + `TIDAK_ADA_HASIL` (K-101).
 
 **Selama pendaftaran** layar menampilkan *"Daftarkan jari {finger} — {displayName}"* lalu *"Tempelkan jari (n/3)"*. Mesin **tidak menerima absensi** sampai pendaftaran selesai, dibatalkan, atau habis waktunya. Satu mesin hanya mengerjakan satu `ENROLL` pada satu waktu.
 
@@ -168,7 +168,7 @@ Dikirim sekali di akhir. Jika tidak ada balasan atau 5xx, kirim ulang dengan jed
 ```
 
 - `status` wajib `BERHASIL` atau `GAGAL`; `GAGAL` wajib membawa `error`. Selain itu dibalas 400 `FORMAT_SALAH`.
-- Balasan `200 {}`, **dikirim hanya setelah hasil tersimpan**. Hasil yang dikirim ulang, atau hasil untuk perintah yang sudah selesai/dibatalkan, juga dibalas `200 {}` **tanpa efek**, supaya mesin berhenti mengirim. Jika admin membatalkan tepat saat mesin selesai, status tetap `DIBATALKAN`; selisih isi sensor dibereskan lewat rekonsiliasi (Rencana 4).
+- Balasan `200 {}`, **dikirim hanya setelah hasil tersimpan**. Hasil yang dikirim ulang, atau hasil untuk perintah yang sudah selesai/dibatalkan, juga dibalas `200 {}` **tanpa efek**, supaya mesin berhenti mengirim. Jika admin membatalkan tepat saat mesin selesai, yang tersimpan lebih dulu yang berlaku. Batal lebih dulu: status `DIBATALKAN`, hasil diabaikan, dan selisih isi sensor dibereskan lewat rekonsiliasi (Rencana 4). Hasil lebih dulu: status mengikuti hasil, dan admin mendapat pesan *"Perintah sudah selesai."*
 - **Template sidik jari tidak dikirim di versi ini.** Jika body membawa field `template`, server mengabaikannya: tidak disimpan, tidak dicatat di log maupun audit (K-100).
 
 **Kode error** (`error`):
@@ -179,10 +179,28 @@ Dikirim sekali di akhir. Jika tidak ada balasan atau 5xx, kirim ulang dengan jed
 | `KUALITAS_BURUK` | Gambar sidik jari tidak terbaca jelas | Sidik jari tidak terbaca jelas. Bersihkan jari atau sensor, lalu ulangi. |
 | `JARI_SUDAH_TERDAFTAR` | Sidik jari sudah ada di sensor; sertakan `pin` pemiliknya | Sidik jari ini sudah terdaftar atas nama {nama}. (`PIN {pin}` jika PIN tidak dikenal server) |
 | `SENSOR_PENUH` | Kapasitas sensor penuh | Kapasitas sensor mesin penuh. |
-| `WAKTU_HABIS` | Tidak ada jari dalam `timeoutSeconds` | Mesin tidak merespons. Periksa koneksi mesin. |
+| `WAKTU_HABIS` | Tidak ada jari dalam `timeoutSeconds` | Tidak ada jari yang ditempelkan. Ulangi pendaftaran. |
 | `SENSOR_ERROR` | Sensor tidak menjawab atau error lain | Sensor bermasalah. Hubungi teknisi. |
 
-Kode lain disimpan apa adanya (maksimal 40 karakter) dan tampil sebagai *"Pendaftaran gagal ({kode})."*
+`TIDAK_ADA_HASIL` hanya diisi server (batas waktu 75 detik) dan tidak pernah dikirim mesin; pesannya *"Mesin tidak merespons. Periksa koneksi mesin."* Kode lain disimpan apa adanya (maksimal 40 karakter) dan tampil sebagai *"Pendaftaran gagal ({kode})."*
+
+## 6a. Perintah hapus sidik jari (K-102)
+
+Server mengirim `DELETE_TEMPLATE` saat admin menghapus satu jari, dan `DELETE_EMPLOYEE` saat karyawan dinonaktifkan atau tanggal keluarnya lewat. Perintah dikirim ke setiap alat rakitan yang pernah tersambung, termasuk yang nonaktif (diterima saat diaktifkan lagi), karena server tidak tahu pasti mesin mana yang masih menyimpan jari itu.
+
+```json
+{ "id": "…", "type": "DELETE_TEMPLATE", "pin": "1696", "finger": 1, "displayName": null, "timeoutSeconds": null }
+{ "id": "…", "type": "DELETE_EMPLOYEE", "pin": "1696", "finger": null, "displayName": null, "timeoutSeconds": null }
+```
+
+- `DELETE_TEMPLATE` menghapus jari `finger` milik `pin`; `DELETE_EMPLOYEE` menghapus semua jari milik `pin`.
+- **Idempoten:** jari atau PIN yang tidak ada di sensor tetap dilaporkan `BERHASIL`.
+- Dikerjakan **sesuai urutan** di `commands`, tanpa layar langkah dan tanpa jeda absensi. Jika sedang ada `ENROLL`, perintah hapus menunggu sampai pendaftaran selesai.
+- **Tanpa laporan langkah:** `progress` untuk perintah hapus dibalas 409 `PERINTAH_TIDAK_AKTIF`.
+- Hasil memakai `POST /device/v1/commands/{id}/result` yang sama: `{ "status": "BERHASIL" }` atau `{ "status": "GAGAL", "error": "SENSOR_ERROR" }`. Kode lain tampil di web sebagai *"Penghapusan gagal ({kode})."*
+- **Tidak kedaluwarsa dan tidak bisa dibatalkan:** perintah tetap dikirim ulang, berhari-hari jika mesin offline, sampai ada hasil. Tidak pernah muncul di `cancel`.
+- Setelah `GAGAL`, admin bisa menekan **"Coba lagi"**: perintah dengan **ID yang sama** kembali ke `commands`, dan mesin mengerjakannya lagi (§4).
+- Selama penghapusan di mesin aktif belum `BERHASIL`, PIN karyawan terkunci di web, dan `ENROLL` untuk PIN itu di mesin yang sama ditolak.
 
 ## 7. Pengaturan pertama di mesin (kontrak firmware)
 
@@ -228,3 +246,6 @@ Hasil yang benar: "✓ Server ditemukan", "✓ Kunci diterima", "Siap absen — 
 | `live --enroll-result KUALITAS_BURUK` | Dialog web menampilkan *"Sidik jari tidak terbaca jelas. Bersihkan jari atau sensor, lalu ulangi."* |
 | `live --enroll-result JARI_SUDAH_TERDAFTAR --owner-pin 9002` | Dialog web menyebut nama karyawan pemilik PIN 9002 |
 | `live` lalu **Batal** di web saat progress | Simulator mencetak *"Pendaftaran dibatalkan dari web"* dan tidak mengirim hasil |
+| `live` lalu **Hapus** jari di Detail Karyawan | Simulator mencetak *"Sidik jari dihapus"*; daftar "Penghapusan di mesin" tidak lagi memuat mesin ini |
+| `live --delete-result SENSOR_ERROR` lalu **Hapus** | Web menampilkan *"Gagal: Sensor bermasalah. Hubungi teknisi."*; **Coba lagi** membuat simulator mengerjakannya lagi |
+| `live --sensor-used 140 --sensor-capacity 150` | Halaman Mesin menampilkan *"Sensor 140/150"* dan *"Kapasitas sensor hampir penuh."* |

@@ -266,7 +266,8 @@ Kasus tambahan untuk test otomatis: jeda kosong = perilaku lama; scan tepat di b
 | `KUALITAS_BURUK` | Sidik jari tidak terbaca jelas. Bersihkan jari atau sensor, lalu ulangi. |
 | `JARI_SUDAH_TERDAFTAR` | Sidik jari ini sudah terdaftar atas nama {nama}. |
 | `SENSOR_PENUH` | Kapasitas sensor mesin penuh. |
-| `WAKTU_HABIS` / tidak ada respons | Mesin tidak merespons. Periksa koneksi mesin. |
+| `WAKTU_HABIS` (mesin: tidak ada jari) | Tidak ada jari yang ditempelkan. Ulangi pendaftaran. |
+| `TIDAK_ADA_HASIL` (server: tidak ada respons, K-101) | Mesin tidak merespons. Periksa koneksi mesin. |
 | `SENSOR_ERROR` | Sensor bermasalah. Hubungi teknisi. |
 | `WIFI_GAGAL` | Gagal tersambung ke Wi-Fi {nama}. Mesin kembali ke pengaturan lama. |
 | `SERVER_GAGAL` | Gagal tersambung ke server baru. Mesin kembali ke pengaturan lama. |
@@ -305,10 +306,10 @@ Restart mesin dari web, lebih dari 2 jari per karyawan, pengenalan wajah, rotasi
 | K-087 | Alat rakitan memakai protokol sendiri `/device/v1` sebagai adapter kedua (K-054), bukan meniru ZK-Push. Mesin melakukan polling heartbeat; server tidak pernah menghubungi mesin. Menjawab Q-030. |
 | K-088 | Kunci rahasia acak per mesin, hanya ditampilkan sekali, disimpan sebagai hash. Bisa diganti dua tahap (mesin online) atau dicabut langsung (mesin hilang). |
 | K-089 | Template sidik jari dan password Wi-Fi mesin disimpan terenkripsi AES-256-GCM (kunci dari environment) dan tidak pernah dikirim ke browser. Template disalin ke semua mesin rakitan aktif. Melengkapi K-024. Penyalinan template bergantung pada hasil uji R503 (Q-035). |
-| K-090 | Karyawan nonaktif atau keluar → template dihapus dari semua mesin dan dari server. |
+| K-090 | Karyawan nonaktif atau keluar → template dihapus dari semua mesin dan dari server. Rincian: K-102 (§17). |
 | K-091 | Pendaftaran sidik jari butuh centang persetujuan karyawan, sekali per karyawan, tercatat di audit. Formulir persetujuan kertas diurus klien. |
 | K-092 | Kolom aturan "Jeda minimum antar scan (menit)". Kosong = tanpa penggabungan. Jeda dihitung dari scan pertama setiap kelompok. Scan asli tetap tersimpan. |
-| K-093 | PIN mesin terkunci selama karyawan masih punya sidik jari terdaftar. |
+| K-093 | PIN mesin terkunci selama karyawan masih punya sidik jari terdaftar, dan sampai penghapusan di semua mesin aktif selesai. Rincian: K-102 (§17). |
 | K-094 | Maksimal 2 jari per karyawan. Satu `ENROLL` aktif per mesin; batas waktu pengambilan 30 detik dan batas pendaftaran di mesin 60 detik. |
 | K-095 | Firmware sederhana, pengaturan dari web. Pengaturan awal sekali per mesin: firmware ditanam lewat USB, lalu Wi-Fi, alamat server, dan kunci diisi lewat hotspot otomatis. Hotspot muncul lagi sendiri setelah 10 menit tanpa Wi-Fi. Tombol BOOT hanya untuk reset pabrik. |
 | K-096 | Pengaturan ringan dikirim sebagai paket berversi lewat heartbeat. Perubahan Wi-Fi dan alamat server memakai "coba dulu, baru simpan" dengan kembali otomatis dalam 2 menit. Mesin bisa menyimpan beberapa Wi-Fi berurutan. |
@@ -379,9 +380,77 @@ Kontrak lengkap ada di [`docs/protokol-alat-rakitan.md`](../../protokol-alat-rak
 2. **Tabel antrean perintah umum** `device_commands` dengan ID UUID. Di Rencana 3 hanya jenis `ENROLL`. Payload hanya PIN, jari, dan nama tampilan (tanpa data rahasia). Kolom karyawan dan jari terpisah agar bisa dijaga unique index.
 3. **Pengiriman lewat heartbeat.** Perintah yang belum selesai (`MENUNGGU`/`DIKIRIM`) ikut di setiap balasan heartbeat; mesin mengabaikan ID yang sedang atau sudah dikerjakan. Perintah pertama kali ikut di balasan → `DIKIRIM`. Pembatalan dikirim lewat daftar `cancel` di heartbeat; laporan progress untuk perintah yang tidak lagi aktif dibalas 409 `PERINTAH_TIDAK_AKTIF`.
 4. **Endpoint mesin:** `POST /device/v1/commands/{id}/progress` (`step` 1–3) dan `POST /device/v1/commands/{id}/result` (`BERHASIL`, atau `GAGAL` + kode §9). Laporan hasil ulang atau untuk perintah yang sudah tidak aktif dibalas 200 tanpa efek. Perintah milik mesin lain atau tidak dikenal: 404 `PERINTAH_TIDAK_DIKENAL`.
-5. **Batas waktu (K-094) adalah parameter teknis** di `application.properties`: belum diambil 30 detik → `KEDALUWARSA`; sudah diambil tanpa hasil 75 detik (60 detik di mesin + 15 detik cadangan) → `GAGAL` dengan kode `WAKTU_HABIS`. Pemeriksaan terjadwal setiap 5 detik, dan juga dijalankan sebelum membuat perintah baru.
+5. **Batas waktu (K-094) adalah parameter teknis** di `application.properties`: belum diambil 30 detik → `KEDALUWARSA`; sudah diambil tanpa hasil 75 detik (60 detik di mesin + 15 detik cadangan) → `GAGAL` dengan kode `TIDAK_ADA_HASIL` (K-101; awalnya `WAKTU_HABIS`). Pemeriksaan terjadwal setiap 5 detik, dan juga dijalankan sebelum membuat perintah baru.
 6. **Satu `ENROLL` aktif per mesin dan per karyawan + jari** dijaga partial unique index di database (aman terhadap klik bersamaan), dengan pesan *"Mesin sedang dipakai untuk pendaftaran."* dan *"Jari ini sedang didaftarkan."*
 7. **Syarat:** karyawan aktif, PIN mesin terisi, persetujuan tercatat, mesin `RAKITAN_V1` aktif dan Online. Jika tidak ada alat rakitan Online, web menampilkan bahwa X401 tidak mendukung pendaftaran dari web (§3.7).
 8. **API web** (Owner dan HR/Finance, semua tercatat di audit): persetujuan, daftar sidik jari karyawan, mulai pendaftaran, batalkan, dan lihat status perintah. Perubahan status perintah dikirim lewat SSE yang sudah ada (event `DEVICE_COMMAND`). `JARI_SUDAH_TERDAFTAR` membawa PIN pemilik; server menerjemahkannya ke nama karyawan.
 9. **Di luar Rencana 3:** kunci PIN (K-093) dan hapus sidik jari (Rencana 5), penyalinan ke mesin lain (Rencana 4), dan jenis perintah lain.
 10. Simulator `rakitan.mjs live` menjalankan `ENROLL` (berhasil atau gagal dengan kode pilihan). Kontrak `protokol-alat-rakitan.md` diperbarui; K-091 dan K-094 masuk `keputusan.md`; Q-034–Q-036 masuk `pertanyaan-terbuka.md`.
+
+## 17. Rincian Rencana 5: hapus sidik jari, kunci PIN, dan peringatan kapasitas (2026-10-18)
+
+**Konteks:**
+- Template belum disimpan di server (§16), dan penyalinan antar mesin (Rencana 4) masih menunggu uji R503.
+- Karena itu, sebuah sidik jari hanya ada di sensor mesin tempat jari itu didaftarkan. Pendaftaran ulang di mesin lain juga bisa meninggalkan sisa jari di mesin lama.
+- Rekonsiliasi (§4.4) belum dibangun.
+
+**Keputusan pengguna (2026-10-18):**
+- **A. Kunci PIN sampai penghapusan selesai.** PIN tetap terkunci sampai semua mesin melaporkan penghapusan selesai. "Terkunci" berarti PIN tidak bisa diganti atau dikosongkan, dan tidak bisa diberikan ke karyawan lain.
+- **B. Mesin nonaktif membuka kunci.** Menonaktifkan mesin membuka kunci PIN: perintah hapus untuk mesin nonaktif tidak ikut dihitung.
+
+**Yang dibangun:**
+1. **Jenis perintah baru.** `DELETE_TEMPLATE` berisi PIN dan jari; `DELETE_EMPLOYEE` berisi PIN. Isinya disimpan di kolom `employee_id`, `device_pin`, dan `finger` yang sudah ada; migration baru mengganti `CHECK` jenis perintah. Satu permintaan menghasilkan satu baris per mesin, tanpa penggabungan; perintah ganda tetap aman karena hapus bersifat idempoten. Keduanya:
+   - tidak kedaluwarsa dan tidak bisa dibatalkan;
+   - dikirim ulang lewat heartbeat sampai ada hasil;
+   - tidak punya laporan langkah. Laporan langkah untuk perintah hapus dibalas 409 `PERINTAH_TIDAK_AKTIF`, sama dengan perintah yang tidak aktif.
+   - **Pemeriksaan batas waktu (`expireStale`) hanya berlaku untuk `ENROLL`.**
+2. **Tujuan perintah.** Perintah dikirim ke **semua** mesin `RAKITAN_V1` yang terdaftar saat penghapusan dibuat, aktif maupun nonaktif. Alasannya, kita tidak tahu pasti mesin mana yang masih menyimpan jari itu. Menghapus jari yang tidak ada tetap dilaporkan `BERHASIL` oleh mesin (§4.2).
+   - Mesin nonaktif menerima perintahnya jika suatu saat diaktifkan lagi.
+   - Mesin yang **belum pernah tersambung** (belum pernah heartbeat) dilewati, karena sensornya pasti kosong: pendaftaran butuh mesin Online. *(Keputusan Claude.)*
+   - Mesin yang didaftarkan kemudian tidak menerima apa pun, karena sensornya kosong.
+   - Mesin X401 tidak menerima perintah (§3.7).
+3. **Hapus satu jari.** Tombol **"Hapus"** ada di setiap jari yang terdaftar, dengan dialog konfirmasi *"Hapus sidik jari jari ke-{n} {nama} dari semua mesin?"*. Dalam satu transaksi, server:
+   - menghapus baris `employee_fingerprints` (audit `FINGERPRINT_DELETED` dengan isi sebelumnya);
+   - membuat `DELETE_TEMPLATE` per mesin (audit `DELETE_REQUEST`).
+
+   Penghapusan ditolak dengan *"Jari ini sedang didaftarkan."* kalau ada `ENROLL` aktif untuk karyawan + jari itu.
+4. **Karyawan nonaktif atau keluar (K-090).**
+   - **Kapan dihapus** (keputusan pengguna 2026-10-18): sidik jari dihapus **saat karyawan dinonaktifkan** atau **saat tanggal keluarnya tiba**, bukan saat tanggal keluar diisi.
+   - **Arti tanggal keluar** *(tafsiran Claude)*: tanggal keluar adalah hari kerja terakhir. Penghapusan berjalan setelah tanggal itu lewat, yaitu mulai 00.00 keesokan harinya menurut zona waktu cabang karyawan. Dengan begitu karyawan masih bisa absen di hari terakhirnya.
+   - **Pemicunya:**
+     - `active` berubah menjadi `false`: langsung, di transaksi yang sama dengan perubahan karyawan.
+     - Tanggal keluar yang diisi sudah lewat: langsung, di transaksi yang sama.
+     - Tanggal keluar di masa depan: pemeriksaan terjadwal setiap jam menangkapnya setelah tanggal itu lewat. Interval pemeriksaan adalah parameter teknis.
+   - **Penanda:** kolom baru `employees.fingerprints_removed_at` diisi saat penghapusan dijalankan, sehingga pemeriksaan terjadwal tidak mengulanginya. Penanda dikosongkan saat karyawan aktif kembali dengan tanggal keluar kosong atau di masa depan.
+   - **Tanggal keluar diubah atau dikosongkan sebelum tiba:** tidak ada yang dihapus.
+   - **Isi penghapusan:**
+     - membatalkan `ENROLL` aktif milik karyawan itu (audit `CANCEL_COMMAND`; pelakunya pengguna yang mengubah karyawan, atau `sistem` untuk pemeriksaan terjadwal);
+     - menghapus semua baris `employee_fingerprints` miliknya (audit `FINGERPRINT_DELETED`);
+     - membuat satu `DELETE_EMPLOYEE` per mesin, jika karyawan punya PIN **dan** persetujuan sidik jari pernah tercatat. Hanya karyawan dengan persetujuan yang mungkin pernah didaftarkan.
+   - **Pendaftaran baru:** syarat karyawan di §16 butir 7 dilonggarkan. `ENROLL` boleh untuk karyawan aktif yang tanggal keluarnya kosong **atau belum lewat**. *(Keputusan Claude, agar konsisten dengan tafsiran di atas.)*
+   - **Mengaktifkan kembali karyawan** tidak memulihkan apa pun; sidik jari didaftar ulang.
+5. **Kunci PIN (K-093, diperluas).** Sebuah PIN dianggap *menunggu penghapusan* jika ada perintah `DELETE_*` dengan PIN itu, di mesin yang **aktif**, berstatus `MENUNGGU`, `DIKIRIM`, atau `GAGAL`. Aturannya:
+   - Mengganti atau mengosongkan PIN ditolak jika karyawan masih punya baris `employee_fingerprints`. Pesannya *"Hapus sidik jari dulu sebelum mengganti PIN."*
+   - Mengganti atau mengosongkan PIN juga ditolak jika PIN lamanya sedang menunggu penghapusan. Pesannya *"Tunggu sampai sidik jari selesai dihapus di semua mesin."*
+   - Membuat karyawan baru atau mengisi PIN karyawan lain dengan PIN yang sedang menunggu penghapusan ditolak. Pesannya *"PIN ini masih menunggu penghapusan sidik jari di mesin."*
+   - Aturan ketiga adalah penjagaan cadangan. Dalam praktik, PIN hanya bisa berpindah pemilik setelah pemilik lamanya melepas PIN, dan itu sudah ditahan oleh dua aturan pertama (PIN unik tetap berlaku seperti sekarang).
+   - Kunci terbuka sendiri saat mesin terakhir melapor `BERHASIL`, atau saat mesin yang belum selesai dinonaktifkan (keputusan B).
+6. **ENROLL setelah hapus.** `ENROLL` ke sebuah mesin ditolak dengan *"Tunggu sampai sidik jari lama selesai dihapus di mesin ini."* selama mesin itu masih punya perintah `DELETE_*` untuk PIN yang sama yang belum `BERHASIL`. Ini mencegah jari baru ikut terhapus.
+7. **Gagal dan "Coba lagi".** Mesin bisa melapor `GAGAL` dengan kode error. `SENSOR_ERROR` memakai pesan yang sudah ada; kode lain tampil sebagai *"Penghapusan gagal ({kode})."* Tombol **"Coba lagi"** mengembalikan perintah yang sama ke `MENUNGGU` dan mengosongkan error-nya (audit `COMMAND_RETRY`). Hanya perintah `DELETE_*` berstatus `GAGAL` yang bisa dicoba lagi.
+8. **Tampilan di bagian Sidik Jari.** Daftar **"Penghapusan di mesin"** menampilkan perintah `DELETE_*` milik karyawan yang belum `BERHASIL`, per mesin. Statusnya:
+   - *Menunggu mesin…*;
+   - *Menunggu (mesin offline)*;
+   - *Menunggu (mesin nonaktif)*;
+   - *Gagal: {pesan}*, dengan tombol "Coba lagi".
+
+   Daftar ini diperbarui lewat SSE `DEVICE_COMMAND` yang sudah ada. Jika ada mesin X401 aktif, tampilkan juga keterangan *"Hapus juga langsung di mesin X401 jika karyawan pernah didaftarkan di sana."*
+9. **Kapasitas sensor.** Server menyimpan nilai `sensor.used` dan `sensor.capacity` terakhir dari heartbeat (yang sudah ada di protokol) ke kolom baru di `devices`. Penulisan memakai update terarah, sama seperti "terakhir terlihat", agar tidak bentrok dengan edit mesin oleh Owner.
+   - Halaman Mesin menampilkan *"Sensor 12/150"*.
+   - Jika terpakai lebih dari 90%, muncul peringatan *"Kapasitas sensor hampir penuh."* Ambang 90% adalah parameter teknis di `application.properties` (`app.device.sensor-warning-percent`), bukan aturan bisnis.
+10. **API web** (Owner dan HR/Finance, masuk `AccessControlTests`):
+    - `DELETE /api/employees/{id}/fingerprints/{finger}`;
+    - `POST /api/device-commands/{id}/retry`;
+    - ringkasan sidik jari karyawan ditambah daftar penghapusan;
+    - DTO mesin ditambah data sensor dan tanda hampir penuh.
+11. **Protokol dan simulator.** `protokol-alat-rakitan.md` menambah format kedua perintah di balasan heartbeat (`{id, type, pin, finger?}`), aturan "hapus yang tidak ada = `BERHASIL`", dan urutan pengerjaan sesuai urutan daftar. `rakitan.mjs live` menjalankan penghapusan (berhasil, atau gagal dengan kode pilihan) dan melaporkan `sensor` di heartbeat.
+12. **Di luar Rencana 5:** rekonsiliasi dan penyalinan (Rencana 4), serta penghapusan template di server (belum ada template).

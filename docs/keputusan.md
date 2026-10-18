@@ -114,6 +114,8 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-094 | 2026-10-18 | Maksimal 2 jari per karyawan; satu `ENROLL` aktif per mesin dan per karyawan + jari; batas pengambilan 30 detik, batas di mesin 60 detik + cadangan 15 detik | Disepakati |
 | K-099 | 2026-10-17 | Rincian kontrak Rencana 2: endpoint terpisah per jenis mesin, jenis mesin tetap, hanya Owner yang menerbitkan kunci, 403 untuk alat rakitan nonaktif, konfirmasi "terhubung" per kunci baru | Disepakati |
 | K-100 | 2026-10-18 | Rincian Rencana 3: template belum disimpan, perintah dikirim ulang lewat heartbeat, daftar `cancel`, laporan setelah batal diabaikan, unique index untuk satu `ENROLL` aktif | Disepakati |
+| K-101 | 2026-10-18 | Batas waktu tanpa hasil dari server memakai kode `TIDAK_ADA_HASIL`, terpisah dari `WAKTU_HABIS` mesin; batal yang bentrok dicoba ulang sekali | Disepakati |
+| K-102 | 2026-10-18 | Rincian Rencana 5: perintah `DELETE_TEMPLATE`/`DELETE_EMPLOYEE` ke semua alat rakitan yang pernah tersambung, hapus saat nonaktif atau setelah tanggal keluar lewat, PIN terkunci sampai semua mesin aktif selesai menghapus, "Coba lagi", peringatan kapasitas sensor (merinci K-090 dan K-093) | Disepakati |
 
 ---
 
@@ -456,13 +458,13 @@ Nilai-nilai tersebut harus dicatat dalam konfigurasi atau keputusan bisnis yang 
 - **K-094 Batasan pendaftaran.**
   - Maksimal 2 jari per karyawan (jari ke-1 dan ke-2).
   - Satu `ENROLL` aktif (`MENUNGGU`/`DIKIRIM`) per mesin dan per karyawan + jari, dijaga partial unique index sehingga dua klik bersamaan menghasilkan satu perintah dan pesan *"Mesin sedang dipakai untuk pendaftaran."* atau *"Jari ini sedang didaftarkan."*
-  - Batas waktu adalah parameter teknis di `application.properties`, bukan aturan bisnis: belum diambil 30 detik → `KEDALUWARSA`; mesin menunggu jari 60 detik; tanpa hasil 75 detik (60 + 15 cadangan) → `GAGAL` + `WAKTU_HABIS`. Pemeriksaan berjalan setiap 5 detik dan sebelum membuat perintah baru.
+  - Batas waktu adalah parameter teknis di `application.properties`, bukan aturan bisnis: belum diambil 30 detik → `KEDALUWARSA`; mesin menunggu jari 60 detik; tanpa hasil 75 detik (60 + 15 cadangan) → `GAGAL` + `TIDAK_ADA_HASIL` (K-101). Pemeriksaan berjalan setiap 5 detik dan sebelum membuat perintah baru.
   - Syarat: karyawan aktif, PIN mesin terisi, persetujuan tercatat, alat rakitan aktif dan Online. X401 tidak mendukung pendaftaran dari web.
 - **K-100 Rincian Rencana 3** (keputusan Claude yang disetujui pengguna):
   - **Template belum disimpan.** Server hanya mencatat jari mana, di mesin mana, kapan, dan dari perintah mana (`employee_fingerprints`). Field `template` di laporan hasil diabaikan dan tidak masuk database, log, maupun audit. Penyimpanan terenkripsi (K-089) menyusul di Rencana 4 jika uji R503 lulus (Q-035).
   - **Antrean umum `device_commands`** dengan ID UUID; isi perintah hanya PIN, jari, dan nama tampilan.
   - **Pengiriman ulang lewat heartbeat** sampai ada hasil; mesin mengerjakan setiap ID sekali. Pembatalan dikirim lewat daftar `cancel` (2 menit setelah dibatalkan).
-  - **Laporan setelah batal diabaikan.** Hasil untuk perintah yang tidak aktif dibalas 200 tanpa efek, supaya mesin berhenti mengirim; status tetap `DIBATALKAN`. Laporan langkah untuk perintah tidak aktif dibalas 409 `PERINTAH_TIDAK_AKTIF`.
+  - **Laporan setelah batal diabaikan.** Hasil untuk perintah yang tidak aktif dibalas 200 tanpa efek, supaya mesin berhenti mengirim; status tetap `DIBATALKAN`. Jika batal dan hasil bentrok, yang tersimpan lebih dulu yang berlaku: hasil lebih dulu → status mengikuti hasil dan admin mendapat *"Perintah sudah selesai."* (K-101). Laporan langkah untuk perintah tidak aktif dibalas 409 `PERINTAH_TIDAK_AKTIF`.
   - **Pendaftaran ulang** jari yang sama mengganti catatan lama (satu baris per karyawan + jari).
   - **Audit.** Mulai, batal, diambil mesin, langkah, hasil, dan kedaluwarsa dicatat. Pelaku laporan mesin `mesin <ID mesin>`, kedaluwarsa `sistem`.
   - **Web** mengikuti status lewat SSE (event `DEVICE_COMMAND`) dengan polling 3 detik sebagai cadangan. Teks status dibuat server.
@@ -471,6 +473,37 @@ Nilai-nilai tersebut harus dicatat dalam konfigurasi atau keputusan bisnis yang 
 **Alasan:** sensor R503 belum diuji, jadi penyimpanan template ditunda tanpa menahan alur pendaftaran. Heartbeat 5 detik sudah ada dan cukup cepat untuk pendaftaran interaktif, tanpa koneksi dari server ke mesin (K-087).
 
 **Alternatif yang dipertimbangkan:** menyimpan template sekarang (ditolak: format dan kemampuan R503 belum terbukti), perintah dikirim sekali saja (ditolak: balasan heartbeat yang hilang membuat perintah tersangkut), dan menerima hasil setelah batal (ditolak: admin sudah melihat "dibatalkan"; selisih isi sensor dibereskan lewat rekonsiliasi Rencana 4).
+
+### K-101 — Perapian Rencana 3
+
+- **Kode batas waktu server.** Batas waktu tanpa hasil dari server memakai kode `TIDAK_ADA_HASIL` (*"Mesin tidak merespons. Periksa koneksi mesin."*), terpisah dari `WAKTU_HABIS` yang dikirim mesin saat tidak ada jari (*"Tidak ada jari yang ditempelkan. Ulangi pendaftaran."*). Dengan begitu pesan web menunjuk penyebab yang benar. Kontrak mesin tidak berubah. Data development lama berkode `WAKTU_HABIS` dari server tidak dimigrasi.
+- **Batal yang bentrok.** Batal yang bentrok dengan laporan mesin (`@Version`) dicoba ulang sekali, dan yang tersimpan lebih dulu yang berlaku. Kalau masih bentrok setelah itu, admin mendapat pesan umum "Data baru saja diubah…".
+- **Audit catatan jari.** Pendaftaran dan pendaftaran ulang jari dicatat di audit (`FINGERPRINT_ENROLLED`, `FINGERPRINT_REENROLLED`) dengan isi sebelum dan sesudahnya, tanpa template.
+- **Update kolom yang berubah saja.** `Employee` hanya menulis kolom yang berubah (`@DynamicUpdate`), agar persetujuan sidik jari dan edit HR yang bersamaan tidak saling menimpa.
+
+**Alasan:** kekurangan yang ditemukan di review akhir Rencana 3 (M1, M3, M4, M5).
+
+**Alternatif yang dipertimbangkan:** `@Version` pada `Employee` (ditolak: edit HR yang bersamaan dengan persetujuan akan gagal padahal kolomnya berbeda), dan satu kode `WAKTU_HABIS` untuk keduanya (ditolak: pesan koneksi menyesatkan saat jari tidak ditempelkan).
+
+### K-102 — Rincian Rencana 5: hapus sidik jari, kunci PIN, dan kapasitas sensor
+
+Merinci K-090 dan K-093. Rincian lengkap ada di spec §17 ([pendaftaran-sidik-jari-web-design.md](superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md)).
+
+- **Keputusan pengguna (2026-10-18):**
+  - **A.** PIN tetap terkunci sampai semua mesin melaporkan penghapusan selesai: tidak bisa diganti, dikosongkan, atau diberikan ke karyawan lain.
+  - **B.** Menonaktifkan mesin membuka kunci PIN; perintah hapus untuk mesin nonaktif tidak dihitung.
+  - **Tanggal keluar.** Sidik jari dihapus saat karyawan dinonaktifkan atau saat tanggal keluarnya tiba, bukan saat tanggal keluar diisi.
+- **Perintah hapus.** `DELETE_TEMPLATE` (PIN + jari) dan `DELETE_EMPLOYEE` (PIN). Satu baris per alat rakitan yang pernah tersambung, aktif maupun nonaktif; mesin yang belum pernah tersambung dan X401 dilewati. Perintah hapus tidak kedaluwarsa, tidak bisa dibatalkan, tanpa laporan langkah, dan idempoten di mesin.
+- **Hapus satu jari.** Catatan jari langsung dihapus (audit `FINGERPRINT_DELETED`), lalu perintah dibuat per mesin (audit `DELETE_REQUEST`). Ditolak jika jari itu sedang didaftarkan.
+- **Karyawan keluar.** Tanggal keluar adalah hari kerja terakhir; penghapusan berjalan mulai 00.00 keesokan harinya menurut zona waktu cabang. Perubahan karyawan diproses di transaksi yang sama; tanggal keluar yang tiba belakangan ditangkap pemeriksaan terjadwal setiap jam (pelaku `sistem`). Penanda `employees.fingerprints_removed_at` mencegah pengulangan dan dikosongkan saat karyawan aktif kembali.
+- **Kunci PIN.** PIN *menunggu penghapusan* jika ada `DELETE_*` dengan PIN itu di mesin aktif berstatus `MENUNGGU`, `DIKIRIM`, atau `GAGAL`. Pemeriksaan kunci berjalan sebelum penghapusan, sehingga mengganti PIN dan menonaktifkan sekaligus ditolak tanpa menghapus apa pun. `ENROLL` ke mesin yang masih punya penghapusan untuk PIN itu ditolak.
+- **"Coba lagi".** Hanya `DELETE_*` berstatus `GAGAL`; perintah yang sama (ID sama) kembali `MENUNGGU` (audit `COMMAND_RETRY`). Kontrak mesin: ID boleh dilupakan setelah hasilnya diterima server, jadi ID yang muncul lagi dikerjakan ulang.
+- **Kapasitas sensor.** `sensor.used`/`capacity` terakhir dari heartbeat disimpan di `devices`; peringatan di atas 90% (`app.device.sensor-warning-percent`, parameter teknis).
+- **Catatan X401.** Bagian Sidik Jari mengingatkan untuk menghapus langsung di mesin X401 jika ada mesin X401 aktif.
+
+**Alasan:** template belum disimpan server dan penyalinan antar mesin belum ada (Rencana 4), jadi server tidak tahu pasti mesin mana yang menyimpan jari.
+
+**Alternatif yang dipertimbangkan:** membuka kunci PIN segera setelah catatan di server dihapus (ditolak: jari lama di mesin bisa tercatat atas nama pemilik PIN baru), dan menghapus saat tanggal keluar diisi (ditolak pengguna: karyawan masih bekerja sampai hari terakhirnya).
 
 ### Fase 4 — Izin dan Cuti (K-070–K-082)
 

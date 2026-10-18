@@ -207,6 +207,12 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah tersedia spesifikasi protokol komunikasi dan format data scan?
 - Bagaimana perangkat mengidentifikasi karyawan yang berhasil melakukan pemindaian?
 
+**Dijawab sebagian 2026-10-18:**
+- Alat rakitan memakai ESP32 DevKit, sensor R503, TFT 2,4" non-touch, RTC DS3231, microSD, dan buzzer (spec pendaftaran sidik jari §1).
+- Protokolnya `/device/v1`, dengan mesin yang menghubungi server (K-087, [`protokol-alat-rakitan.md`](./protokol-alat-rakitan.md)).
+- Karyawan dikenali lewat satu PIN per karyawan (K-056).
+- Masih terbuka: siapa yang menulis dan menyimpan firmware (Q-034).
+
 **Dampak:** desain API, protokol komunikasi, dan integrasi backend.
 
 ### Q-019. Penyimpanan dan pencocokan sidik jari
@@ -216,6 +222,15 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah karyawan harus didaftarkan di setiap mesin cabang?
 - Bagaimana proses penonaktifan karyawan dan penghapusan identitas biometrik dari perangkat?
 - Bagaimana jika perangkat diganti atau mengalami kerusakan?
+
+**Dijawab sebagian 2026-10-18:**
+- Pendaftaran dipicu dari web, dengan persetujuan karyawan yang tercatat sekali (K-091, K-094, K-100).
+- Template dicocokkan di sensor dan tidak disimpan server.
+- X401 tetap didaftarkan langsung di mesin.
+- Penghapusan saat karyawan nonaktif atau keluar: **dijawab 2026-10-18** (K-102). Sidik jari dihapus dari semua alat rakitan saat dinonaktifkan atau setelah tanggal keluar lewat; X401 dihapus langsung di mesin.
+- Masih terbuka:
+  - apakah sidik jari disalin antar mesin atau didaftar ulang di setiap mesin (bergantung Q-035, Rencana 4);
+  - penanganan mesin yang rusak atau diganti.
 
 **Dampak:** arsitektur enrollment, privasi biometrik, dan pengelolaan karyawan.
 
