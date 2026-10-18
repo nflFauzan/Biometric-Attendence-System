@@ -304,6 +304,26 @@ class AccessControlTests extends IntegrationTest {
 		mockMvc.perform(build(HttpMethod.POST, url, null)).andExpect(status().isUnauthorized());
 	}
 
+	/** Rencana 3: persetujuan, pendaftaran sidik jari, dan perintah mesin untuk Owner dan HR/Finance (spec §3.6). */
+	@Test
+	void fingerprintAndCommandEndpointsForOwnerAndHrOnly() throws Exception {
+		String command = "/api/device-commands/" + java.util.UUID.randomUUID();
+		Object[][] endpoints = { { HttpMethod.GET, "/api/employees/" + MISSING + "/fingerprints", null },
+				{ HttpMethod.POST, "/api/employees/" + MISSING + "/fingerprint-consent", null },
+				{ HttpMethod.POST, "/api/employees/" + MISSING + "/fingerprints/enroll",
+						"{\"deviceId\":1,\"finger\":1}" },
+				{ HttpMethod.GET, command, null }, { HttpMethod.POST, command + "/cancel", null } };
+		for (Object[] endpoint : endpoints) {
+			HttpMethod method = (HttpMethod) endpoint[0];
+			String url = (String) endpoint[1];
+			String body = (String) endpoint[2];
+			mockMvc.perform(build(method, url, body).with(OWNER)).andExpect(status().isNotFound());
+			mockMvc.perform(build(method, url, body).with(HR_FINANCE)).andExpect(status().isNotFound());
+			mockMvc.perform(build(method, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
+			mockMvc.perform(build(method, url, body)).andExpect(status().isUnauthorized());
+		}
+	}
+
 	@ParameterizedTest
 	@ValueSource(strings = { "/api/branches", "/api/employee-categories", "/api/employees", "/api/devices",
 			"/api/users" })

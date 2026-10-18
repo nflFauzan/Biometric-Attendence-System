@@ -43,12 +43,55 @@ public abstract class RakitanFixtures extends AttendanceFixtures {
 		return JsonPath.read(body, "$.issuedKey.deviceKey");
 	}
 
+	/** Alat rakitan yang sudah sekali heartbeat sehingga Online. */
+	protected Rakitan onlineRakitan(long branchId) throws Exception {
+		Rakitan rakitan = createRakitan(branchId);
+		heartbeat(rakitan.key(), "{}").andExpect(status().isOk());
+		return rakitan;
+	}
+
+	/** Karyawan aktif dengan PIN mesin dan persetujuan sidik jari (K-091). */
+	protected long readyEmployee(long branchId) throws Exception {
+		long id = createEmployee(branchId, unique("P"));
+		consent(id).andExpect(status().isOk());
+		return id;
+	}
+
+	protected ResultActions consent(long employeeId) throws Exception {
+		return mockMvc.perform(post("/api/employees/" + employeeId + "/fingerprint-consent").with(OWNER).with(csrf()));
+	}
+
+	protected ResultActions enroll(long employeeId, long deviceId, int finger) throws Exception {
+		return mockMvc.perform(post("/api/employees/" + employeeId + "/fingerprints/enroll").with(OWNER)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"deviceId\":" + deviceId + ",\"finger\":" + finger + "}"));
+	}
+
+	/** Mulai pendaftaran yang pasti berhasil dibuat; mengembalikan ID perintah. */
+	protected String enrollOk(long employeeId, long deviceId, int finger) throws Exception {
+		String body = enroll(employeeId, deviceId, finger).andExpect(status().isCreated())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		return JsonPath.read(body, "$.id");
+	}
+
 	protected ResultActions heartbeat(String key, String json) throws Exception {
 		return mockMvc.perform(device("/device/v1/heartbeat", key).content(json));
 	}
 
 	protected ResultActions postScans(String key, String json) throws Exception {
 		return mockMvc.perform(device("/device/v1/scans", key).content(json));
+	}
+
+	protected ResultActions progress(String key, String commandId, int step) throws Exception {
+		return mockMvc.perform(device("/device/v1/commands/" + commandId + "/progress", key)
+			.content("{\"step\":" + step + "}"));
+	}
+
+	protected ResultActions result(String key, String commandId, String json) throws Exception {
+		return mockMvc.perform(device("/device/v1/commands/" + commandId + "/result", key).content(json));
 	}
 
 	private static MockHttpServletRequestBuilder device(String url, String key) {
