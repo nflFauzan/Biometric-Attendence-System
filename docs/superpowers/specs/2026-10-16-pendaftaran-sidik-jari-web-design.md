@@ -455,3 +455,88 @@ Kontrak lengkap ada di [`docs/protokol-alat-rakitan.md`](../../protokol-alat-rak
     - DTO mesin ditambah data sensor dan tanda hampir penuh.
 11. **Protokol dan simulator.** `protokol-alat-rakitan.md` menambah format kedua perintah di balasan heartbeat (`{id, type, pin, finger?}`), aturan "hapus yang tidak ada = `BERHASIL`", dan urutan pengerjaan sesuai urutan daftar. `rakitan.mjs live` menjalankan penghapusan (berhasil, atau gagal dengan kode pilihan) dan melaporkan `sensor` di heartbeat.
 12. **Di luar Rencana 5:** rekonsiliasi dan penyalinan (Rencana 4), serta penghapusan template di server (belum ada template).
+
+## 18. Rincian Rencana 6: pengaturan ringan, `APPLY_NETWORK`, `ROTATE_KEY`, dan konfirmasi ulang password (2026-10-20)
+
+Pengguna meminta langsung dikerjakan tanpa tanya-jawab ("langsung eksekusi saja"). Karena itu semua rincian di bawah adalah **keputusan Claude** yang mengikuti §4, §6, dan §7. Pengguna bisa mengubahnya saat membaca.
+
+1. **Pengaturan ringan per mesin (§7.1, §7.2).**
+   - Tabel baru `device_settings`, satu baris per alat rakitan. Baris dibuat saat pengaturan pertama kali disimpan dari web.
+   - Selama baris belum ada, server melaporkan versi 0 dengan nilai bawaan dan **tidak mengirim apa pun**; mesin memakai bawaan firmware. Nilai bawaan adalah parameter teknis di `application.properties` (`app.device.settings.default.*`) dan wajib sama dengan bawaan firmware.
+   - Isinya:
+
+     | Isian | Batas | Bawaan |
+     |---|---|---|
+     | `headerText` (judul layar) | ≤ 32 karakter, boleh kosong (kosong = nama cabang) | kosong |
+     | `greeting` (pesan sapaan) | ≤ 64 karakter | "Silakan tempelkan jari" |
+     | `nameDisplay` | `FULL`, `FIRST`, `PIN` | `FULL` |
+     | `brightness` | 10–100 (%) | 80 |
+     | `buzzerVolume` | 0–100 (%), 0 = buzzer mati | 50 |
+     | `duplicateNoticeSeconds` (jeda "Sudah tercatat") | 0–600, 0 = mati | 60 |
+     | `heartbeatSeconds` | 2–20 | 5 |
+
+   - **Batas waktu pendaftaran tidak dimasukkan ke paket.** Nilai itu sudah dikirim di setiap perintah `ENROLL` (`timeoutSeconds`, K-094), dan batas waktu server bergantung padanya. Dua sumber untuk satu nilai bisa saling bertentangan.
+   - **Interval heartbeat dibatasi paling lama 20 detik**, karena `ENROLL` kedaluwarsa jika tidak diambil dalam 30 detik.
+   - **Zona waktu tidak masuk paket**, karena sudah dikirim di setiap heartbeat (`timezone`) dan otomatis mengikuti perubahan cabang.
+   - Batas panjang teks bergantung pada ukuran layar yang belum diketahui (**Q-037**).
+   - Setiap simpan menaikkan `version` per mesin, termasuk saat disimpan untuk semua mesin sekaligus (audit `UPDATE_SETTINGS` per mesin). Simpan tanpa perubahan nilai tidak menaikkan versi.
+2. **Protokol pengaturan ringan.**
+   - Heartbeat membawa `settingsVersion` (versi yang sedang dipakai mesin, 0 jika belum pernah menerima).
+   - Jika versi server lebih baru, balasan berisi `settings` lengkap beserta `version`-nya; jika tidak, `settings` bernilai `null`.
+   - Server menyimpan versi yang dilaporkan mesin (`devices.settings_applied_version`) supaya halaman Mesin bisa menampilkan *"Pengaturan terbaru sudah diterapkan ✓"* atau *"Menunggu mesin menerapkan versi N"*.
+3. **Konfirmasi ulang password (§7.5, K-098).**
+   - Request tindakan berisiko membawa `confirmPassword`, yang dicocokkan dengan password akun yang sedang login.
+   - Jika salah, balasannya 400 *"Password salah."* Bukan 401, supaya sesi tidak dianggap habis.
+   - Berlaku untuk `APPLY_NETWORK`, "Ganti kunci" (`ROTATE_KEY`), dan **"Buat kode baru"** (cabut kunci, §15) yang sudah ada. Kontrak `POST /api/devices/{id}/key` berubah: sekarang wajib membawa body.
+   - Batal perintah berisiko tidak perlu password.
+4. **Perintah berisiko di antrean (§4.2).**
+   - Jenis baru: `APPLY_NETWORK` dan `ROTATE_KEY`. Unique index menjaga satu perintah berisiko aktif (`MENUNGGU`/`DIKIRIM`) per mesin. Permintaan kedua ditolak dengan *"Mesin masih menerapkan perubahan jaringan atau kunci."*
+   - Perintah berisiko tidak dikirim di heartbeat selama mesin punya `ENROLL` aktif.
+   - `ENROLL` ditolak selama ada perintah berisiko aktif, dengan pesan yang sama seperti di atas.
+   - Perintah berisiko tidak kedaluwarsa selama `MENUNGGU`, jadi mesin offline tetap menerimanya saat kembali online. Hanya Owner yang bisa membatalkannya, dan hanya selama `MENUNGGU`. Setelah `DIKIRIM`, batal ditolak dengan *"Perintah sudah dikirim ke mesin dan tidak bisa dibatalkan."*
+5. **`APPLY_NETWORK` (§7.3).**
+   - **Isi.** Daftar Wi-Fi berurutan (1–5 jaringan) dan/atau alamat server; minimal salah satunya diisi.
+     - SSID 1–32 karakter, tidak boleh ganda.
+     - Password kosong (Wi-Fi terbuka) atau 8–63 karakter (WPA2).
+     - Alamat server diawali `http://` atau `https://`.
+     - Daftar Wi-Fi kosong berarti Wi-Fi tidak diubah; alamat server kosong berarti server tidak diubah.
+   - **Penyimpanan.** Setiap permintaan disimpan sebagai *paket jaringan* (`device_network_configs` + `device_network_wifi`). Password Wi-Fi disimpan terenkripsi AES-256-GCM (K-089). Perintah hanya menyimpan rujukan ke paket itu.
+   - **Paket yang berlaku.** Saat mesin melapor `BERHASIL`, paket menjadi "jaringan yang berlaku" mesin itu (`devices.network_config_id`). Halaman Mesin menampilkan nama-nama Wi-Fi dan alamat server yang berlaku, atau *"Belum pernah diatur dari web"*.
+   - **Password tulis saja.** Saat mengubah, password yang dikosongkan untuk SSID yang sudah ada di jaringan yang berlaku berarti *pakai password tersimpan*. Untuk SSID baru, password kosong berarti Wi-Fi terbuka. Form menjelaskan kedua hal ini.
+   - **Heartbeat.** Balasan heartbeat menyisipkan `network: {wifi: [{ssid, password}], serverUrl}`, sudah didekripsi, sehingga password hanya lewat HTTPS ke mesin. `wifi`/`serverUrl` bernilai `null` jika tidak diubah.
+   - **Hasil.** Mesin melapor `BERHASIL` setelah heartbeat dengan pengaturan baru berhasil. Jika gagal, mesin kembali ke pengaturan lama lalu melapor `GAGAL` dengan `error` dan `detail` opsional, misalnya `WIFI_GAGAL` + SSID atau `SERVER_TIDAK_TERJANGKAU`.
+   - **Tanpa hasil.** Perintah `DIKIRIM` tanpa hasil dalam 10 menit (`app.device.network.result-timeout`) dianggap `GAGAL` dengan `TIDAK_ADA_HASIL`.
+6. **`ROTATE_KEY` (§7.3).**
+   - **Kunci baru.** Server membuat kunci baru dan menyimpan hash-nya di `devices.pending_key_hash`, serta kunci itu sendiri terenkripsi di `devices.pending_key_enc`, karena heartbeat perlu mengirim ulang kunci sampai dipakai. Balasan heartbeat menyisipkan `key`.
+   - **Masa transisi.** Selama itu kunci lama dan kunci baru sama-sama diterima.
+   - **Selesai.** Kontak pertama dengan kunci baru memindahkan kunci baru menjadi kunci utama secara atomik, mengosongkan kunci tertunda, dan menyelesaikan perintah sebagai `BERHASIL` (pelaku `mesin <ID>`). Mesin tidak perlu mengirim hasil; hasil yang tetap dikirim dibalas 200 tanpa efek. Kontak ini tidak memunculkan pemberitahuan "mesin terhubung".
+   - **Gagal.** Mesin yang tidak bisa menyimpan kunci melapor `GAGAL` dengan kunci lama, dan kunci tertunda dibuang.
+   - **24 jam.** Jika kunci baru tidak dipakai dalam 24 jam sejak perintah dibuat (`app.device.rotate-key.timeout`), perintah `GAGAL` dengan `KUNCI_BARU_TIDAK_DIPAKAI`, kunci tertunda dibuang, dan kunci lama tetap berlaku. Membatalkan `ROTATE_KEY` yang masih `MENUNGGU` juga membuang kunci tertunda.
+   - **"Buat kode baru" (cabut kunci).** Membuang kunci tertunda dan membatalkan `ROTATE_KEY` yang aktif.
+7. **Kunci enkripsi server (K-089).**
+   - Dibaca dari environment `DATA_ENCRYPTION_KEY`: 32 byte dalam base64. Kunci tidak disimpan di database dan tidak di-commit.
+   - Tanpa kunci ini, `APPLY_NETWORK` dan "Ganti kunci" ditolak dengan *"Kunci enkripsi server belum diatur. Hubungi pengelola server."* Fitur lain tetap berjalan.
+   - Format sandi: `v1:` + base64(IV 12 byte ‖ ciphertext + tag), supaya kunci bisa diganti di versi berikutnya.
+   - `.env.example` dan `docker-compose.yml` menambah variabelnya.
+8. **API web** (semua masuk `SecurityConfig` dan `AccessControlTests`):
+   - `GET`/`PUT /api/devices/{id}/settings`: Owner dan HR/Finance.
+   - `PUT /api/device-settings`: Owner dan HR/Finance; berlaku untuk semua alat rakitan aktif.
+   - `GET /api/devices/{id}/network`: Owner. Berisi jaringan yang berlaku (tanpa password) dan perintah jaringan/kunci terakhir.
+   - `POST /api/devices/{id}/network`: Owner, dengan `confirmPassword`.
+   - `POST /api/devices/{id}/rotate-key`: Owner, dengan `confirmPassword`.
+   - `POST /api/devices/{id}/key`: tetap Owner, sekarang dengan `confirmPassword`.
+   - DTO mesin ditambah `settingsVersion`, `settingsAppliedVersion`, dan ringkasan perintah berisiko terakhir.
+9. **Audit.**
+   - Aksi baru: `UPDATE_SETTINGS`, `NETWORK_REQUEST`, `ROTATE_KEY_REQUEST`, `KEY_ROTATED`.
+   - Aksi yang sudah ada tetap dipakai: `COMMAND_SENT`, `COMMAND_RESULT`, `COMMAND_EXPIRED`, `CANCEL_COMMAND`.
+   - Audit tidak mencatat password Wi-Fi, kunci, atau hash kunci; snapshot jaringan hanya berisi SSID dan alamat server.
+10. **Frontend.**
+    - Tombol **"Pengaturan"** di setiap baris alat rakitan membuka dialog dengan bagian **Tampilan & suara** (pengaturan ringan, Owner dan HR/Finance), **Jaringan**, dan **Kunci**. Dua bagian terakhir hanya untuk Owner.
+    - Tombol **"Pengaturan semua mesin"** di toolbar menyimpan pengaturan ringan ke semua alat rakitan aktif.
+    - Tindakan berisiko membuka dialog konfirmasi password.
+    - Status perintah berisiko diperbarui lewat SSE `DEVICE_COMMAND` yang sudah ada.
+11. **Simulator.**
+    - `rakitan.mjs live` menyimpan versi pengaturan ringan dan melaporkannya di heartbeat.
+    - Opsi `--network-result BERHASIL|<kode>` mengerjakan `APPLY_NETWORK` dan melapor sesuai opsi.
+    - Untuk `ROTATE_KEY`, simulator memakai kunci baru di heartbeat berikutnya; dengan `--rotate-result <kode>` ia melapor gagal.
+12. **Di luar Rencana 6:** update firmware (Rencana 7), dan pindah server ke instance lain (cukup didokumentasikan seperti §7.3).

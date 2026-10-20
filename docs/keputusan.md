@@ -116,6 +116,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-100 | 2026-10-18 | Rincian Rencana 3: template belum disimpan, perintah dikirim ulang lewat heartbeat, daftar `cancel`, laporan setelah batal diabaikan, unique index untuk satu `ENROLL` aktif | Disepakati |
 | K-101 | 2026-10-18 | Batas waktu tanpa hasil dari server memakai kode `TIDAK_ADA_HASIL`, terpisah dari `WAKTU_HABIS` mesin; batal yang bentrok dicoba ulang sekali | Disepakati |
 | K-102 | 2026-10-18 | Rincian Rencana 5: perintah `DELETE_TEMPLATE`/`DELETE_EMPLOYEE` ke semua alat rakitan yang pernah tersambung, hapus saat nonaktif atau setelah tanggal keluar lewat, PIN terkunci sampai semua mesin aktif selesai menghapus, "Coba lagi", peringatan kapasitas sensor (merinci K-090 dan K-093) | Disepakati |
+| K-103 | 2026-10-20 | Cabang absen diatur per karyawan: sidik jari hanya didaftarkan di mesin cabang yang diizinkan; scan dari cabang lain disimpan tetapi tidak masuk rekap sampai ditinjau. Menjawab sebagian Q-022, mengganti sebagian K-065 | Disepakati, belum diterapkan |
 
 ---
 
@@ -504,6 +505,24 @@ Merinci K-090 dan K-093. Rincian lengkap ada di spec §17 ([pendaftaran-sidik-ja
 **Alasan:** template belum disimpan server dan penyalinan antar mesin belum ada (Rencana 4), jadi server tidak tahu pasti mesin mana yang menyimpan jari.
 
 **Alternatif yang dipertimbangkan:** membuka kunci PIN segera setelah catatan di server dihapus (ditolak: jari lama di mesin bisa tercatat atas nama pemilik PIN baru), dan menghapus saat tanggal keluar diisi (ditolak pengguna: karyawan masih bekerja sampai hari terakhirnya).
+
+### K-103 — Cabang absen per karyawan
+
+**Keputusan (2026-10-20, jawaban client disampaikan pengguna):** client memiliki 25 karyawan dan 3 cabang dengan 1 mesin per cabang. Cabang tempat karyawan boleh absen diatur dari web, per karyawan.
+
+- **Bentuk.** Di Detail Karyawan ada daftar centang cabang yang boleh dipakai. Cabang penempatan selalu tercentang.
+- **Hak akses.** Owner dan HR/Finance boleh mengubahnya. Setiap perubahan dicatat di audit log.
+- **Penegakan utama.** Sidik jari hanya didaftarkan (`ENROLL`) ke alat rakitan di cabang yang diizinkan, sehingga mesin cabang lain tidak mengenali karyawan itu.
+- **Pengaman di server.** Scan dari mesin di cabang yang tidak diizinkan (misalnya lewat X401, atau jari yang belum terhapus) tetap disimpan apa adanya, tetapi **tidak masuk rekap** sampai ditinjau. Ini mengganti perilaku `CABANG_BERBEDA` di K-065, yang saat ini tetap memasukkan scan ke rekap.
+
+**Belum diputuskan** (dibahas di rencana pengerjaannya):
+- cara meninjau scan yang tertahan, dan hasilnya (masuk rekap atau tetap diabaikan);
+- apa yang terjadi pada sidik jari di mesin saat sebuah cabang dicabut dari daftar (misalnya `DELETE_EMPLOYEE` ke mesin cabang itu, mengikuti K-102);
+- perlakuan scan lama sebelum pengaturan ini berlaku.
+
+**Alasan:** client ingin sebagian karyawan bisa absen di cabang lain dan sebagian tidak. Menolak di tingkat pendaftaran sidik jari lebih kuat daripada hanya memberi penanda, dan pengaman di server tetap diperlukan untuk X401 dan jari yang belum terhapus.
+
+**Alternatif yang dipertimbangkan:** tetap menerima scan dan hanya menandainya (ditolak: karyawan yang tidak diizinkan tetap tercatat hadir), menolak total tanpa peninjauan (ditolak: tidak ada jalan untuk kasus sah), dan satu sakelar "semua cabang / cabang penempatan" (ditolak: kurang fleksibel jika cabang bertambah).
 
 ### Fase 4 — Izin dan Cuti (K-070–K-082)
 

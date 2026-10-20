@@ -262,6 +262,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah semua cabang menggunakan zona waktu WIB?
 - Bagaimana sistem menangani perangkat yang jamnya berbeda dari waktu server?
 
+**Dijawab sebagian 2026-10-20:** cabang yang boleh dipakai diatur per karyawan di web oleh Owner atau HR/Finance. Sidik jari hanya didaftarkan di mesin cabang yang diizinkan; scan dari cabang lain disimpan tetapi tidak masuk rekap sampai ditinjau (K-103). Masih terbuka: cara peninjauan scan yang tertahan, zona waktu tiap cabang.
+
 **Dampak:** validasi lokasi absensi, rekap cabang, dan akurasi waktu.
 
 ## 6. Keamanan dan Perlindungan Data
