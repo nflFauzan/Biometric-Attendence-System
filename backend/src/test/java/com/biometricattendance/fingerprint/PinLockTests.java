@@ -22,7 +22,8 @@ class PinLockTests extends RakitanFixtures {
 
 	private static final String HAS_FINGERS = "Hapus sidik jari dulu sebelum mengganti PIN.";
 	private static final String WAIT_DELETE = "Tunggu sampai sidik jari selesai dihapus di semua mesin.";
-	private static final String PIN_PENDING = "PIN ini masih menunggu penghapusan sidik jari di mesin.";
+	private static final String ENROLL_ACTIVE = "Tunggu sampai pendaftaran sidik jari selesai sebelum mengganti PIN.";
+	private static final String PIN_PENDING ="PIN ini masih menunggu penghapusan sidik jari di mesin.";
 
 	@Test
 	void pinLockedWhileFingerRegistered() throws Exception {
@@ -110,6 +111,22 @@ class PinLockTests extends RakitanFixtures {
 
 		assertThat(jdbc.queryForObject("select count(*) from employee_fingerprints where employee_id = ?",
 				Integer.class, employee)).isEqualTo(1);
+	}
+
+	/** Final review R5 #1: perintah ENROLL membawa PIN saat dibuat, jadi PIN terkunci sampai pendaftaran selesai. */
+	@Test
+	void pinLockedWhileEnrollInFlight() throws Exception {
+		long branch = createBranch();
+		Rakitan a = onlineRakitan(branch);
+		long employee = readyEmployee(branch);
+		String id = enrollOk(employee, a.id(), 1);
+
+		expectRejected(saveEmployee(employee, unique("P"), null, true), ENROLL_ACTIVE);
+		heartbeat(a.key(), "{}").andExpect(status().isOk());
+		expectRejected(saveEmployee(employee, null, null, true), ENROLL_ACTIVE);
+
+		result(a.key(), id, "{\"status\":\"GAGAL\",\"error\":\"SENSOR_ERROR\"}").andExpect(status().isOk());
+		saveEmployee(employee, unique("P"), null, true).andExpect(status().isOk());
 	}
 
 	@Test

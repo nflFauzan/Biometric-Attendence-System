@@ -430,6 +430,7 @@ Kontrak lengkap ada di [`docs/protokol-alat-rakitan.md`](../../protokol-alat-rak
    - **Pendaftaran baru:** syarat karyawan di §16 butir 7 dilonggarkan. `ENROLL` boleh untuk karyawan aktif yang tanggal keluarnya kosong **atau belum lewat**. *(Keputusan Claude, agar konsisten dengan tafsiran di atas.)*
    - **Mengaktifkan kembali karyawan** tidak memulihkan apa pun; sidik jari didaftar ulang.
 5. **Kunci PIN (K-093, diperluas).** Sebuah PIN dianggap *menunggu penghapusan* jika ada perintah `DELETE_*` dengan PIN itu, di mesin yang **aktif**, berstatus `MENUNGGU`, `DIKIRIM`, atau `GAGAL`. Aturannya:
+   - Mengganti atau mengosongkan PIN ditolak selama karyawan punya `ENROLL` yang masih `MENUNGGU` atau `DIKIRIM`, karena perintah itu membawa PIN lama ke mesin. Pesannya *"Tunggu sampai pendaftaran sidik jari selesai sebelum mengganti PIN."* (tambahan dari review akhir Rencana 5, 2026-10-20)
    - Mengganti atau mengosongkan PIN ditolak jika karyawan masih punya baris `employee_fingerprints`. Pesannya *"Hapus sidik jari dulu sebelum mengganti PIN."*
    - Mengganti atau mengosongkan PIN juga ditolak jika PIN lamanya sedang menunggu penghapusan. Pesannya *"Tunggu sampai sidik jari selesai dihapus di semua mesin."*
    - Membuat karyawan baru atau mengisi PIN karyawan lain dengan PIN yang sedang menunggu penghapusan ditolak. Pesannya *"PIN ini masih menunggu penghapusan sidik jari di mesin."*
