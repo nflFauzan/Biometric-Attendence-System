@@ -27,6 +27,10 @@ public final class DeviceDtos {
 			@Pattern(regexp = "ZK_PUSH|RAKITAN_V1", message = "Jenis mesin tidak dikenal") String protocol) {
 	}
 
+	/** Konfirmasi ulang password untuk tindakan berisiko pada mesin (K-098, spec §18.3). */
+	public record ConfirmRequest(@NotBlank(message = "Password wajib diisi") String confirmPassword) {
+	}
+
 	/**
 	 * Kunci alat rakitan yang baru diterbitkan; hanya ada di response penerbitan (K-088).
 	 *
@@ -38,10 +42,15 @@ public final class DeviceDtos {
 	public record DeviceResponse(Long id, String name, String serialNumber, Long branchId, String branchName,
 			boolean active, String protocol, Instant acceptScansFrom, long ignoredScanCount, Instant lastSeenAt,
 			String lastIp, String firmware, boolean online, boolean keyIssued, Instant keyFirstUsedAt,
-			String lastInfo, Integer sensorUsed, Integer sensorCapacity, boolean sensorAlmostFull, IssuedKey issuedKey) {
+			String lastInfo, Integer sensorUsed, Integer sensorCapacity, boolean sensorAlmostFull, int settingsVersion,
+			int settingsAppliedVersion, IssuedKey issuedKey) {
 
-		/** @param sensorWarningPercent batas peringatan sensor ({@code app.device.sensor-warning-percent}) */
-		public static DeviceResponse from(Device device, boolean online, int sensorWarningPercent) {
+		/**
+		 * @param sensorWarningPercent batas peringatan sensor ({@code app.device.sensor-warning-percent})
+		 * @param settingsVersion versi paket pengaturan ringan di server; 0 = belum pernah disimpan (spec §18.1)
+		 */
+		public static DeviceResponse from(Device device, boolean online, int sensorWarningPercent,
+				int settingsVersion) {
 			Integer used = device.getSensorUsed();
 			Integer capacity = device.getSensorCapacity();
 			boolean almostFull = used != null && capacity != null && used * 100L > capacity * (long) sensorWarningPercent;
@@ -49,13 +58,14 @@ public final class DeviceDtos {
 					device.getBranch().getId(), device.getBranch().getName(), device.isActive(), device.getProtocol(),
 					device.getAcceptScansFrom(), device.getIgnoredScanCount(), device.getLastSeenAt(),
 					device.getLastIp(), device.getFirmware(), online, device.getKeyHash() != null,
-					device.getKeyFirstUsedAt(), device.getLastInfo(), used, capacity, almostFull, null);
+					device.getKeyFirstUsedAt(), device.getLastInfo(), used, capacity, almostFull, settingsVersion,
+					device.getSettingsAppliedVersion(), null);
 		}
 
 		public DeviceResponse withKey(IssuedKey key) {
 			return new DeviceResponse(id, name, serialNumber, branchId, branchName, active, protocol, acceptScansFrom,
 					ignoredScanCount, lastSeenAt, lastIp, firmware, online, keyIssued, keyFirstUsedAt, lastInfo, sensorUsed,
-					sensorCapacity, sensorAlmostFull, key);
+					sensorCapacity, sensorAlmostFull, settingsVersion, settingsAppliedVersion, key);
 		}
 
 	}

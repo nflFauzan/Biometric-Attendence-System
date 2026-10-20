@@ -80,6 +80,19 @@ public class Device {
 	/** Kontak pertama yang berhasil dengan kunci saat ini; kosong = kunci baru belum dipakai. */
 	private Instant keyFirstUsedAt;
 
+	/** ROTATE_KEY (spec §18.6): hash kunci baru yang belum dipakai mesin; kunci lama tetap berlaku. */
+	private String pendingKeyHash;
+
+	/** Kunci baru terenkripsi (K-089), dikirim ulang lewat heartbeat sampai dipakai. */
+	private String pendingKeyEnc;
+
+	/** Versi paket pengaturan ringan yang terakhir dilaporkan mesin (spec §18.2). */
+	@Column(nullable = false)
+	private int settingsAppliedVersion;
+
+	/** Paket jaringan yang terakhir berhasil diterapkan; kosong = belum pernah diatur dari web (spec §18.5). */
+	private Long networkConfigId;
+
 	@CreationTimestamp
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
@@ -153,6 +166,41 @@ public class Device {
 
 	public void markKeyFirstUsed(Instant at) {
 		this.keyFirstUsedAt = at;
+	}
+
+	public String getPendingKeyHash() {
+		return pendingKeyHash;
+	}
+
+	public String getPendingKeyEnc() {
+		return pendingKeyEnc;
+	}
+
+	/** Kunci baru menunggu dipakai mesin; kunci saat ini tetap berlaku sampai itu terjadi (spec §18.6). */
+	public void setPendingKey(String hash, String encrypted) {
+		this.pendingKeyHash = hash;
+		this.pendingKeyEnc = encrypted;
+	}
+
+	public void clearPendingKey() {
+		this.pendingKeyHash = null;
+		this.pendingKeyEnc = null;
+	}
+
+	public int getSettingsAppliedVersion() {
+		return settingsAppliedVersion;
+	}
+
+	public void recordSettingsApplied(int version) {
+		this.settingsAppliedVersion = version;
+	}
+
+	public Long getNetworkConfigId() {
+		return networkConfigId;
+	}
+
+	public void applyNetwork(Long networkConfigId) {
+		this.networkConfigId = networkConfigId;
 	}
 
 	public Instant getAcceptScansFrom() {

@@ -1,7 +1,9 @@
 package com.biometricattendance.devicecommand;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -73,7 +75,30 @@ public interface DeviceCommandRepository extends JpaRepository<DeviceCommand, UU
 	@Query("select c from DeviceCommand c where c.type = 'ENROLL' and c.status = 'DIKIRIM' and c.sentAt < :cutoff")
 	List<DeviceCommand> findSentBefore(@Param("cutoff") Instant cutoff);
 
-	String SKIP_LOCKED_HINT = "jakarta.persistence.lock.timeout";
+	/** Perintah berisiko (APPLY_NETWORK, ROTATE_KEY) aktif di mesin ini; ENROLL baru harus menunggu (spec §18.4). */
+	@Query("select count(c) > 0 from DeviceCommand c where c.device.id = :deviceId"
+			+ " and c.type in ('APPLY_NETWORK', 'ROTATE_KEY') and c.status in ('MENUNGGU', 'DIKIRIM')")
+	boolean existsActiveRisky(@Param("deviceId") Long deviceId);
+
+	@Query("select c from DeviceCommand c where c.device.id = :deviceId and c.type = 'ROTATE_KEY'"
+			+ " and c.status in ('MENUNGGU', 'DIKIRIM')")
+	List<DeviceCommand> findActiveRotations(@Param("deviceId") Long deviceId);
+
+	/** Perintah terakhir dengan salah satu jenis ini di mesin ini, mis. jaringan/kunci untuk dialog Pengaturan. */
+	Optional<DeviceCommand> findFirstByDeviceIdAndTypeInOrderByCreatedAtDesc(Long deviceId, Collection<String> types);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@QueryHints(@QueryHint(name = SKIP_LOCKED_HINT, value = SKIP_LOCKED))
+	@Query("select c from DeviceCommand c where c.type = 'APPLY_NETWORK' and c.status = 'DIKIRIM' and c.sentAt < :cutoff")
+	List<DeviceCommand> findNetworkSentBefore(@Param("cutoff") Instant cutoff);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@QueryHints(@QueryHint(name = SKIP_LOCKED_HINT, value = SKIP_LOCKED))
+	@Query("select c from DeviceCommand c where c.type = 'ROTATE_KEY' and c.status in ('MENUNGGU', 'DIKIRIM')"
+			+ " and c.createdAt < :cutoff")
+	List<DeviceCommand> findRotationsBefore(@Param("cutoff") Instant cutoff);
+
+	String SKIP_LOCKED_HINT ="jakarta.persistence.lock.timeout";
 	/** Nilai lock timeout Hibernate untuk SKIP LOCKED. */
 	String SKIP_LOCKED = "-2";
 

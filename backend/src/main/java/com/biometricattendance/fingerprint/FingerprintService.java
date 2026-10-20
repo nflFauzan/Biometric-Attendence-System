@@ -107,6 +107,10 @@ public class FingerprintService {
 		if (commands.existsActiveEnrollForDevice(device.getId())) {
 			throw ApiException.conflict(DEVICE_BUSY);
 		}
+		// Ganti jaringan atau kunci sedang berjalan: pendaftaran bisa terputus di tengah (spec §18.4).
+		if (commands.existsActiveRisky(device.getId())) {
+			throw ApiException.conflict(DeviceCommandService.RISKY_BUSY);
+		}
 		if (commands.existsUnfinishedDeleteOnDevice(device.getId(), employee.getDevicePin())) {
 			throw ApiException.conflict("Tunggu sampai sidik jari lama selesai dihapus di mesin ini.");
 		}

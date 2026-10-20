@@ -10,6 +10,9 @@ public final class DeviceCommandMessages {
 		if (command.isDelete()) {
 			return deletion(command);
 		}
+		if (command.isRisky()) {
+			return risky(command);
+		}
 		if (command.isActive()) {
 			return command.getStep() == null ? "Menunggu mesin…" : "Tempelkan jari (" + command.getStep() + "/3)";
 		}
@@ -30,6 +33,28 @@ public final class DeviceCommandMessages {
 		}
 		return "SENSOR_ERROR".equals(command.getErrorCode()) ? "Sensor bermasalah. Hubungi teknisi."
 				: "Penghapusan gagal (" + command.getErrorCode() + ").";
+	}
+
+	/** APPLY_NETWORK dan ROTATE_KEY (spec §18.5–§18.6). */
+	private static String risky(DeviceCommand command) {
+		boolean network = DeviceCommand.TYPE_APPLY_NETWORK.equals(command.getType());
+		if (command.isActive()) {
+			return "Menunggu mesin…";
+		}
+		String code = command.getErrorCode() == null ? "" : command.getErrorCode();
+		return switch (command.getStatus()) {
+			case DeviceCommand.BERHASIL -> network ? "Jaringan baru diterapkan" : "Kunci baru dipakai";
+			case DeviceCommand.DIBATALKAN -> "Dibatalkan.";
+			default -> network ? switch (code) {
+				case "WIFI_GAGAL" ->
+					"Gagal tersambung ke Wi-Fi '" + command.getErrorDetail() + "', kembali ke pengaturan lama.";
+				case "SERVER_TIDAK_TERJANGKAU" -> "Server baru tidak terjangkau, kembali ke pengaturan lama.";
+				case DeviceCommand.TIDAK_ADA_HASIL -> "Mesin tidak merespons. Periksa koneksi mesin.";
+				default -> "Perubahan jaringan gagal (" + code + ").";
+			} : DeviceCommand.KUNCI_BARU_TIDAK_DIPAKAI.equals(code)
+					? "Mesin tidak memakai kunci baru dalam 24 jam. Kunci lama tetap berlaku."
+					: "Ganti kunci gagal (" + code + ").";
+		};
 	}
 
 	private static String failure(String code, String detail) {

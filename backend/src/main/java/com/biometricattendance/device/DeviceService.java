@@ -1,13 +1,17 @@
 package com.biometricattendance.device;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.biometricattendance.account.PasswordConfirmation;
 import com.biometricattendance.audit.AuditService;
 import com.biometricattendance.branch.BranchRepository;
 import com.biometricattendance.common.ApiException;
@@ -28,11 +32,15 @@ public class DeviceService {
 	private final UnregisteredDeviceTracker unregistered;
 	private final String setupServerUrl;
 	private final int sensorWarningPercent;
+	private final PasswordConfirmation passwords;
+	private final ApplicationEventPublisher events;
 
 	public DeviceService(DeviceRepository repository, BranchRepository branches, AuditService audit,
-			DeviceStatus status, UnregisteredDeviceTracker unregistered,
-			@Value("${app.device.public-url:}") String setupServerUrl,
+			DeviceStatus status, UnregisteredDeviceTracker unregistered, PasswordConfirmation passwords,
+			ApplicationEventPublisher events, @Value("${app.device.public-url:}") String setupServerUrl,
 			@Value("${app.device.sensor-warning-percent:90}") int sensorWarningPercent) {
+		this.passwords = passwords;
+		this.events = events;
 		this.repository = repository;
 		this.branches = branches;
 		this.audit = audit;
@@ -45,7 +53,15 @@ public class DeviceService {
 	@Transactional(readOnly = true)
 	public List<DeviceResponse> list() {
 		Instant now = Instant.now();
-		return repository.findAllWithBranch().stream().map(d -> DeviceResponse.from(d, status.isOnline(d, now), sensorWarningPercent)).toList();
+		Map<Long, Integer> versions = new HashMap<>();
+		for (Object[] row : repository.findSettingsVersions()) {
+			versions.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue());
+		}
+		return repository.findAllWithBranch()
+			.stream()
+			.map(d -> DeviceResponse.from(d, status.isOnline(d, now), sensorWarningPercent,
+					versions.getOrDefault(d.getId(), 0)))
+			.toList();
 	}
 
 	public List<UnregisteredDeviceTracker.Attempt> unregisteredAttempts() {
@@ -111,16 +127,25 @@ public class DeviceService {
 		return after;
 	}
 
-	/** "Buat kode baru": kunci baru langsung menggantikan kunci lama (K-088, spec §6.1). */
+	/**
+	 * "Buat kode baru": kunci baru langsung menggantikan kunci lama (K-088, spec §6.1). Mencabut kunci mesin yang
+	 * sedang dipakai, jadi wajib konfirmasi ulang password (K-098, spec §18.3).
+	 */
 	@Transactional
-	public DeviceResponse issueKey(Long id) {
+	public DeviceResponse issueKey(Long id, String confirmPassword) {
 		Device device = repository.findWithBranch(id).orElseThrow(() -> ApiException.notFound("Mesin"));
 		if (!device.isRakitan()) {
 			throw ApiException.badRequest("Mesin ZK-Push tidak memakai kunci");
 		}
+		passwords.require(confirmPassword);
 		DeviceResponse before = response(device);
 		String key = DeviceKeys.newKey();
 		device.issueKey(DeviceKeys.hash(key));
+		// Kode baru menggantikan ganti kunci yang sedang berjalan (spec §18.6).
+		if (device.getPendingKeyHash() != null) {
+			device.clearPendingKey();
+			events.publishEvent(new KeyRevokedEvent(id));
+		}
 		DeviceResponse after = response(repository.save(device));
 		audit.record("ISSUE_KEY", ENTITY, id, before, after);
 		return after.withKey(new IssuedKey(key, setupServerUrl));
@@ -142,7 +167,9 @@ public class DeviceService {
 	}
 
 	private DeviceResponse response(Device device) {
-		return DeviceResponse.from(device, status.isOnline(device, Instant.now()), sensorWarningPercent);
+		int settingsVersion = device.getId() == null ? 0 : repository.findSettingsVersion(device.getId()).orElse(0);
+		return DeviceResponse.from(device, status.isOnline(device, Instant.now()), sensorWarningPercent,
+				settingsVersion);
 	}
 
 	private void apply(Device device, DeviceRequest request) {

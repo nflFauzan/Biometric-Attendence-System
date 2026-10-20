@@ -61,7 +61,11 @@ public class DeviceContactService {
 			return KeyContact.rejected();
 		}
 		String keyHash = DeviceKeys.hash(bearerKey.trim());
+		Instant now = Instant.now();
 		Optional<Device> found = devices.findByKeyHash(keyHash);
+		if (found.isEmpty()) {
+			found = promotePending(keyHash, now);
+		}
 		if (found.isEmpty() || !found.get().isRakitan()) {
 			return KeyContact.rejected();
 		}
@@ -69,7 +73,6 @@ public class DeviceContactService {
 		if (!device.isActive()) {
 			return new KeyContact(KeyContact.Status.INACTIVE, device);
 		}
-		Instant now = Instant.now();
 		// Atomik di database: dua request bersamaan saat mesin menyala hanya memunculkan satu pemberitahuan.
 		boolean firstConnect = device.getKeyFirstUsedAt() == null
 				&& devices.claimKeyFirstUse(device.getId(), keyHash, now) == 1;
@@ -79,6 +82,23 @@ public class DeviceContactService {
 		record(device, now, ip, firmware, info, firstConnect);
 		device.recordSensor(sensorUsed, sensorCapacity);
 		return new KeyContact(KeyContact.Status.ACCEPTED, device);
+	}
+
+	/**
+	 * Kunci yang cocok dengan kunci tertunda mesin aktif: kontak pertama dengan kunci baru menjadikannya kunci utama
+	 * (spec §18.6). Request bersamaan yang kalah menemukan mesinnya lewat kunci utama yang baru. Kontak ini tidak
+	 * memicu pemberitahuan "mesin terhubung" karena kontak pertama sudah tercatat.
+	 */
+	private Optional<Device> promotePending(String keyHash, Instant now) {
+		Optional<Device> pending = devices.findByPendingKeyHash(keyHash);
+		if (pending.isEmpty() || !pending.get().isRakitan() || !pending.get().isActive()) {
+			return pending;
+		}
+		Device device = pending.get();
+		if (devices.promotePendingKey(device.getId(), keyHash, now) == 1) {
+			events.publishEvent(new KeyRotatedEvent(device.getId(), device.getSerialNumber()));
+		}
+		return devices.findByKeyHash(keyHash);
 	}
 
 	private void record(Device device, Instant now, String ip, String firmware, String info, boolean firstConnect) {

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.biometricattendance.device.DeviceDtos.ConfirmRequest;
 import com.biometricattendance.device.DeviceDtos.DeviceRequest;
 import com.biometricattendance.device.DeviceDtos.DeviceResponse;
 
@@ -46,8 +47,8 @@ public class DeviceController {
 
 	/** "Buat kode baru" untuk alat rakitan; hanya Owner (SecurityConfig). Kunci hanya ada di response ini. */
 	@PostMapping("/{id}/key")
-	DeviceResponse issueKey(@PathVariable Long id) {
-		return service.issueKey(id);
+	DeviceResponse issueKey(@PathVariable Long id, @Valid @RequestBody ConfirmRequest request) {
+		return service.issueKey(id, request.confirmPassword());
 	}
 
 	@PutMapping("/{id}")

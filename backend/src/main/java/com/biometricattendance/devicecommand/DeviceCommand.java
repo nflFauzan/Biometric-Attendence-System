@@ -36,6 +36,15 @@ public class DeviceCommand implements Persistable<UUID> {
 	/** Hapus semua jari milik satu PIN dari sensor (K-090). */
 	public static final String TYPE_DELETE_EMPLOYEE = "DELETE_EMPLOYEE";
 
+	/** Terapkan paket jaringan (Wi-Fi, alamat server); berisiko, satu per mesin (spec §18.4–§18.5). */
+	public static final String TYPE_APPLY_NETWORK = "APPLY_NETWORK";
+
+	/** Ganti kunci mesin; selesai saat mesin pertama kali memakai kunci baru (spec §18.6). */
+	public static final String TYPE_ROTATE_KEY = "ROTATE_KEY";
+
+	/** Kode yang hanya diisi server: mesin tidak memakai kunci baru sampai batas waktunya. */
+	public static final String KUNCI_BARU_TIDAK_DIPAKAI = "KUNCI_BARU_TIDAK_DIPAKAI";
+
 	public static final String MENUNGGU = "MENUNGGU";
 	public static final String DIKIRIM = "DIKIRIM";
 	public static final String BERHASIL = "BERHASIL";
@@ -74,6 +83,9 @@ public class DeviceCommand implements Persistable<UUID> {
 	private String devicePin;
 
 	private String displayName;
+
+	/** Paket jaringan untuk APPLY_NETWORK (tabel device_network_configs); null untuk jenis lain. */
+	private Long networkConfigId;
 
 	private Integer step;
 
@@ -133,13 +145,31 @@ public class DeviceCommand implements Persistable<UUID> {
 	}
 
 	private static DeviceCommand delete(Device device, Employee employee, String pin, String createdBy, Instant now) {
+		DeviceCommand command = blank(device, createdBy, now);
+		command.employee = employee;
+		command.devicePin = pin;
+		return command;
+	}
+
+	public static DeviceCommand applyNetwork(Device device, Long networkConfigId, String createdBy, Instant now) {
+		DeviceCommand command = blank(device, createdBy, now);
+		command.type = TYPE_APPLY_NETWORK;
+		command.networkConfigId = networkConfigId;
+		return command;
+	}
+
+	public static DeviceCommand rotateKey(Device device, String createdBy, Instant now) {
+		DeviceCommand command = blank(device, createdBy, now);
+		command.type = TYPE_ROTATE_KEY;
+		return command;
+	}
+
+	private static DeviceCommand blank(Device device, String createdBy, Instant now) {
 		DeviceCommand command = new DeviceCommand();
 		command.id = UUID.randomUUID();
 		command.isNew = true;
 		command.device = device;
 		command.status = MENUNGGU;
-		command.employee = employee;
-		command.devicePin = pin;
 		command.createdBy = createdBy;
 		command.createdAt = now;
 		return command;
@@ -167,6 +197,11 @@ public class DeviceCommand implements Persistable<UUID> {
 
 	public boolean isDelete() {
 		return TYPE_DELETE_TEMPLATE.equals(type) || TYPE_DELETE_EMPLOYEE.equals(type);
+	}
+
+	/** Perintah yang bisa memutus mesin dari server: satu aktif per mesin, hanya Owner yang membatalkan. */
+	public boolean isRisky() {
+		return TYPE_APPLY_NETWORK.equals(type) || TYPE_ROTATE_KEY.equals(type);
 	}
 
 	/** "Coba lagi" untuk penghapusan yang gagal: perintah yang sama dikirim ulang dari awal. */
@@ -256,6 +291,10 @@ public class DeviceCommand implements Persistable<UUID> {
 
 	public String getDisplayName() {
 		return displayName;
+	}
+
+	public Long getNetworkConfigId() {
+		return networkConfigId;
 	}
 
 	public Integer getStep() {
