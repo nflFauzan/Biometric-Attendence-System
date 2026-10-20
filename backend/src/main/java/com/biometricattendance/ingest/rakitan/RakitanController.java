@@ -8,6 +8,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -28,7 +29,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.biometricattendance.device.Device;
 import com.biometricattendance.device.DeviceContactService;
 import com.biometricattendance.device.KeyContact;
+import com.biometricattendance.devicecommand.DeviceCommand;
 import com.biometricattendance.devicecommand.DeviceCommandService;
+import com.biometricattendance.devicesettings.DeviceSettingsService;
+import com.biometricattendance.devicesettings.KeyRotationService;
+import com.biometricattendance.devicesettings.NetworkDtos.NetworkPayload;
+import com.biometricattendance.devicesettings.NetworkService;
 import com.biometricattendance.ingest.rakitan.RakitanDtos.CommandItem;
 import com.biometricattendance.ingest.rakitan.RakitanDtos.ProgressRequest;
 import com.biometricattendance.ingest.rakitan.RakitanDtos.ResultRequest;
@@ -59,11 +65,17 @@ public class RakitanController {
 	private final RakitanScanParser parser;
 	private final ScanIngestService ingest;
 	private final DeviceCommandService commands;
+	private final DeviceSettingsService settings;
+	private final NetworkService networks;
+	private final KeyRotationService keyRotation;
 	private final Duration machineTimeout;
 
 	public RakitanController(DeviceContactService contacts, RakitanScanParser parser, ScanIngestService ingest,
-			DeviceCommandService commands,
-			@Value("${app.device.enroll.machine-timeout:60s}") Duration machineTimeout) {
+			DeviceCommandService commands, DeviceSettingsService settings, NetworkService networks,
+			KeyRotationService keyRotation, @Value("${app.device.enroll.machine-timeout:60s}") Duration machineTimeout) {
+		this.settings = settings;
+		this.networks = networks;
+		this.keyRotation = keyRotation;
 		this.contacts = contacts;
 		this.parser = parser;
 		this.ingest = ingest;
@@ -112,11 +124,35 @@ public class RakitanController {
 		DeviceCommandService.Delivery delivery = commands.deliver(device, now);
 		List<CommandItem> items = delivery.commands()
 			.stream()
-			.map(c -> new CommandItem(c.getId().toString(), c.getType(), c.getDevicePin(), c.getFinger(),
-					c.getDisplayName(), c.isDelete() ? null : machineTimeout.toSeconds()))
+			.map(c -> item(device, c))
+			.flatMap(Optional::stream)
 			.toList();
 		return ResponseEntity.ok(new HeartbeatResponse(formatServerTime(now, zone), zone.getId(), device.getName(),
-				device.getBranch().getName(), items, delivery.cancel().stream().map(UUID::toString).toList()));
+				device.getBranch().getName(), items, delivery.cancel().stream().map(UUID::toString).toList(),
+				settings.packageFor(device, body.settingsVersion())));
+	}
+
+	/** Satu perintah untuk balasan heartbeat; kosong jika isi rahasianya tidak bisa dibuka (NetworkService#payload). */
+	private Optional<CommandItem> item(Device device, DeviceCommand c) {
+		NetworkPayload network = null;
+		String newKey = null;
+		if (DeviceCommand.TYPE_APPLY_NETWORK.equals(c.getType())) {
+			Optional<NetworkPayload> payload = networks.payload(c.getNetworkConfigId());
+			if (payload.isEmpty()) {
+				return Optional.empty();
+			}
+			network = payload.get();
+		}
+		if (DeviceCommand.TYPE_ROTATE_KEY.equals(c.getType())) {
+			Optional<String> pending = keyRotation.pendingKey(device);
+			if (pending.isEmpty()) {
+				return Optional.empty();
+			}
+			newKey = pending.get();
+		}
+		return Optional.of(new CommandItem(c.getId().toString(), c.getType(), c.getDevicePin(), c.getFinger(),
+				c.getDisplayName(), DeviceCommand.TYPE_ENROLL.equals(c.getType()) ? machineTimeout.toSeconds() : null,
+				network, newKey));
 	}
 
 	/** Langkah tempelan jari selama ENROLL (§6). */
@@ -138,7 +174,8 @@ public class RakitanController {
 		if (contact.status() != KeyContact.Status.ACCEPTED) {
 			return refused(contact);
 		}
-		return reply(commands.result(contact.device(), id, body.status(), body.error(), body.pin()), true);
+		return reply(commands.result(contact.device(), id, body.status(), body.error(), body.pin(), body.detail()),
+				true);
 	}
 
 	private static ResponseEntity<?> reply(DeviceCommandService.CommandUpdate update, boolean finalResult) {

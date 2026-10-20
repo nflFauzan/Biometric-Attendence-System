@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, KeyRound } from 'lucide-react'
+import { AlertTriangle, KeyRound, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 
 import { useAuth } from '@/auth/AuthContext'
 import { ActiveBadge, CrudPage } from '@/components/CrudPage'
+import { AllDevicesSettingsDialog, DeviceSettingsDialog } from '@/components/DeviceSettingsDialog'
 import { ErrorAlert } from '@/components/feedback'
+import { PasswordConfirmField } from '@/components/PasswordConfirmField'
 import { SetupCodeDialog } from '@/components/SetupCodeDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -60,11 +62,17 @@ function UnregisteredBanner() {
 function NewKeyDialog({ device, onClose, onIssued }: { device: Device; onClose: () => void; onIssued: (d: Device) => void }) {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [password, setPassword] = useState('')
   const issue = async () => {
     setSaving(true)
     setError(null)
     try {
-      onIssued(await api<Device>(`/api/devices/${device.id}/key`, { method: 'POST' }))
+      onIssued(
+        await api<Device>(`/api/devices/${device.id}/key`, {
+          method: 'POST',
+          body: { confirmPassword: password },
+        }),
+      )
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Terjadi kesalahan. Coba lagi.')
     } finally {
@@ -80,12 +88,13 @@ function NewKeyDialog({ device, onClose, onIssued }: { device: Device; onClose: 
             Kunci lama {device.name} langsung tidak berlaku. Mesin harus diatur ulang dengan kode baru.
           </DialogDescription>
         </DialogHeader>
+        <PasswordConfirmField id="new-key-password" value={password} onChange={setPassword} />
         {error && <ErrorAlert message={error} />}
         <DialogFooter className="mt-2 gap-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Batal
           </Button>
-          <Button type="button" onClick={issue} disabled={saving}>
+          <Button type="button" onClick={issue} disabled={saving || !password}>
             {saving ? 'Membuat…' : 'Ya, buat kode baru'}
           </Button>
         </DialogFooter>
@@ -102,8 +111,13 @@ export function DevicesPage() {
   const isOwner = me?.role === 'OWNER'
   const [setup, setSetup] = useState<{ device: Device; issuedKey: IssuedKey } | null>(null)
   const [newKeyFor, setNewKeyFor] = useState<Device | null>(null)
+  const [settingsFor, setSettingsFor] = useState<Device | null>(null)
+  const [settingsAll, setSettingsAll] = useState(false)
   // Status online/offline dan banner SN tak terdaftar ikut diperbarui tanpa memuat ulang halaman.
   useDashboardStream()
+  // Data yang sama dengan daftar CrudPage (cache bersama), untuk tombol "Pengaturan semua mesin".
+  const { data: devices } = useQuery({ queryKey: ['/api/devices'], queryFn: () => api<Device[]>('/api/devices') })
+  const activeRakitan = (devices ?? []).filter((d) => d.protocol === 'RAKITAN_V1' && d.active)
 
   const showSetup = (device: Device) => {
     if (device.issuedKey) {
@@ -117,18 +131,38 @@ export function DevicesPage() {
         title="Mesin Absensi"
         description="Mesin ZK-Push dikenali dari serial number-nya, alat rakitan dari kuncinya. Status online berdasarkan kontak terakhir mesin ke server."
         endpoint="/api/devices"
-        toolbar={<UnregisteredBanner />}
+        toolbar={
+          <>
+            <UnregisteredBanner />
+            {activeRakitan.length > 0 && (
+              <div>
+                <Button variant="outline" size="sm" onClick={() => setSettingsAll(true)}>
+                  <SlidersHorizontal />
+                  Pengaturan semua mesin
+                </Button>
+              </div>
+            )}
+          </>
+        }
         onSaved={(saved, editing) => {
           if (!editing) {
             showSetup(saved)
           }
         }}
         rowActions={(d) =>
-          isOwner && d.protocol === 'RAKITAN_V1' ? (
-            <Button variant="ghost" size="sm" onClick={() => setNewKeyFor(d)}>
-              <KeyRound />
-              Buat kode baru
-            </Button>
+          d.protocol === 'RAKITAN_V1' ? (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => setSettingsFor(d)}>
+                <SlidersHorizontal />
+                Pengaturan
+              </Button>
+              {isOwner && (
+                <Button variant="ghost" size="sm" onClick={() => setNewKeyFor(d)}>
+                  <KeyRound />
+                  Buat kode baru
+                </Button>
+              )}
+            </>
           ) : null
         }
         columns={[
@@ -165,6 +199,13 @@ export function DevicesPage() {
                 )}
                 {d.sensorAlmostFull && (
                   <span className="text-xs font-semibold text-warning">Kapasitas sensor hampir penuh.</span>
+                )}
+                {d.protocol === 'RAKITAN_V1' && d.settingsVersion > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {d.settingsAppliedVersion === d.settingsVersion
+                      ? 'Pengaturan terbaru sudah diterapkan ✓'
+                      : `Menunggu mesin menerapkan versi ${d.settingsVersion}`}
+                  </span>
                 )}
               </span>
             ),
@@ -249,6 +290,14 @@ export function DevicesPage() {
         />
       )}
       {setup && <SetupCodeDialog device={setup.device} issuedKey={setup.issuedKey} onClose={() => setSetup(null)} />}
+      {settingsFor && <DeviceSettingsDialog device={settingsFor} isOwner={isOwner} onClose={() => setSettingsFor(null)} />}
+      {settingsAll && activeRakitan.length > 0 && (
+        <AllDevicesSettingsDialog
+          source={activeRakitan[0]}
+          count={activeRakitan.length}
+          onClose={() => setSettingsAll(false)}
+        />
+      )}
     </>
   )
 }

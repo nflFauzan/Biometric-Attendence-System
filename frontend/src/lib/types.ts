@@ -53,7 +53,7 @@ export type CommandStatus = 'MENUNGGU' | 'DIKIRIM' | 'BERHASIL' | 'GAGAL' | 'KED
 /** Perintah ke alat rakitan; `message` adalah teks status siap tampil dari server. */
 export interface DeviceCommand {
   id: string
-  type: 'ENROLL' | 'DELETE_TEMPLATE' | 'DELETE_EMPLOYEE'
+  type: 'ENROLL' | 'DELETE_TEMPLATE' | 'DELETE_EMPLOYEE' | 'APPLY_NETWORK' | 'ROTATE_KEY'
   status: CommandStatus
   deviceId: number
   deviceName: string
@@ -137,7 +137,43 @@ export interface Device {
   sensorCapacity: number | null
   /** Terisi melewati ambang app.device.sensor-warning-percent. */
   sensorAlmostFull: boolean
+  /** Versi paket pengaturan ringan di server; 0 = belum pernah disimpan dari web (spec §18.2). */
+  settingsVersion: number
+  /** Versi yang terakhir dilaporkan dipakai mesin. */
+  settingsAppliedVersion: number
   issuedKey: IssuedKey | null
+}
+
+export type NameDisplay = 'FULL' | 'FIRST' | 'PIN'
+
+/** Pengaturan ringan alat rakitan (spec §18.1). */
+export interface DeviceSettingsValues {
+  /** Kosong = nama cabang. */
+  headerText: string
+  greeting: string
+  nameDisplay: NameDisplay
+  brightness: number
+  buzzerVolume: number
+  duplicateNoticeSeconds: number
+  heartbeatSeconds: number
+}
+
+export interface DeviceSettingsResponse {
+  deviceId: number
+  version: number
+  appliedVersion: number
+  values: DeviceSettingsValues
+  updatedAt: string | null
+  updatedBy: string | null
+}
+
+/** Jaringan yang berlaku (tanpa password) dan perintah jaringan/kunci terakhir (spec §18.5). */
+export interface NetworkView {
+  deviceId: number
+  /** Kosong bersama currentServerUrl null = belum pernah diatur dari web. */
+  currentWifi: string[]
+  currentServerUrl: string | null
+  latest: DeviceCommand | null
 }
 
 export interface UnregisteredAttempt {
