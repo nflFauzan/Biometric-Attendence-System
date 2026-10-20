@@ -298,10 +298,36 @@ class AccessControlTests extends IntegrationTest {
 	@Test
 	void deviceKeyIsOwnerOnly() throws Exception {
 		String url = "/api/devices/" + MISSING + "/key";
-		mockMvc.perform(build(HttpMethod.POST, url, null).with(OWNER)).andExpect(status().isNotFound());
-		mockMvc.perform(build(HttpMethod.POST, url, null).with(HR_FINANCE)).andExpect(status().isForbidden());
-		mockMvc.perform(build(HttpMethod.POST, url, null).with(EMPLOYEE)).andExpect(status().isForbidden());
-		mockMvc.perform(build(HttpMethod.POST, url, null)).andExpect(status().isUnauthorized());
+		String body = "{\"confirmPassword\":\"x\"}";
+		mockMvc.perform(build(HttpMethod.POST, url, body).with(OWNER)).andExpect(status().isNotFound());
+		mockMvc.perform(build(HttpMethod.POST, url, body).with(HR_FINANCE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(HttpMethod.POST, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(HttpMethod.POST, url, body)).andExpect(status().isUnauthorized());
+	}
+
+	/** Rencana 6: jaringan mesin hanya Owner (spec §18.8). */
+	@Test
+	void deviceNetworkIsOwnerOnly() throws Exception {
+		String url = "/api/devices/" + MISSING + "/network";
+		String body = "{\"confirmPassword\":\"x\",\"serverUrl\":\"http://x\"}";
+		for (HttpMethod method : new HttpMethod[] { HttpMethod.GET, HttpMethod.POST }) {
+			String content = method == HttpMethod.GET ? null : body;
+			mockMvc.perform(build(method, url, content).with(OWNER)).andExpect(status().isNotFound());
+			mockMvc.perform(build(method, url, content).with(HR_FINANCE)).andExpect(status().isForbidden());
+			mockMvc.perform(build(method, url, content).with(EMPLOYEE)).andExpect(status().isForbidden());
+			mockMvc.perform(build(method, url, content)).andExpect(status().isUnauthorized());
+		}
+	}
+
+	/** Rencana 6: ganti kunci alat rakitan hanya Owner (spec §18.8). */
+	@Test
+	void deviceRotateKeyIsOwnerOnly() throws Exception {
+		String url = "/api/devices/" + MISSING + "/rotate-key";
+		String body = "{\"confirmPassword\":\"x\"}";
+		mockMvc.perform(build(HttpMethod.POST, url, body).with(OWNER)).andExpect(status().isNotFound());
+		mockMvc.perform(build(HttpMethod.POST, url, body).with(HR_FINANCE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(HttpMethod.POST, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(HttpMethod.POST, url, body)).andExpect(status().isUnauthorized());
 	}
 
 	/** Rencana 3: persetujuan, pendaftaran sidik jari, dan perintah mesin untuk Owner dan HR/Finance (spec §3.6). */
@@ -324,6 +350,30 @@ class AccessControlTests extends IntegrationTest {
 			mockMvc.perform(build(method, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
 			mockMvc.perform(build(method, url, body)).andExpect(status().isUnauthorized());
 		}
+	}
+
+	private static final String SETTINGS = "{\"headerText\":\"\",\"greeting\":\"Halo\",\"nameDisplay\":\"FULL\","
+			+ "\"brightness\":80,\"buzzerVolume\":50,\"duplicateNoticeSeconds\":60,\"heartbeatSeconds\":5}";
+
+	/** Rencana 6: pengaturan ringan alat rakitan untuk Owner dan HR/Finance (K-098, spec §18.8). */
+	@Test
+	void deviceSettingsForOwnerAndHrOnly() throws Exception {
+		String url = "/api/devices/" + MISSING + "/settings";
+		for (HttpMethod method : new HttpMethod[] { HttpMethod.GET, HttpMethod.PUT }) {
+			String body = method == HttpMethod.PUT ? SETTINGS : null;
+			mockMvc.perform(build(method, url, body).with(OWNER)).andExpect(status().isNotFound());
+			mockMvc.perform(build(method, url, body).with(HR_FINANCE)).andExpect(status().isNotFound());
+			mockMvc.perform(build(method, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
+			mockMvc.perform(build(method, url, body)).andExpect(status().isUnauthorized());
+		}
+		// Body tidak valid: otorisasi lolos (400) tanpa mengubah semua alat rakitan di basis data uji bersama.
+		mockMvc.perform(build(HttpMethod.PUT, "/api/device-settings", "{}").with(OWNER))
+			.andExpect(status().isBadRequest());
+		mockMvc.perform(build(HttpMethod.PUT, "/api/device-settings", "{}").with(HR_FINANCE))
+			.andExpect(status().isBadRequest());
+		mockMvc.perform(build(HttpMethod.PUT, "/api/device-settings", SETTINGS).with(EMPLOYEE))
+			.andExpect(status().isForbidden());
+		mockMvc.perform(build(HttpMethod.PUT, "/api/device-settings", SETTINGS)).andExpect(status().isUnauthorized());
 	}
 
 	@ParameterizedTest

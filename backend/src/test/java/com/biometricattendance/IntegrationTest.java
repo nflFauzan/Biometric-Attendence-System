@@ -18,7 +18,8 @@ import org.springframework.web.context.WebApplicationContext;
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = { "app.bootstrap.owner-username=owner", "app.bootstrap.owner-password=owner-awal-123",
-		"app.uploads.dir=target/test-uploads" })
+		"app.uploads.dir=target/test-uploads",
+		"app.crypto.data-key=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=" })
 public abstract class IntegrationTest {
 
 	@Autowired

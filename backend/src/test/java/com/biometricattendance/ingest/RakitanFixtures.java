@@ -1,6 +1,7 @@
 package com.biometricattendance.ingest;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -11,6 +12,7 @@ import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import com.biometricattendance.AttendanceFixtures;
 import com.jayway.jsonpath.JsonPath;
@@ -37,9 +39,22 @@ public abstract class RakitanFixtures extends AttendanceFixtures {
 				JsonPath.read(body, "$.issuedKey.deviceKey"), name);
 	}
 
+	/**
+	 * Akun Owner yang benar-benar ada (dibuat bootstrap di {@link com.biometricattendance.IntegrationTest}), untuk
+	 * tindakan yang meminta konfirmasi ulang password (K-098). Principal uji lain tidak punya akun.
+	 */
+	protected static final RequestPostProcessor REAL_OWNER = user("owner").roles("OWNER");
+
+	protected static final String OWNER_PASSWORD = "owner-awal-123";
+
+	protected static final String CONFIRM = "{\"confirmPassword\":\"" + OWNER_PASSWORD + "\"}";
+
 	/** "Buat kode baru"; mengembalikan kunci baru. */
 	protected String issueNewKey(long deviceId) throws Exception {
-		String body = mockMvc.perform(post("/api/devices/" + deviceId + "/key").with(OWNER).with(csrf()))
+		String body = mockMvc.perform(post("/api/devices/" + deviceId + "/key").with(REAL_OWNER)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(CONFIRM))
 			.andExpect(status().isOk())
 			.andReturn()
 			.getResponse()

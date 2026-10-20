@@ -91,6 +91,8 @@ const device = (overrides: Partial<Device> = {}): Device => ({
   sensorUsed: null,
   sensorCapacity: null,
   sensorAlmostFull: false,
+  settingsVersion: 0,
+  settingsAppliedVersion: 0,
   issuedKey: null,
   ...overrides,
 })

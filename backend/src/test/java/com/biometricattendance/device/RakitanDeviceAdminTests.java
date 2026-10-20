@@ -105,7 +105,13 @@ class RakitanDeviceAdminTests extends AttendanceFixtures {
 		String oldKey = JsonPath.read(body, "$.issuedKey.deviceKey");
 		jdbc.update("update devices set key_first_used_at = now() where id = ?", id);
 
-		String issued = mockMvc.perform(post("/api/devices/" + id + "/key").with(OWNER).with(csrf()))
+		// Akun bootstrap nyata: "Buat kode baru" meminta konfirmasi password (K-098).
+		String issued = mockMvc.perform(post("/api/devices/" + id + "/key")
+			.with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user("owner")
+				.roles("OWNER"))
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"confirmPassword\":\"owner-awal-123\"}"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.keyFirstUsedAt").doesNotExist())
 			.andReturn().getResponse().getContentAsString();
@@ -121,7 +127,9 @@ class RakitanDeviceAdminTests extends AttendanceFixtures {
 	@Test
 	void issuingKeyForZkPushIsRejected() throws Exception {
 		long id = createDevice(createBranch(), uniqueSerial(), ACCEPT_FROM);
-		mockMvc.perform(post("/api/devices/" + id + "/key").with(OWNER).with(csrf()))
+		mockMvc.perform(post("/api/devices/" + id + "/key").with(OWNER).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"confirmPassword\":\"x\"}"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.detail").value("Mesin ZK-Push tidak memakai kunci"));
 	}

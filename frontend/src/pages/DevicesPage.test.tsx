@@ -46,6 +46,8 @@ const device = (overrides: Partial<Device> = {}): Device => ({
   sensorUsed: null,
   sensorCapacity: null,
   sensorAlmostFull: false,
+  settingsVersion: 0,
+  settingsAppliedVersion: 0,
   issuedKey: null,
   ...overrides,
 })
@@ -140,12 +142,17 @@ describe('DevicesPage', () => {
     fireEvent.click(buttons[0])
     const confirm = await screen.findByRole('dialog', { name: 'Buat kode pengaturan baru?' })
     expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false)
-    fireEvent.click(within(confirm).getByRole('button', { name: 'Ya, buat kode baru' }))
+    // Mencabut kunci mesin: wajib konfirmasi ulang password (K-098).
+    const submit = within(confirm).getByRole('button', { name: 'Ya, buat kode baru' })
+    expect(submit).toBeDisabled()
+    fireEvent.change(within(confirm).getByLabelText('Password Anda'), { target: { value: 'rahasia-owner' } })
+    fireEvent.click(submit)
 
     const setup = await screen.findByRole('dialog', { name: /Kode pengaturan/ }, LOAD)
     expect(fetchMock.mock.calls.some(([url, init]) => url === '/api/devices/5/key' && init?.method === 'POST')).toBe(
       true,
     )
+    expect(body(fetchMock, 'POST')).toEqual({ confirmPassword: 'rahasia-owner' })
     expect((within(setup).getByLabelText('Kode pengaturan') as HTMLTextAreaElement).value).toMatch(/^BAS1\./)
   })
 
@@ -175,11 +182,9 @@ describe('DevicesPage', () => {
     })
     renderAt('/mesin')
     fireEvent.click((await screen.findAllByRole('button', { name: 'Buat kode baru' }, LOAD))[0])
-    fireEvent.click(
-      within(await screen.findByRole('dialog', { name: 'Buat kode pengaturan baru?' })).getByRole('button', {
-        name: 'Ya, buat kode baru',
-      }),
-    )
+    const confirm = await screen.findByRole('dialog', { name: 'Buat kode pengaturan baru?' })
+    fireEvent.change(within(confirm).getByLabelText('Password Anda'), { target: { value: 'rahasia-owner' } })
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Ya, buat kode baru' }))
     return screen.findByRole('dialog', { name: /Kode pengaturan/ }, LOAD)
   }
 
@@ -219,11 +224,9 @@ describe('DevicesPage', () => {
     renderAt('/mesin')
 
     fireEvent.click((await screen.findAllByRole('button', { name: 'Buat kode baru' }, LOAD))[0])
-    fireEvent.click(
-      within(await screen.findByRole('dialog', { name: 'Buat kode pengaturan baru?' })).getByRole('button', {
-        name: 'Ya, buat kode baru',
-      }),
-    )
+    const confirm = await screen.findByRole('dialog', { name: 'Buat kode pengaturan baru?' })
+    fireEvent.change(within(confirm).getByLabelText('Password Anda'), { target: { value: 'rahasia-owner' } })
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Ya, buat kode baru' }))
     const setup = await screen.findByRole('dialog', { name: /Kode pengaturan/ }, LOAD)
     fireEvent.change(within(setup).getByLabelText('Alamat server'), { target: { value: '10.0.0.5:8888' } })
 
