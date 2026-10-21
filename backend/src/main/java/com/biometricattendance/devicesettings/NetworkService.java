@@ -117,6 +117,10 @@ public class NetworkService {
 	 */
 	@Transactional(readOnly = true)
 	public Optional<NetworkPayload> payload(Long configId) {
+		if (!cipher.isConfigured()) {
+			log.error("Kunci enkripsi server belum diatur; paket jaringan {} tidak dikirim", configId);
+			return Optional.empty();
+		}
 		try {
 			return configs.findById(configId).map(config -> new NetworkPayload(config.getWifi().isEmpty() ? null
 					: config.getWifi()

@@ -74,6 +74,10 @@ public class KeyRotationService {
 		if (device.getPendingKeyEnc() == null) {
 			return Optional.empty();
 		}
+		if (!cipher.isConfigured()) {
+			log.error("Kunci enkripsi server belum diatur; perintah ganti kunci mesin {} tidak dikirim", device.getId());
+			return Optional.empty();
+		}
 		try {
 			return Optional.of(cipher.decrypt(device.getPendingKeyEnc()));
 		}

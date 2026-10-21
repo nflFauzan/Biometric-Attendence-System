@@ -91,7 +91,11 @@ public class DeviceContactService {
 	 */
 	private Optional<Device> promotePending(String keyHash, Instant now) {
 		Optional<Device> pending = devices.findByPendingKeyHash(keyHash);
-		if (pending.isEmpty() || !pending.get().isRakitan() || !pending.get().isActive()) {
+		if (pending.isEmpty()) {
+			// Request lain bisa saja memindahkan kunci ini di antara pencarian kunci utama dan pencarian ini.
+			return devices.findByKeyHash(keyHash);
+		}
+		if (!pending.get().isRakitan() || !pending.get().isActive()) {
 			return pending;
 		}
 		Device device = pending.get();
