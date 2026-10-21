@@ -24,6 +24,12 @@
 //                                       Hasil lain: kode error, mis. SENSOR_ERROR (kontrak §6a).
 //        [--sensor-used 12]             isi dan kapasitas sensor yang dilaporkan di setiap heartbeat
 //        [--sensor-capacity 150]        (peringatan "hampir penuh" di halaman Mesin di atas 90%).
+//        [--network-result BERHASIL]    juga mengerjakan APPLY_NETWORK: alamat server baru dicoba dulu, dan kembali ke
+//        [--network-detail SSID]        alamat lama jika tidak terjangkau. Hasil lain: kode error, mis. WIFI_GAGAL,
+//                                       dengan keterangan opsional --network-detail (kontrak §6b).
+//        [--rotate-result KODE]         ROTATE_KEY: tanpa opsi ini kunci baru dipakai mulai heartbeat berikutnya;
+//                                       dengan opsi ini simulator melapor GAGAL memakai kunci lama (kontrak §6b).
+//                                       Paket pengaturan ringan dari heartbeat selalu diterapkan dan dicetak.
 
 import { randomUUID } from 'node:crypto';
 
@@ -95,13 +101,25 @@ async function post(path, body, key = setup.key) {
 
 const sensorUsed = Number(option('sensor-used', '12'));
 const sensorCapacity = Number(option('sensor-capacity', '150'));
+// Pengaturan ringan (kontrak §4): versi yang sedang dipakai, 0 = bawaan firmware.
+let settingsVersion = 0;
+let heartbeatSeconds = 5;
 const heartbeatBody = () => ({
   firmware: 'sim-0.1.0',
   ip: '127.0.0.1',
   uptimeSeconds: Math.round(process.uptime()),
   pendingScans: 0,
   sensor: { used: sensorUsed, capacity: sensorCapacity },
+  settingsVersion,
 });
+
+function applySettings(settings) {
+  settingsVersion = settings.version;
+  heartbeatSeconds = settings.heartbeatSeconds;
+  console.log(`Pengaturan versi ${settings.version} diterapkan: judul "${settings.headerText}", sapaan "${settings.greeting}", `
+    + `nama ${settings.nameDisplay}, kecerahan ${settings.brightness}%, buzzer ${settings.buzzerVolume}%, `
+    + `jeda "Sudah tercatat" ${settings.duplicateNoticeSeconds} dtk, heartbeat ${settings.heartbeatSeconds} dtk`);
+}
 const heartbeat = (key) => post('/device/v1/heartbeat', heartbeatBody(), key);
 const sendScans = (scans) => post('/device/v1/scans', { scans });
 
@@ -168,6 +186,58 @@ async function runDelete(cmd) {
     }
     await sleep(5000);
   }
+}
+
+/** Hasil dikirim ulang sampai server menjawab (bukan 5xx atau putus). */
+async function sendResult(cmd, body, key) {
+  for (;;) {
+    const res = await post(`/device/v1/commands/${cmd.id}/result`, body, key);
+    if (res.status !== 0 && res.status < 500) {
+      return;
+    }
+    await sleep(5000);
+  }
+}
+
+// Perintah jaringan dan kunci (kontrak §6b) untuk `live`.
+const networkResult = option('network-result', 'BERHASIL');
+const networkDetail = option('network-detail', undefined);
+const rotateResult = option('rotate-result', undefined);
+let pendingKey = null;
+
+/** Wi-Fi diwakili komputer ini; alamat server baru dicoba dulu dan baru disimpan jika heartbeat berhasil. */
+async function runNetwork(cmd) {
+  const wifi = cmd.network.wifi?.map((w) => `${w.ssid} (${w.password ? '***' : 'tanpa password'})`).join(', ');
+  console.log(`Layar: Menerapkan jaringan — Wi-Fi: ${wifi ?? 'tidak diubah'}; server: ${cmd.network.serverUrl ?? 'tidak diubah'}`);
+  if (networkResult !== 'BERHASIL') {
+    console.log(`Layar: Gagal (${networkResult}); kembali ke pengaturan lama`);
+    await sendResult(cmd, { status: 'GAGAL', error: networkResult, ...(networkDetail ? { detail: networkDetail } : {}) });
+    return;
+  }
+  const oldServer = setup.server;
+  if (cmd.network.serverUrl) {
+    setup.server = cmd.network.serverUrl.replace(/\/$/, '');
+    const res = await heartbeat();
+    if (res.status !== 200) {
+      setup.server = oldServer;
+      console.log('Layar: Server baru tidak terjangkau; kembali ke pengaturan lama');
+      await sendResult(cmd, { status: 'GAGAL', error: 'SERVER_TIDAK_TERJANGKAU', detail: cmd.network.serverUrl });
+      return;
+    }
+  }
+  console.log('Layar: Jaringan baru tersimpan');
+  await sendResult(cmd, { status: 'BERHASIL' });
+}
+
+/** Kunci baru dipakai mulai heartbeat berikutnya; server menyelesaikan perintahnya tanpa laporan hasil. */
+async function runRotateKey(cmd) {
+  if (rotateResult) {
+    console.log(`Layar: Kunci baru gagal disimpan (${rotateResult}); tetap memakai kunci lama`);
+    await sendResult(cmd, { status: 'GAGAL', error: rotateResult });
+    return;
+  }
+  pendingKey = { id: cmd.id, key: cmd.key };
+  console.log('Layar: Kunci baru diterima; dipakai mulai heartbeat berikutnya');
 }
 
 async function main() {
@@ -243,9 +313,25 @@ async function main() {
       let last = 0;
       let enrolling = null;
       for (;;) {
-        const res = await heartbeat();
+        // Kedua kunci disimpan sampai kunci baru mendapat 200; tanpa balasan, kunci baru dicoba lagi (kontrak §6b).
+        let res = await heartbeat(pendingKey?.key);
+        if (pendingKey && res.status === 200) {
+          setup.key = pendingKey.key;
+          pendingKey = null;
+          console.log('Kunci baru dipakai — kode pengaturan lama tidak lagi berlaku');
+        } else if (pendingKey && res.status === 401) {
+          pendingKey = null;
+          console.log('Kunci baru ditolak; mencoba kunci lama');
+          res = await heartbeat();
+        }
         for (const id of res.json?.cancel ?? []) {
           cancelled.add(id);
+        }
+        if (pendingKey && cancelled.has(pendingKey.id)) {
+          pendingKey = null;
+        }
+        if (res.json?.settings) {
+          applySettings(res.json.settings);
         }
         for (const cmd of res.json?.commands ?? []) {
           // Server mengirim ulang perintah sampai ada hasil; mesin mengerjakan setiap ID sekali saja (kontrak §4).
@@ -255,6 +341,14 @@ async function main() {
           seen.add(cmd.id);
           if (cmd.type === 'DELETE_TEMPLATE' || cmd.type === 'DELETE_EMPLOYEE') {
             await runDelete(cmd);
+            continue;
+          }
+          if (cmd.type === 'APPLY_NETWORK') {
+            await runNetwork(cmd);
+            continue;
+          }
+          if (cmd.type === 'ROTATE_KEY') {
+            await runRotateKey(cmd);
             continue;
           }
           if (cmd.type !== 'ENROLL') {
@@ -269,7 +363,7 @@ async function main() {
           await sendScans([scan(pin, isoWithOffset(new Date()))]);
           last = Date.now();
         }
-        await sleep(5000);
+        await sleep(heartbeatSeconds * 1000);
       }
     }
     default:
