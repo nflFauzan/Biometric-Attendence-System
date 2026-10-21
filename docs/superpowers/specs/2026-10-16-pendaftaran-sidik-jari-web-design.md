@@ -332,7 +332,7 @@ Rinciannya dibuat di rencana implementasi (writing-plans). Gambaran urutannya:
 3. Antrean perintah, `ENROLL`, dan UI pendaftaran dengan persetujuan.
 4. Penyimpanan template, `STORE_TEMPLATE`, rekonsiliasi, dan status per mesin. **Hanya jika uji R503 lulus.**
 5. Penghapusan (manual dan saat karyawan nonaktif), kunci PIN, dan peringatan kapasitas.
-6. Paket pengaturan ringan, `APPLY_NETWORK`, `ROTATE_KEY`, dan konfirmasi ulang password.
+6. Paket pengaturan ringan, `APPLY_NETWORK`, `ROTATE_KEY`, dan konfirmasi ulang password. **Selesai 2026-10-22** (§18, K-104).
 7. Halaman Firmware dan `UPDATE_FIRMWARE`. **Hanya jika uji OTA lulus.**
 
 Uji kelayakan R503 dan OTA (§2) berjalan paralel dengan langkah 1–3.

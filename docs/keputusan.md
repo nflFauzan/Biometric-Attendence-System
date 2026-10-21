@@ -117,6 +117,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-101 | 2026-10-18 | Batas waktu tanpa hasil dari server memakai kode `TIDAK_ADA_HASIL`, terpisah dari `WAKTU_HABIS` mesin; batal yang bentrok dicoba ulang sekali | Disepakati |
 | K-102 | 2026-10-18 | Rincian Rencana 5: perintah `DELETE_TEMPLATE`/`DELETE_EMPLOYEE` ke semua alat rakitan yang pernah tersambung, hapus saat nonaktif atau setelah tanggal keluar lewat, PIN terkunci sampai semua mesin aktif selesai menghapus, "Coba lagi", peringatan kapasitas sensor (merinci K-090 dan K-093) | Disepakati |
 | K-103 | 2026-10-20 | Cabang absen diatur per karyawan: sidik jari hanya didaftarkan di mesin cabang yang diizinkan; scan dari cabang lain disimpan tetapi tidak masuk rekap sampai ditinjau. Menjawab sebagian Q-022, mengganti sebagian K-065 | Disepakati, belum diterapkan |
+| K-104 | 2026-10-20 | Rincian Rencana 6: paket pengaturan ringan berversi, `APPLY_NETWORK` (Wi-Fi + alamat server, password terenkripsi), `ROTATE_KEY` dua tahap, konfirmasi ulang password untuk tindakan berisiko (merinci K-089, K-096, K-098) | Keputusan Claude, menunggu tinjauan pengguna |
 
 ---
 
@@ -523,6 +524,53 @@ Merinci K-090 dan K-093. Rincian lengkap ada di spec §17 ([pendaftaran-sidik-ja
 **Alasan:** client ingin sebagian karyawan bisa absen di cabang lain dan sebagian tidak. Menolak di tingkat pendaftaran sidik jari lebih kuat daripada hanya memberi penanda, dan pengaman di server tetap diperlukan untuk X401 dan jari yang belum terhapus.
 
 **Alternatif yang dipertimbangkan:** tetap menerima scan dan hanya menandainya (ditolak: karyawan yang tidak diizinkan tetap tercatat hadir), menolak total tanpa peninjauan (ditolak: tidak ada jalan untuk kasus sah), dan satu sakelar "semua cabang / cabang penempatan" (ditolak: kurang fleksibel jika cabang bertambah).
+
+### K-104 — Rincian Rencana 6: pengaturan mesin jarak jauh
+
+Merinci K-089, K-096, dan K-098. Pengguna meminta langsung dikerjakan ("langsung eksekusi saja"), jadi rincian ini **keputusan Claude** yang bisa diubah pengguna. Rincian lengkap ada di spec §18 ([pendaftaran-sidik-jari-web-design.md](superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md)); kontrak mesin di [protokol-alat-rakitan.md](protokol-alat-rakitan.md) §4 dan §6b.
+
+- **Pengaturan ringan.**
+  - Tabel `device_settings`, satu baris per alat rakitan, dibuat saat pertama kali disimpan dari web. Isinya: judul layar, sapaan, tampilan nama, kecerahan, volume buzzer, jeda "Sudah tercatat", dan interval heartbeat (2–20 detik).
+  - Selama belum ada baris, versi 0 dan mesin memakai bawaan firmware. Bawaan ini sama dengan `app.device.settings.default.*`.
+  - Setiap simpan yang mengubah nilai menaikkan versi per mesin. "Pengaturan semua mesin" hanya mengenai alat rakitan aktif dan hanya menaikkan versi mesin yang nilainya berubah.
+  - Paket dikirim di heartbeat jika versi server > 0 dan **berbeda** dari versi mesin. Dengan begitu mesin yang versinya lebih baru (setelah database dipulihkan) tetap menerima paket.
+  - Versi yang dilaporkan mesin hanya dicatat jika 0 ≤ versi ≤ versi server.
+  - Batas waktu pendaftaran dan zona waktu tidak masuk paket, karena sudah dikirim di tempat lain.
+  - Batas panjang teks masih sementara (Q-037).
+- **Konfirmasi ulang password.**
+  - `APPLY_NETWORK`, "Ganti kunci", dan "Buat kode baru" wajib membawa `confirmPassword`.
+  - Password salah dibalas 400 *"Password salah."*, bukan 401.
+  - Membatalkan perintah tidak butuh password.
+- **Perintah berisiko** (`APPLY_NETWORK`, `ROTATE_KEY`).
+  - Maksimal satu yang aktif per mesin (unique index).
+  - Tidak dikirim selama ada `ENROLL` aktif, dan `ENROLL` ditolak selama perintah berisiko aktif.
+  - Tidak kedaluwarsa selama `MENUNGGU`. Owner bisa membatalkan hanya selama `MENUNGGU`.
+  - Hasil `DIKIRIM` tanpa laporan: jaringan gagal `TIDAK_ADA_HASIL` setelah 10 menit; kunci gagal `KUNCI_BARU_TIDAK_DIPAKAI` 24 jam setelah perintah dibuat.
+- **Jaringan.**
+  - Setiap permintaan menjadi paket jaringan (1–5 Wi-Fi berurutan dan/atau alamat server). Password Wi-Fi disimpan AES-256-GCM dan didekripsi hanya saat balasan heartbeat dibuat.
+  - "Jaringan yang berlaku" dihitung terpisah: Wi-Fi dari paket `BERHASIL` terbaru yang memuat Wi-Fi, dan alamat server dari paket `BERHASIL` terbaru yang memuat alamat. Dengan begitu, permintaan yang hanya mengganti server tidak menghapus Wi-Fi yang berlaku.
+  - Password yang dikosongkan untuk SSID yang sudah berlaku berarti memakai password tersimpan.
+- **Kunci dua tahap.**
+  - Kunci baru disimpan sebagai hash dan sebagai sandi terenkripsi (heartbeat perlu mengirimnya ulang). Selama transisi, kedua kunci diterima.
+  - Kontak pertama dengan kunci baru memindahkannya secara atomik, sekali walau dua heartbeat datang bersamaan. Request yang kalah balapan tetap diterima lewat kunci utama yang baru. Setelah itu kunci lama ditolak.
+  - Mesin menyimpan kedua kunci sampai kunci baru dibalas 200. Tanpa balasan, kunci baru dicoba lagi; jika dibalas 401, mesin mencoba kunci lama. Tujuannya agar balasan yang hilang tidak mengunci mesin keluar.
+  - Laporan `BERHASIL` dari mesin dibalas 200 tanpa efek, karena yang menyelesaikan perintah adalah pemakaian kunci baru.
+  - "Buat kode baru" membuang kunci tertunda dan membatalkan `ROTATE_KEY`, termasuk yang sudah dikirim. Mesin diberi tahu lewat `cancel`.
+- **Kunci enkripsi server.**
+  - `DATA_ENCRYPTION_KEY` (32 byte base64) dibaca dari environment. Kunci ini tidak disimpan di database dan tidak di-commit.
+  - Tanpa kunci ini, jaringan dan ganti kunci ditolak, sedangkan fitur lain tetap berjalan.
+  - Paket yang tidak bisa didekripsi (kunci server diganti) tidak dikirim. Paket itu dicatat di log dan gagal sendiri lewat batas waktu, sehingga heartbeat tidak gagal 500 terus-menerus.
+- **Audit.**
+  - Aksi baru: `UPDATE_SETTINGS`, `NETWORK_REQUEST`, `ROTATE_KEY_REQUEST`, `KEY_ROTATED`.
+  - Audit tidak pernah memuat password Wi-Fi, kunci, atau hash kunci. Snapshot jaringan hanya berisi SSID dan alamat server.
+- **Hak akses.** Pengaturan ringan: Owner dan HR/Finance. Jaringan dan kunci: hanya Owner. Ringkasan perintah jaringan/kunci terakhir ada di tampilan jaringan khusus Owner, bukan di daftar mesin.
+
+**Alasan:** pengaturan ringan aman dikirim ulang kapan saja, jadi cukup paket berversi. Perubahan jaringan dan kunci bisa memutus mesin dari server, jadi dibuat sebagai perintah yang dicoba dulu oleh mesin, dibatasi satu per mesin, dan dilindungi password.
+
+**Alternatif yang dipertimbangkan:**
+- Mengirim paket hanya jika versi mesin lebih lama. Ditolak, karena mesin yang versinya lebih baru setelah database dipulihkan tidak akan pernah diperbarui.
+- Mengganti kunci dalam satu langkah. Ditolak, karena mesin yang belum menerima kunci baru akan langsung terputus.
+- Menyimpan password Wi-Fi tanpa enkripsi. Ditolak, mengikuti K-089.
 
 ### Fase 4 — Izin dan Cuti (K-070–K-082)
 

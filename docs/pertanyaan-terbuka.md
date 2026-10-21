@@ -379,6 +379,12 @@ Apakah sensor bisa mengirim dan menerima template, berapa kapasitas varian yang 
 
 Berapa ukuran flash ESP32 DevKit yang dipakai, apakah dua partisi firmware muat, dan apakah rollback otomatis berfungsi? Menentukan apakah K-097 dijalankan.
 
+### Q-037. Ukuran layar mesin rakitan
+
+Berapa ukuran dan resolusi layar alat rakitan, dan font apa yang dipakai firmware? Batas panjang judul layar (32 karakter) dan pesan sapaan (64 karakter) di pengaturan ringan masih sementara (K-104). Batas yang benar adalah jumlah karakter yang muat tanpa terpotong di layar itu.
+
+**Dampak:** validasi `headerText`/`greeting` di server (`DeviceSettingsDtos`) dan form "Tampilan & suara" di halaman Mesin.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
@@ -387,7 +393,7 @@ Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan k
 |---|---|---|
 | P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
 | P0 — Sebelum Fase 3 (uji X401) | Q-029 (sebagian terjawab 2026-10-12), Q-031, Q-032 | Menentukan format adapter ZK-Push dan pemetaan PIN karyawan. |
-| P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030, Q-034, Q-035, Q-036 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
+| P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030, Q-034, Q-035, Q-036, Q-037 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
 | P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
 | P1 — Sebelum rilis produksi | Q-023 | Menentukan tata kelola data biometrik dan kontrol aksesnya. |
 | P2 — Sebelum UI final | Q-024, Q-025 | Menyelesaikan identitas visual dan nama aplikasi. |

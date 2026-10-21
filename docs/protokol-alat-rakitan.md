@@ -1,8 +1,8 @@
 # Kontrak Protokol Alat Rakitan (`/device/v1`)
 
-**Status:** berlaku sejak Rencana 2 (2026-10-17; K-087, K-088, K-099); perintah sejak Rencana 3 (2026-10-18; K-091, K-094, K-100) (spec [`superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md`](./superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md) §5, §6, §16). Dokumen ini acuan bersama untuk backend, simulator (`tools/device-simulator`), dan firmware ESP32.
+**Status:** berlaku sejak Rencana 2 (2026-10-17; K-087, K-088, K-099); perintah sejak Rencana 3 (2026-10-18; K-091, K-094, K-100); hapus sidik jari sejak Rencana 5 (K-102); pengaturan jarak jauh sejak Rencana 6 (2026-10-20; K-104) (spec [`superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md`](./superpowers/specs/2026-10-16-pendaftaran-sidik-jari-web-design.md) §5, §6, §16, §17, §18). Dokumen ini acuan bersama untuk backend, simulator (`tools/device-simulator`), dan firmware ESP32.
 
-Cakupan versi ini: pengaturan pertama, autentikasi, heartbeat, pengiriman scan, dan perintah `ENROLL` (pendaftaran sidik jari dari web, §6). Penyalinan dan penghapusan sidik jari, pengaturan jarak jauh, dan update firmware ditambahkan di rencana berikutnya. Field yang belum dikenal **wajib diabaikan** oleh kedua sisi, supaya versi berikutnya tidak memutus mesin lama.
+Cakupan versi ini: pengaturan pertama, autentikasi, heartbeat, pengiriman scan, perintah `ENROLL` (pendaftaran sidik jari dari web, §6), penghapusan sidik jari (§6a), pengaturan ringan (§4), serta perintah jaringan dan kunci (§6b). Penyalinan sidik jari dan update firmware ditambahkan di rencana berikutnya. Field yang belum dikenal **wajib diabaikan** oleh kedua sisi, supaya versi berikutnya tidak memutus mesin lama.
 
 ## 1. Identitas mesin dan kode pengaturan
 
@@ -21,7 +21,7 @@ BAS1.<base64url tanpa padding dari JSON berikut>
 
 - `server`: alamat dasar yang dijangkau mesin, tanpa garis miring di akhir. Saat uji: IP laptop di jaringan hotspot HP + port mesin (`8888`, K-060/K-086).
 - Firmware menolak kode yang tidak diawali `BAS1.` atau JSON-nya tidak lengkap, dengan pesan *"Kode pengaturan tidak valid"*.
-- **"Buat kode baru"** di web membuat kunci baru dan **langsung membatalkan kunci lama** (cabut kunci, spec §6.1). Penggantian dua tahap tanpa memutus mesin dibuat di rencana pengaturan jarak jauh.
+- **"Buat kode baru"** di web (wajib konfirmasi password Owner) membuat kunci baru dan **langsung membatalkan kunci lama** (cabut kunci, spec §6.1). Kunci tertunda dan perintah `ROTATE_KEY` yang aktif ikut dibuang. Untuk mengganti kunci tanpa memutus mesin, pakai **"Ganti kunci"** (`ROTATE_KEY`, §6b).
 
 ## 2. Aturan umum
 
@@ -61,11 +61,14 @@ Request:
   "ip": "192.168.43.51",
   "uptimeSeconds": 3600,
   "pendingScans": 0,
-  "sensor": { "used": 12, "capacity": 150 }
+  "sensor": { "used": 12, "capacity": 150 },
+  "settingsVersion": 3
 }
 ```
 
 Semua field opsional. `sensor` boleh tidak dikirim jika belum tersedia. Server menyimpan `used` dan `capacity` terakhir (hanya jika keduanya ada dan `capacity` > 0) dan menampilkan *"Sensor 12/150"* di halaman Mesin. Di atas 90% terisi muncul peringatan *"Kapasitas sensor hampir penuh."* (`app.device.sensor-warning-percent`, parameter teknis; K-102).
+
+`settingsVersion` adalah versi paket pengaturan ringan yang sedang dipakai mesin: `0` jika belum pernah menerima paket (memakai bawaan firmware). Tidak dikirim dianggap `0`.
 
 Response `200`:
 
@@ -82,10 +85,22 @@ Response `200`:
       "pin": "1696",
       "finger": 1,
       "displayName": "Budi Santoso",
-      "timeoutSeconds": 60
+      "timeoutSeconds": 60,
+      "network": null,
+      "key": null
     }
   ],
-  "cancel": []
+  "cancel": [],
+  "settings": {
+    "version": 3,
+    "headerText": "",
+    "greeting": "Silakan tempelkan jari",
+    "nameDisplay": "FULL",
+    "brightness": 80,
+    "buzzerVolume": 50,
+    "duplicateNoticeSeconds": 60,
+    "heartbeatSeconds": 5
+  }
 }
 ```
 
@@ -93,6 +108,20 @@ Response `200`:
 - `deviceName` dan `branchName` ditampilkan di layar "Siap absen".
 - `commands` berisi perintah yang belum selesai untuk mesin ini (kosong jika tidak ada). Server **mengirim ulang** perintah yang sama di setiap heartbeat sampai mesin melaporkan hasil, jadi mesin wajib **mengerjakan setiap `id` sekali saja** dan mengabaikan ID yang sedang dikerjakan atau yang hasilnya belum diterima server. Setelah server membalas `200` untuk hasilnya, mesin boleh melupakan ID itu: perintah hapus yang muncul lagi dengan ID yang sama berarti admin menekan **"Coba lagi"** dan harus dikerjakan ulang (§6a). Jenis perintah yang tidak dikenal firmware diabaikan.
 - `cancel` berisi ID perintah yang dibatalkan dari web setelah sempat dikirim ke mesin (selama 2 menit setelah dibatalkan). Jika mesin sedang mengerjakan salah satunya, mesin menghentikannya tanpa mengirim hasil.
+- Setiap perintah memuat semua field (`id`, `type`, `pin`, `finger`, `displayName`, `timeoutSeconds`, `network`, `key`); field yang tidak dipakai jenis perintah itu bernilai `null`. `network` dan `key` hanya terisi untuk `APPLY_NETWORK` dan `ROTATE_KEY` (§6b).
+- `settings` berisi **paket pengaturan ringan lengkap** jika versi server lebih dari 0 dan berbeda dari `settingsVersion` mesin; selain itu `null`. Paket juga dikirim jika versi mesin *lebih baru* dari server (misalnya setelah database dipulihkan). Mesin menerapkan paket, menyimpannya di memori sendiri (tetap berlaku saat offline dan setelah listrik mati), lalu melaporkan `version`-nya sebagai `settingsVersion` di heartbeat berikutnya. Selama server belum pernah menyimpan pengaturan untuk mesin itu (versi 0), tidak ada paket yang dikirim dan mesin memakai bawaan firmware, yang **wajib sama** dengan `app.device.settings.default.*` di server.
+
+| Isian paket | Arti | Batas |
+|---|---|---|
+| `headerText` | Judul layar; kosong = nama cabang (`branchName`) | ≤ 32 karakter (sementara, Q-037) |
+| `greeting` | Pesan sapaan di layar "Siap absen" | ≤ 64 karakter (sementara, Q-037) |
+| `nameDisplay` | Nama yang tampil setelah scan: `FULL` (nama lengkap), `FIRST` (nama depan), `PIN` | salah satu dari tiga |
+| `brightness` | Kecerahan layar (%) | 10–100 |
+| `buzzerVolume` | Volume buzzer (%); 0 = mati | 0–100 |
+| `duplicateNoticeSeconds` | Jeda tampilan "Sudah tercatat" untuk scan berulang; 0 = mati | 0–600 |
+| `heartbeatSeconds` | Interval heartbeat | 2–20 (perintah `ENROLL` kedaluwarsa jika tidak diambil dalam 30 detik) |
+
+Batas waktu pendaftaran tidak ada di paket (sudah di `timeoutSeconds` setiap `ENROLL`), dan zona waktu tidak ada di paket (sudah di `timezone` setiap heartbeat).
 
 ## 5. `POST /device/v1/scans`
 
@@ -167,7 +196,7 @@ Dikirim sekali di akhir. Jika tidak ada balasan atau 5xx, kirim ulang dengan jed
 { "status": "GAGAL", "error": "JARI_SUDAH_TERDAFTAR", "pin": "1702" }
 ```
 
-- `status` wajib `BERHASIL` atau `GAGAL`; `GAGAL` wajib membawa `error`. Selain itu dibalas 400 `FORMAT_SALAH`.
+- `status` wajib `BERHASIL` atau `GAGAL`; `GAGAL` wajib membawa `error`. Field `detail` (opsional) dipakai perintah selain `ENROLL` untuk keterangan kegagalan, misalnya SSID yang gagal (§6b). Selain itu dibalas 400 `FORMAT_SALAH`.
 - Balasan `200 {}`, **dikirim hanya setelah hasil tersimpan**. Hasil yang dikirim ulang, atau hasil untuk perintah yang sudah selesai/dibatalkan, juga dibalas `200 {}` **tanpa efek**, supaya mesin berhenti mengirim. Jika admin membatalkan tepat saat mesin selesai, yang tersimpan lebih dulu yang berlaku. Batal lebih dulu: status `DIBATALKAN`, hasil diabaikan, dan selisih isi sensor dibereskan lewat rekonsiliasi (Rencana 4). Hasil lebih dulu: status mengikuti hasil, dan admin mendapat pesan *"Perintah sudah selesai."*
 - **Template sidik jari tidak dikirim di versi ini.** Jika body membawa field `template`, server mengabaikannya: tidak disimpan, tidak dicatat di log maupun audit (K-100).
 
@@ -201,6 +230,61 @@ Server mengirim `DELETE_TEMPLATE` saat admin menghapus satu jari, dan `DELETE_EM
 - **Tidak kedaluwarsa dan tidak bisa dibatalkan:** perintah tetap dikirim ulang, berhari-hari jika mesin offline, sampai ada hasil. Tidak pernah muncul di `cancel`.
 - Setelah `GAGAL`, admin bisa menekan **"Coba lagi"**: perintah dengan **ID yang sama** kembali ke `commands`, dan mesin mengerjakannya lagi (§4).
 - Selama penghapusan di mesin aktif belum `BERHASIL`, PIN karyawan terkunci di web, dan `ENROLL` untuk PIN itu di mesin yang sama ditolak.
+
+## 6b. Perintah jaringan dan kunci (K-104)
+
+Hanya Owner yang bisa memulainya dari web (halaman Mesin → **Pengaturan** → bagian **Jaringan** atau **Kunci**), dan setiap permintaan wajib dikonfirmasi ulang dengan password. Aturan bersama untuk kedua perintah:
+
+- **Satu per mesin.** Selama satu perintah jaringan/kunci masih `MENUNGGU` atau `DIKIRIM`, permintaan kedua untuk mesin yang sama ditolak di web.
+- **Tidak bersamaan dengan pendaftaran.** Perintah ini tidak dikirim di heartbeat selama mesin punya `ENROLL` aktif, dan `ENROLL` ditolak selama perintah ini aktif.
+- **Tidak kedaluwarsa selama `MENUNGGU`** (kecuali batas 24 jam `ROTATE_KEY`, lihat butir 6 di bawah). Mesin yang offline tetap menerimanya saat kembali online. Owner hanya bisa membatalkan selama `MENUNGGU`; setelah `DIKIRIM`, batal ditolak.
+- Perintah ini memuat data rahasia (password Wi-Fi, kunci) dan hanya dikirim ke mesin pemiliknya. Produksi wajib HTTPS (§2). Firmware **tidak boleh** menampilkan atau mencatat password maupun kunci.
+
+### `APPLY_NETWORK` (Wi-Fi dan/atau alamat server)
+
+```json
+{
+  "id": "…", "type": "APPLY_NETWORK", "pin": null, "finger": null, "displayName": null, "timeoutSeconds": null,
+  "network": {
+    "wifi": [ { "ssid": "Kantor", "password": "rahasia123" }, { "ssid": "HP Kepala Cabang", "password": "" } ],
+    "serverUrl": "https://absen.contoh.id:8888"
+  },
+  "key": null
+}
+```
+
+- `wifi` adalah daftar Wi-Fi **berurutan** (1–5): mesin mencoba dari yang pertama. Password kosong berarti Wi-Fi terbuka. `wifi: null` berarti Wi-Fi tidak diubah; `serverUrl: null` berarti alamat server tidak diubah.
+- **Coba dulu, baru simpan.** Mesin mencoba pengaturan baru sambil tetap menyimpan pengaturan lama. Jika dalam **2 menit** heartbeat dengan pengaturan baru berhasil (`200`), pengaturan baru disimpan permanen dan mesin melaporkan `{ "status": "BERHASIL" }`.
+- **Kembali otomatis.** Jika gagal dalam 2 menit, mesin kembali ke pengaturan lama, lalu melaporkan `GAGAL` memakai pengaturan lama:
+
+| `error` | `detail` | Arti |
+|---|---|---|
+| `WIFI_GAGAL` | SSID yang gagal | Tidak ada Wi-Fi di daftar yang bisa disambungkan. Web: *"Gagal tersambung ke Wi-Fi '{detail}', kembali ke pengaturan lama."* |
+| `SERVER_TIDAK_TERJANGKAU` | alamat server baru | Wi-Fi tersambung, tetapi heartbeat ke server baru gagal. Web: *"Server baru tidak terjangkau, kembali ke pengaturan lama."* |
+
+Kode lain disimpan apa adanya dan tampil sebagai *"Perubahan jaringan gagal ({kode})."*
+
+- Server menandai perintah `DIKIRIM` tanpa hasil dalam **10 menit** sebagai `GAGAL` + `TIDAK_ADA_HASIL` (`app.device.network.result-timeout`).
+- **Pindah server:** server baru harus sudah berjalan dan mengenali mesin yang sama (data mesin dan kuncinya ikut dipindahkan), karena keberhasilan diukur dari heartbeat ke server baru. Hasil `BERHASIL` dikirim ke server baru.
+
+### `ROTATE_KEY` (ganti kunci tanpa memutus mesin)
+
+```json
+{ "id": "…", "type": "ROTATE_KEY", "pin": null, "finger": null, "displayName": null, "timeoutSeconds": null, "network": null, "key": "<kunci baru 43 karakter>" }
+```
+
+1. Server membuat kunci baru. Selama masa transisi, **kunci lama dan kunci baru sama-sama diterima**.
+2. Mesin menyimpan kunci baru **di samping** kunci lama, lalu memakai kunci baru mulai request berikutnya. Kunci lama baru dihapus dari memori mesin setelah request dengan kunci baru dibalas `200`:
+   - tidak ada balasan atau 5xx → tetap simpan keduanya dan coba lagi dengan kunci baru (perpindahan mungkin sudah terjadi di server walau balasannya hilang);
+   - 401 dengan kunci baru → coba kunci lama; jika kunci lama diterima, kunci baru dibuang;
+   - 401 dengan kedua kunci → kunci sudah dicabut; layar *"Kunci ditolak. Buat kode pengaturan baru di web."*
+3. **Kontak pertama dengan kunci baru** memindahkan kunci baru menjadi kunci utama dan menyelesaikan perintah sebagai `BERHASIL`. Setelah itu **kunci lama ditolak** (401 `KUNCI_DITOLAK`), jadi kode pengaturan lama tidak berlaku lagi.
+4. **Hasil tidak wajib.** Mesin tidak perlu mengirim `result` untuk `ROTATE_KEY` yang berhasil; hasil yang tetap dikirim dibalas `200 {}` tanpa efek.
+5. **Gagal menyimpan.** Mesin yang tidak bisa menyimpan kunci baru melaporkan `{ "status": "GAGAL", "error": "…" }` **memakai kunci lama**. Kunci baru dibuang server, dan kunci lama tetap berlaku.
+6. **24 jam.** Jika kunci baru tidak dipakai dalam 24 jam sejak perintah dibuat (`app.device.rotate-key.timeout`), perintah `GAGAL` + `KUNCI_BARU_TIDAK_DIPAKAI` dan kunci lama tetap berlaku.
+7. **"Buat kode baru" selama transisi** mencabut kunci lama dan membuang kunci baru sekaligus; `ROTATE_KEY` yang sudah dikirim muncul di `cancel`. Mesin harus diatur ulang dengan kode pengaturan baru (§7).
+
+Kode gagal lain tampil di web sebagai *"Ganti kunci gagal ({kode})."*
 
 ## 7. Pengaturan pertama di mesin (kontrak firmware)
 
@@ -249,3 +333,9 @@ Hasil yang benar: "✓ Server ditemukan", "✓ Kunci diterima", "Siap absen — 
 | `live` lalu **Hapus** jari di Detail Karyawan | Simulator mencetak *"Sidik jari dihapus"*; daftar "Penghapusan di mesin" tidak lagi memuat mesin ini |
 | `live --delete-result SENSOR_ERROR` lalu **Hapus** | Web menampilkan *"Gagal: Sensor bermasalah. Hubungi teknisi."*; **Coba lagi** membuat simulator mengerjakannya lagi |
 | `live --sensor-used 140 --sensor-capacity 150` | Halaman Mesin menampilkan *"Sensor 140/150"* dan *"Kapasitas sensor hampir penuh."* |
+| `live` lalu ubah **Tampilan & suara** di dialog Pengaturan | Simulator mencetak *"Pengaturan versi N diterapkan: …"*; halaman Mesin menampilkan *"Pengaturan terbaru sudah diterapkan ✓"*. Interval heartbeat simulator mengikuti `heartbeatSeconds` |
+| `live` lalu **Jaringan** dengan alamat server `http://localhost:8888` | Simulator mencetak Wi-Fi (password disamarkan `***`), mencoba alamat baru, lalu *"Jaringan baru tersimpan"*; web menampilkan *"Jaringan baru diterapkan"* dan jaringan yang berlaku |
+| `live` lalu **Jaringan** dengan alamat server yang tidak berjalan, mis. `http://localhost:9999` | Simulator kembali ke alamat lama; web menampilkan *"Server baru tidak terjangkau, kembali ke pengaturan lama."* |
+| `live --network-result WIFI_GAGAL --network-detail Kantor` lalu **Jaringan** | Web menampilkan *"Gagal tersambung ke Wi-Fi 'Kantor', kembali ke pengaturan lama."* |
+| `live` lalu **Ganti kunci** | Simulator mencetak *"Kunci baru dipakai — kode pengaturan lama tidak lagi berlaku"*; web menampilkan *"Kunci baru dipakai"*. Simulator yang dijalankan ulang dengan kode lama mendapat 401 |
+| `live --rotate-result SENSOR_ERROR` lalu **Ganti kunci** | Simulator melapor gagal memakai kunci lama; web menampilkan *"Ganti kunci gagal (SENSOR_ERROR)."* dan mesin tetap Online |
