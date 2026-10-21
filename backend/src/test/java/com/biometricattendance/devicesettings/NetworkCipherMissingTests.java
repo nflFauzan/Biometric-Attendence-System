@@ -32,6 +32,28 @@ class NetworkCipherMissingTests extends RakitanFixtures {
 				rakitan.id())).isZero();
 	}
 
+	/** Perintah tersegel dari sebelum kunci server hilang tidak dikirim, dan heartbeat tetap 200 (review akhir I1). */
+	@Test
+	void heartbeatSurvivesSealedCommandsWithoutServerKey() throws Exception {
+		Rakitan network = onlineRakitan(createBranch());
+		Long configId = jdbc.queryForObject("insert into device_network_configs (device_id, server_url, created_by,"
+				+ " created_at) values (?, null, 'owner', now()) returning id", Long.class, network.id());
+		jdbc.update("insert into device_network_wifi (config_id, position, ssid, password_enc)"
+				+ " values (?, 0, 'Kantor', 'v1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')", configId);
+		jdbc.update("insert into device_commands (id, device_id, type, status, network_config_id, created_by,"
+				+ " created_at) values (gen_random_uuid(), ?, 'APPLY_NETWORK', 'MENUNGGU', ?, 'owner', now())",
+				network.id(), configId);
+		Rakitan rotating = onlineRakitan(createBranch());
+		jdbc.update("update devices set pending_key_hash = repeat('a', 64),"
+				+ " pending_key_enc = 'v1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' where id = ?", rotating.id());
+		jdbc.update("insert into device_commands (id, device_id, type, status, created_by, created_at)"
+				+ " values (gen_random_uuid(), ?, 'ROTATE_KEY', 'MENUNGGU', 'owner', now())", rotating.id());
+
+		heartbeat(network.key(), "{}").andExpect(status().isOk()).andExpect(jsonPath("$.commands.length()").value(0));
+		heartbeat(rotating.key(), "{}").andExpect(status().isOk())
+			.andExpect(jsonPath("$.commands.length()").value(0));
+	}
+
 	@Test
 	void rotateKeyRejectedButSettingsStillWork() throws Exception {
 		Rakitan rakitan = onlineRakitan(createBranch());
