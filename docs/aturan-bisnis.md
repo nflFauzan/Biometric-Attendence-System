@@ -158,7 +158,8 @@ Kewenangan koreksi dan kebutuhan persetujuan tambahan harus mengikuti matriks ak
 | Scan ganda | Scan dengan mesin, PIN, dan waktu yang sama hanya disimpan sekali. | K-061 |
 | Riwayat lama | Scan sebelum "Terima scan sejak" mesin tidak disimpan, hanya dihitung. | K-057 |
 | PIN belum dipetakan | Scan tetap disimpan dengan penanda dan belum masuk rekap; terhubung otomatis saat PIN diisi. | K-065, K-068 |
-| Scan di mesin cabang lain | Saat ini: tetap masuk rekap, diberi penanda untuk ditinjau. Akan diganti: cabang yang boleh dipakai diatur per karyawan; scan dari cabang yang tidak diizinkan disimpan tetapi tidak masuk rekap sampai ditinjau (belum diterapkan). | K-065, K-103 |
+| Scan di mesin cabang lain | Cabang yang boleh dipakai = cabang penempatan ditambah cabang tambahan, diatur per karyawan oleh Owner atau HR/Finance. Scan di cabang tambahan tetap masuk rekap dengan penanda informasi `CABANG_BERBEDA`. | K-065, K-103, K-106 |
+| Scan dari cabang yang tidak diizinkan | Disimpan utuh dengan penanda `CABANG_TIDAK_DIIZINKAN`, tetapi **tertahan**: tidak dihitung di rekap sampai ditinjau. Peninjauan (Owner dan HR/Finance) memutuskan `DITERIMA` (masuk rekap) atau `DIABAIKAN`, alasan wajib; keputusan boleh diubah dan tercatat di audit log. Scan asli tidak pernah diubah. Tidak berlaku surut: mengubah daftar cabang tidak menilai ulang scan yang sudah tersimpan. | K-103, K-106 |
 | Waktu scan di masa depan | Tetap disimpan, diberi penanda (jam mesin mungkin salah). | K-065 |
 | Koreksi | Jam masuk dan/atau pulang; alasan wajib; Owner dan HR/Finance; hanya untuk tanggal yang sudah terjadi. | K-059 |
 | Beberapa koreksi pada tanggal sama | Yang terbaru berlaku; yang lama tetap tersimpan sebagai riwayat. | K-066 |
@@ -477,6 +478,8 @@ Empat jenis laporan/formulir aktual perusahaan menjadi acuan utama untuk memasti
 Contoh data, format, kolom, rumus, dan hasil yang diharapkan dari formulir aktual perlu dikumpulkan serta divalidasi bersama klien.
 
 Keempat laporan tersebut menjadi baseline rekonsiliasi dan pengujian regresi. Format final, kolom wajib, dan aturan pembulatan mengikuti dokumen aktual yang telah dikonfirmasi.
+
+**Dokumen aktual diterima 2026-10-08 dan dianalisis 2026-10-22.** Rinciannya ada di [dokumen-as-is.md](dokumen-as-is.md), mencakup kolom, rumus yang cocok dengan angka, indikasi aturan, dan daftar konfirmasi untuk client. Selain keempat laporan di atas, ada juga laporan detail absensi dari mesin lama, Form Lemburan supir, dan pengajuan dana gaji per toko. Client ingin web bisa mengekspor laporan ini ke Excel dan PDF (K-105). Indikasi aturan di dokumen tersebut **belum menjadi aturan** sampai dikonfirmasi.
 
 ---
 

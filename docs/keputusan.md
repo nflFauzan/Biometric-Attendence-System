@@ -85,7 +85,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-062 | 2026-10-12 | Baris scan rusak disimpan di rejected_scan_lines dan kiriman tetap di-ACK | Disepakati |
 | K-063 | 2026-10-12 | Mesin hanya diminta mengirim data absensi, bukan data user/sidik jari | Disepakati |
 | K-064 | 2026-10-12 | Mesin offline bila tidak ada kontak selama DEVICE_OFFLINE_AFTER (bawaan 5 menit) | Disepakati |
-| K-065 | 2026-10-12 | Penanda scan: PIN tak dikenal, waktu di masa depan, cabang berbeda | Disepakati, sementara menunggu Q-022 |
+| K-065 | 2026-10-12 | Penanda scan: PIN tak dikenal, waktu di masa depan, cabang berbeda | Disepakati, sementara menunggu Q-022. Arti `CABANG_BERBEDA` diganti oleh K-106 (sekarang hanya "scan di cabang tambahan yang diizinkan") |
 | K-066 | 2026-10-12 | Satu koreksi aktif per karyawan per tanggal; koreksi lama tetap tersimpan | Disepakati |
 | K-067 | 2026-10-12 | Mesin tak terdaftar ditolak tanpa OK; nomor serinya ditampilkan untuk didaftarkan | Disepakati |
 | K-068 | 2026-10-12 | Scan PIN tak dikenal dihubungkan ke karyawan saat PIN-nya diisi | Disepakati |
@@ -116,8 +116,10 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-100 | 2026-10-18 | Rincian Rencana 3: template belum disimpan, perintah dikirim ulang lewat heartbeat, daftar `cancel`, laporan setelah batal diabaikan, unique index untuk satu `ENROLL` aktif | Disepakati |
 | K-101 | 2026-10-18 | Batas waktu tanpa hasil dari server memakai kode `TIDAK_ADA_HASIL`, terpisah dari `WAKTU_HABIS` mesin; batal yang bentrok dicoba ulang sekali | Disepakati |
 | K-102 | 2026-10-18 | Rincian Rencana 5: perintah `DELETE_TEMPLATE`/`DELETE_EMPLOYEE` ke semua alat rakitan yang pernah tersambung, hapus saat nonaktif atau setelah tanggal keluar lewat, PIN terkunci sampai semua mesin aktif selesai menghapus, "Coba lagi", peringatan kapasitas sensor (merinci K-090 dan K-093) | Disepakati |
-| K-103 | 2026-10-20 | Cabang absen diatur per karyawan: sidik jari hanya didaftarkan di mesin cabang yang diizinkan; scan dari cabang lain disimpan tetapi tidak masuk rekap sampai ditinjau. Menjawab sebagian Q-022, mengganti sebagian K-065 | Disepakati, belum diterapkan |
+| K-103 | 2026-10-20 | Cabang absen diatur per karyawan: sidik jari hanya didaftarkan di mesin cabang yang diizinkan; scan dari cabang lain disimpan tetapi tidak masuk rekap sampai ditinjau. Menjawab sebagian Q-022, mengganti sebagian K-065 | Disepakati, diterapkan 2026-10-22 |
 | K-104 | 2026-10-20 | Rincian Rencana 6: paket pengaturan ringan berversi, `APPLY_NETWORK` (Wi-Fi + alamat server, password terenkripsi), `ROTATE_KEY` dua tahap, konfirmasi ulang password untuk tindakan berisiko (merinci K-089, K-096, K-098) | Keputusan Claude, menunggu tinjauan pengguna |
+| K-105 | 2026-10-22 | Ekspor Excel/PDF mengikuti format laporan AS-IS client (dokumen-as-is.md); laporan absensi boleh sebelum Fase 5 | Disepakati (permintaan client) |
+| K-106 | 2026-10-22 | Rincian cabang absen per karyawan (K-103): cabang tambahan, penanda `CABANG_TIDAK_DIIZINKAN`, peninjauan scan tertahan dengan alasan wajib, pencabutan cabang menghapus sidik jari. Mengganti arti `CABANG_BERBEDA` di K-065 | Keputusan Claude, disetujui pengguna 2026-10-22 |
 
 ---
 
@@ -366,7 +368,7 @@ Dipilih/disetujui pengguna 2026-10-12. Rincian teknis, schema, dan pengujiannya 
 - **K-062:** baris yang tidak bisa dibaca disimpan apa adanya di `rejected_scan_lines`; kiriman tetap di-ACK agar scan valid dalam kiriman yang sama tidak tertahan.
 - **K-063:** handshake `TransFlag=TransData AttLog`. Tabel lain yang tetap datang dibalas OK tanpa disimpan.
 - **K-064:** `DEVICE_OFFLINE_AFTER` (bawaan 5 menit) adalah parameter teknis, bukan aturan bisnis.
-- **K-065:** `PIN_TIDAK_DIKENAL` (tidak masuk rekap sampai dihubungkan), `WAKTU_DI_MASA_DEPAN` (lebih dari `SCAN_FUTURE_TOLERANCE`, bawaan 5 menit), `CABANG_BERBEDA` (tetap masuk rekap, hanya ditandai sampai Q-022 dijawab).
+- **K-065:** `PIN_TIDAK_DIKENAL` (tidak masuk rekap sampai dihubungkan), `WAKTU_DI_MASA_DEPAN` (lebih dari `SCAN_FUTURE_TOLERANCE`, bawaan 5 menit), `CABANG_BERBEDA` (tetap masuk rekap, hanya ditandai sampai Q-022 dijawab). Arti `CABANG_BERBEDA` diganti oleh K-106: sekarang hanya "scan di cabang tambahan yang diizinkan"; scan di cabang yang tidak diizinkan memakai `CABANG_TIDAK_DIIZINKAN`.
 - **K-066:** koreksi baru mengisi `superseded_at` koreksi lama; audit mencatat jam masuk/pulang sebelum dan sesudah beserta alasan.
 - **K-067:** mesin tak terdaftar/nonaktif dibalas HTTP 401 `UNKNOWN DEVICE`; nomor serinya disimpan di memori (bukan database) dan ditampilkan di halaman Mesin.
 - **K-068:** satu-satunya perubahan pada baris scan asli adalah mengisi `employee_id` (dan menghapus penanda `PIN_TIDAK_DIKENAL`) untuk scan yang PIN-nya baru dipetakan, dalam transaksi yang sama dengan perubahan karyawan, tercatat sebagai `LINK_SCANS` di audit. Waktu, PIN, dan baris mentah tidak berubah.
@@ -516,10 +518,12 @@ Merinci K-090 dan K-093. Rincian lengkap ada di spec §17 ([pendaftaran-sidik-ja
 - **Penegakan utama.** Sidik jari hanya didaftarkan (`ENROLL`) ke alat rakitan di cabang yang diizinkan, sehingga mesin cabang lain tidak mengenali karyawan itu.
 - **Pengaman di server.** Scan dari mesin di cabang yang tidak diizinkan (misalnya lewat X401, atau jari yang belum terhapus) tetap disimpan apa adanya, tetapi **tidak masuk rekap** sampai ditinjau. Ini mengganti perilaku `CABANG_BERBEDA` di K-065, yang saat ini tetap memasukkan scan ke rekap.
 
-**Belum diputuskan** (dibahas di rencana pengerjaannya):
+**Sebelumnya belum diputuskan** (sudah diputuskan di K-106):
 - cara meninjau scan yang tertahan, dan hasilnya (masuk rekap atau tetap diabaikan);
 - apa yang terjadi pada sidik jari di mesin saat sebuah cabang dicabut dari daftar (misalnya `DELETE_EMPLOYEE` ke mesin cabang itu, mengikuti K-102);
 - perlakuan scan lama sebelum pengaturan ini berlaku.
+
+Ketiganya sudah diputuskan di K-106.
 
 **Alasan:** client ingin sebagian karyawan bisa absen di cabang lain dan sebagian tidak. Menolak di tingkat pendaftaran sidik jari lebih kuat daripada hanya memberi penanda, dan pengaman di server tetap diperlukan untuk X401 dan jari yang belum terhapus.
 
@@ -571,6 +575,58 @@ Merinci K-089, K-096, dan K-098. Pengguna meminta langsung dikerjakan ("langsung
 - Mengirim paket hanya jika versi mesin lebih lama. Ditolak, karena mesin yang versinya lebih baru setelah database dipulihkan tidak akan pernah diperbarui.
 - Mengganti kunci dalam satu langkah. Ditolak, karena mesin yang belum menerima kunci baru akan langsung terputus.
 - Menyimpan password Wi-Fi tanpa enkripsi. Ditolak, mengikuti K-089.
+
+### K-105 — Ekspor laporan mengikuti format dokumen AS-IS
+
+**Keputusan (2026-10-22, permintaan client disampaikan pengguna):** web harus bisa menghasilkan **Excel dan PDF** dengan format seperti laporan yang dipakai client sekarang. Laporan-laporan itu dirinci di [dokumen-as-is.md](dokumen-as-is.md) (AS-1 sampai AS-7):
+
+- absensi dan upah mingguan supir/kenek;
+- lembur mingguan;
+- gaji bulanan staf;
+- rekap lembur bulanan;
+- laporan detail absensi (jam scan per tanggal);
+- pengajuan dana gaji per toko.
+
+Ketujuh dokumen ini memperluas laporan baseline di K-042. Form Lemburan tulis tangan (AS-3) adalah sumber data, bukan laporan yang harus diekspor.
+
+- **Urutan.** Laporan yang hanya butuh data absensi (detail absensi dan kisi kehadiran) bisa dibuat sebelum Fase 5. Laporan upah, gaji, dan pengajuan dana dibuat bersama atau setelah Fase 5.
+- **Yang belum diputuskan:**
+  - Library ekspor, diputuskan saat rencana ekspor dibuat (PRD menyebut Apache POI untuk Excel).
+  - Tata letak persisnya, menunggu file Excel asli dari client.
+  - Setiap indikasi aturan di dokumen AS-IS, yang tetap berstatus belum dikonfirmasi (Q-038–Q-044).
+- **Audit.** Setiap ekspor dicatat di audit log, sesuai rencana Fase 6 dan AUD-009.
+
+**Alasan:** client sudah terbiasa dengan format ini, termasuk untuk pengesahan Director dan pengajuan dana ke bagian akuntansi. Laporan yang mirip memudahkan peralihan dan rekonsiliasi dengan hasil manual.
+
+### K-106 — Rincian cabang absen per karyawan
+
+Merinci K-103 dan mengganti arti `CABANG_BERBEDA` di K-065. Pengguna meminta rancangan disusun langsung, jadi rincian ini **keputusan Claude**, dan kelima keputusan di bagian akhir sudah disetujui pengguna pada 2026-10-22. Rincian lengkap ada di [spec](superpowers/specs/2026-10-22-cabang-absen-per-karyawan-design.md).
+
+- **Cabang yang diizinkan** = cabang penempatan ditambah cabang tambahan (tabel `employee_extra_branches`, migration `V11__cabang_absen.sql`). Cabang penempatan tidak disimpan di tabel itu, sehingga selalu diizinkan dan tidak bisa dicabut.
+- **Data lama.** Setelah migration, karyawan lama hanya diizinkan di cabang penempatannya sampai HR mencentang cabang tambahan.
+- **Penempatan diganti.** Cabang lama otomatis menjadi cabang tambahan (tidak ada jari yang dihapus), dan cabang baru dikeluarkan dari daftar tambahan bila ada. Cabang penempatan yang dikirim di `extraBranchIds` diabaikan.
+- **Penanda scan.** `CABANG_TIDAK_DIIZINKAN` diberikan saat scan diterima jika cabang mesin tidak diizinkan. `CABANG_BERBEDA` sekarang hanya berarti "scan di cabang tambahan yang diizinkan": tetap masuk rekap, penanda hanya informasi. Satu scan tidak pernah membawa kedua penanda.
+- **PIN diberikan belakangan (K-068).** Scan `PIN_TIDAK_DIKENAL` yang dihubungkan ke karyawan ikut diberi `CABANG_TIDAK_DIIZINKAN` bila mesinnya tidak diizinkan.
+- **Tidak berlaku surut.** Mengubah daftar cabang tidak menilai ulang scan yang sudah tersimpan.
+- **Peninjauan.** Hasil disimpan di tabel terpisah `scan_reviews` (`DITERIMA` atau `DIABAIKAN`, alasan wajib maksimal 500 karakter, peninjau, waktu, `@Version`). Scan asli tidak pernah diubah. Scan tertahan = berpenanda `CABANG_TIDAK_DIIZINKAN` dan belum `DITERIMA` (belum ditinjau atau diabaikan). Keputusan boleh diubah; nilai lama tersimpan di audit log. Dua peninjau bersamaan: satu berhasil, satu 409. Pengaman ini hanya untuk pengiriman yang bersamaan: tinjauan dari halaman yang sudah basi (permintaan tidak membawa versi) menimpa keputusan terbaru, dan keputusan sebelumnya tetap ada di audit log.
+- **Rekap.** Scan tertahan dibuang sebelum perhitungan harian, sehingga Absensi, Rekan Kerja, dashboard, dan penggajian konsisten. Detail hari tetap menampilkan scan itu berlabel "Tertahan" atau "Diabaikan", dan hari diberi penanda `ADA_SCAN_TERTAHAN` bila ada yang belum ditinjau. Penanda hari ini hanya muncul bila hasil hitung hari itu ada: jika aturan kerja belum diatur (rekap belum bisa dihitung), penanda tidak muncul, tetapi status scan (Tertahan/Diabaikan) tetap terlihat di daftar scan.
+- **Mencabut cabang** (dalam satu transaksi): `ENROLL` aktif di mesin cabang itu dibatalkan, catatan jari di mesin cabang itu dilupakan dan `DELETE_TEMPLATE` dikirim ke mesin itu saja (mekanisme K-102). Web meminta konfirmasi lebih dulu, misalnya "2 sidik jari di mesin Takka Cilong akan dihapus."
+- **Pendaftaran.** `ENROLL` ke mesin di cabang yang tidak diizinkan ditolak 400; pilihan mesin di form hanya menampilkan cabang yang diizinkan.
+- **Audit.** Perubahan cabang dicatat sebagai `UPDATE` karyawan dengan snapshot datar (field karyawan ditambah `extraBranchIds`); saat pencabutan, bagian `after` memuat `removedFingerprints`. Aksi audit baru `SCAN_REVIEW`, satu per scan, berisi keputusan lama dan baru. Setelah commit, `AttendanceChangedEvent` dikirim agar Absensi dan dashboard diperbarui.
+- **Endpoint.** `GET` dan `PUT /api/employees/{id}/branches` (isi `{ "extraBranchIds": [...] }`), `GET /api/attendance/held-scans?from&to&status` (bawaan 7 hari; status `BELUM_DITINJAU`, `DITERIMA`, atau `DIABAIKAN`), dan `POST /api/attendance/held-scans/review` (`{ scanIds, decision, reason }`, maksimal 200 scan). Semua untuk Owner dan HR/Finance; karyawan 403.
+- **Pesan error (400, Bahasa Indonesia).** "Karyawan tidak diizinkan absen di cabang mesin ini.", "Alasan wajib diisi.", dan "Scan ini tidak tertahan karena cabang."
+- **Tampilan.** Kartu "Cabang absen" di Detail Karyawan (penempatan terkunci), halaman `/absensi/scan-tertahan` (filter tanggal 30 hari dan status, pilih banyak, alasan wajib), dan kartu dashboard "Scan tertahan" yang menaut ke halaman itu.
+
+**Keputusan Claude yang disetujui pengguna (2026-10-22):**
+1. Cabang penempatan lama tetap diizinkan saat penempatan diganti, dan baru dicabut jika HR menghapus centangnya.
+2. Tidak berlaku surut.
+3. Alasan wajib, baik untuk menerima maupun mengabaikan scan tertahan.
+4. Mencabut cabang langsung menghapus sidik jari di mesin cabang itu, setelah dikonfirmasi di layar.
+5. Setelah migration, semua karyawan hanya diizinkan di cabang penempatannya sampai HR mencentang cabang tambahan.
+
+**Alasan:** menolak di tingkat pendaftaran lebih kuat daripada penanda saja, dan pengaman di server tetap perlu untuk X401 dan jari yang belum terhapus. Hasil peninjauan dipisah dari scan asli supaya scan asli tidak pernah berubah, dan alasan wajib menjaga jejak audit.
+
+**Alternatif yang dipertimbangkan:** menilai ulang scan lama setiap daftar cabang berubah (ditolak: rekap masa lalu berubah diam-diam), mengubah penanda pada baris scan saat ditinjau (ditolak: scan asli harus utuh), dan mencabut cabang tanpa menghapus jari (ditolak: jari lama tetap tercatat dan terus tertahan).
 
 ### Fase 4 — Izin dan Cuti (K-070–K-082)
 
@@ -702,6 +758,8 @@ Perlu ditentukan:
 2. Laporan lembur supir/kenek.
 3. Absensi dan payroll bulanan staf.
 4. Laporan lembur bulanan staf.
+
+Contoh nyata keempat laporan ini, ditambah laporan detail absensi dan pengajuan dana per toko, dirinci di [dokumen-as-is.md](dokumen-as-is.md) (K-105).
 
 ### K-043 — Regression Test Payroll
 

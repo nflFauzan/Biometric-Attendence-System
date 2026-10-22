@@ -68,6 +68,7 @@ Prinsip urutan:
 
 - Rekap harian, jam kerja, lembur, karyawan, dan penggajian.
 - Ekspor Excel/PDF, dengan setiap ekspor tercatat di audit log.
+- Format laporan mengikuti dokumen AS-IS client ([dokumen-as-is.md](dokumen-as-is.md), K-105). Laporan yang hanya butuh data absensi (detail absensi dan kisi kehadiran) boleh dikerjakan sebelum Fase 5.
 
 ## Fase 7 — Integrasi mesin asli dan rilis
 

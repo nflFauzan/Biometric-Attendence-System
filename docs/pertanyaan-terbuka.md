@@ -17,6 +17,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah hari Minggu merupakan hari libur rutin?
 - Apakah ada perbedaan kalender kerja antara supir, kenek, dan karyawan lainnya?
 
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Staf Senin–Sabtu (hadir penuh September = 26 hari, Minggu ditandai merah). Supir dan kenek memakai 7 kolom hari Sabtu–Jumat, dan sebagian masuk hari Minggu. Lihat [dokumen-as-is.md](dokumen-as-is.md).
+
 **Dampak:** penentuan hari kerja, kehadiran, upah harian, dan lembur.
 
 ### Q-002. Jam istirahat
@@ -35,6 +37,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah pulang lebih awal memiliki toleransi?
 - Apakah keterlambatan atau pulang lebih awal langsung mengurangi upah, atau hanya menjadi informasi untuk verifikasi?
 
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Staf rata-rata scan masuk sekitar 07:30 dan tidak ada kolom terlambat di laporan mana pun, jadi keterlambatan tampaknya tidak memotong gaji. Lihat [dokumen-as-is.md](dokumen-as-is.md).
+
 **Dampak:** status kehadiran dan perhitungan penghasilan.
 
 ### Q-004. Scan tidak lengkap atau tidak normal
@@ -44,6 +48,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Bagaimana jika urutan scan tidak normal?
 - Siapa yang berwenang memperbaiki absensi dan apakah diperlukan persetujuan?
 - Apakah koreksi harus disertai bukti atau alasan tertentu?
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Satu scan saja (21:27) membuat hari itu awalnya dianggap tidak masuk, lalu dikoreksi tangan menjadi hadir oleh penyusun rekap. Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** validitas absensi dan akurasi payroll.
 
@@ -56,6 +62,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 **Catatan:** batas awal lembur setelah pukul 17.00 sudah disepakati. Pertanyaan ini hanya mengenai pengecualian dan perlakuan khusus.
 
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Supir yang masuk hari Minggu dibayar upah harian biasa dan lemburnya memakai tarif per jam yang sama; tidak terlihat tarif khusus. Perlakuan hari libur nasional belum terlihat. Lihat [dokumen-as-is.md](dokumen-as-is.md).
+
 **Dampak:** perhitungan lembur dan tarif yang berlaku.
 
 ## 2. Penggajian dan Potongan
@@ -66,6 +74,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Periode bulanan dimulai dan berakhir pada tanggal berapa?
 - Bagaimana menangani hari terakhir periode yang jatuh pada hari libur?
 - Kapan batas waktu data absensi, lembur, bonus, dan piutang harus masuk agar dihitung dalam periode tersebut?
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Mingguan Sabtu–Jumat dengan nomor "Minggu ke-N" (judul "26 Sep–03 Okt" mencakup 8 tanggal untuk 7 kolom); bulanan mengikuti bulan kalender dan dana diajukan tanggal 1 bulan berikutnya. Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** penentuan data yang masuk ke setiap payroll.
 
@@ -78,6 +88,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 **Catatan:** gaji pokok dan upah harian sudah disepakati sebagai komponen terpisah untuk karyawan bulanan. Formula lengkapnya masih perlu dikonfirmasi.
 
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Gaji pokok staf dibayar penuh walau hadir 21 atau 23 dari 26 hari; ketidakhadiran hanya mengurangi Onsite (hari hadir × 40.000). Supir dan kenek tidak punya gaji pokok; upah harian berbeda per orang (60.000–125.000). Lihat [dokumen-as-is.md](dokumen-as-is.md).
+
 **Dampak:** formula gaji dan pencegahan pembayaran ganda.
 
 ### Q-008. Pembulatan dan presisi
@@ -88,6 +100,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah nominal dibulatkan pada setiap komponen atau hanya pada total akhir?
 
 **Contoh:** apabila perhitungan lembur menghasilkan Rp9.333,33, berapa nominal yang harus ditampilkan dan dibayarkan?
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Jam lembur dalam satuan 0,5 jam dan semua nominal rupiah bulat, tetapi cara membulatkan dari jam scan tidak konsisten (Q-040). Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** konsistensi hasil payroll dan rekonsiliasi laporan.
 
@@ -101,6 +115,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 **Catatan:** batas mulai lembur setelah pukul 17.00 sudah disepakati. Tarif dan pengecualiannya belum seluruhnya dikonfirmasi.
 
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Tarif flat per jam ditetapkan per orang (14.000 atau 10.000), tanpa pengali hari Minggu. Lihat [dokumen-as-is.md](dokumen-as-is.md).
+
 **Dampak:** perhitungan nominal lembur.
 
 ### Q-010. BPJS, pajak, dan potongan lainnya
@@ -110,6 +126,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah PPh 21 perlu dihitung otomatis?
 - Apakah terdapat potongan tetap atau potongan lain yang perlu dicatat?
 - Apakah potongan tersebut mengurangi penghasilan bruto atau dihitung melalui mekanisme lain?
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Tidak ada kolom BPJS maupun PPh di dokumen mana pun. Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** gaji bersih dan kelengkapan perhitungan payroll.
 
@@ -123,6 +141,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 **Catatan:** pencatatan piutang menggunakan ledger transaksi sudah disepakati. Kebijakan pembayaran dan pemotongannya masih perlu dikonfirmasi.
 
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Dipotong dengan cicilan bernominal bulat (50.000–500.000) yang ditentukan per periode. Lihat [dokumen-as-is.md](dokumen-as-is.md).
+
 **Dampak:** saldo piutang dan nominal gaji bersih.
 
 ### Q-012. Bonus
@@ -133,6 +153,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah perubahan bonus memerlukan alasan atau persetujuan tambahan?
 
 **Catatan:** bonus merupakan komponen terpisah dan nominalnya ditentukan Owner. Formula bonus otomatis tidak termasuk rancangan awal.
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Laporan mingguan supir/kenek memiliki kolom Insentif yang masih kosong. Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** pengelolaan komponen bonus dan proses finalisasi payroll.
 
@@ -146,6 +168,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah diperlukan dokumen pendukung?
 - Bagaimana masing-masing jenis ketidakhadiran memengaruhi upah harian dan gaji pokok?
 - Apakah terdapat kebijakan khusus untuk izin mendadak atau ketidakhadiran tanpa pemberitahuan?
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Ketidakhadiran hanya ditandai sel merah, tanpa pembeda izin, sakit, atau alpa. Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** status kehadiran dan komponen penggajian.
 
@@ -195,6 +219,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah ada kebutuhan role tambahan, misalnya supervisor atau approver lembur?
 
 **Catatan:** tiga role dasar telah disepakati. Kebutuhan role khusus dan pembatasan akses per cabang belum menjadi keputusan final.
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Laporan disiapkan Manager Accounting & Finance lalu disahkan Director atau Direktur Operasional. Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** desain permission dan struktur otorisasi backend.
 
@@ -262,7 +288,9 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah semua cabang menggunakan zona waktu WIB?
 - Bagaimana sistem menangani perangkat yang jamnya berbeda dari waktu server?
 
-**Dijawab sebagian 2026-10-20:** cabang yang boleh dipakai diatur per karyawan di web oleh Owner atau HR/Finance. Sidik jari hanya didaftarkan di mesin cabang yang diizinkan; scan dari cabang lain disimpan tetapi tidak masuk rekap sampai ditinjau (K-103). Masih terbuka: cara peninjauan scan yang tertahan, zona waktu tiap cabang.
+**Dijawab sebagian 2026-10-20:** cabang yang boleh dipakai diatur per karyawan di web oleh Owner atau HR/Finance. Sidik jari hanya didaftarkan di mesin cabang yang diizinkan; scan dari cabang lain disimpan tetapi tidak masuk rekap sampai ditinjau (K-103). Cara peninjauan scan yang tertahan sudah terjawab di K-106 (halaman Scan Tertahan, keputusan diterima atau diabaikan dengan alasan wajib, tidak berlaku surut). Masih terbuka: zona waktu tiap cabang.
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Nama cabang Takka 1, Takka 2, dan Takka Cilong; upah dibagi dan dana diajukan per toko (Q-038). Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** validasi lokasi absensi, rekap cabang, dan akurasi waktu.
 
@@ -286,6 +314,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah klien dapat memberikan logo dalam format vektor, misalnya SVG, termasuk versi untuk latar gelap?
 - Apakah tersedia panduan brand resmi selain website Takka Steel?
 - Apakah ada warna, font, atau aturan visual yang wajib dipertahankan?
+
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Kop laporan memakai tulisan "TAKKA STEEL" dengan garis biru. Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 ### Q-025. Nama aplikasi dan mode tampilan
 
@@ -345,6 +375,8 @@ Cara menjawab: [`panduan-mesin-x401.md`](./panduan-mesin-x401.md) Tahap 1 dan 3,
 - Siapa yang mendaftarkan sidik jari dan PIN di mesin, dan bagaimana sinkronisasinya dengan data karyawan di web?
 - Bagaimana menangani scan dari PIN yang belum dipetakan ke karyawan?
 
+**Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Mesin lama memakai ID 3 digit (001, 002, …) dan mencatat Dept. Lihat [dokumen-as-is.md](dokumen-as-is.md).
+
 **Dampak:** schema karyawan/mesin di Fase 3 dan proses enrollment (terkait Q-019).
 
 ### Q-032. Riwayat scan lama saat mesin pertama kali tersambung
@@ -385,16 +417,62 @@ Berapa ukuran dan resolusi layar alat rakitan, dan font apa yang dipakai firmwar
 
 **Dampak:** validasi `headerText`/`greeting` di server (`DeviceSettingsDtos`) dan form "Tampilan & suara" di halaman Mesin.
 
+## 7c. Dokumen AS-IS (ditemukan 2026-10-22)
+
+Pertanyaan berikut muncul dari analisis [dokumen-as-is.md](dokumen-as-is.md). Daftar konfirmasi untuk client ada di bagian 5 dokumen tersebut.
+
+### Q-038. Dasar pembagian upah per toko
+
+Rekap mingguan supir/kenek dibagi per toko (Takka 1, Takka 2, Takka Cilong), dan pengajuan dana gaji dibuat per toko. Pembagian itu berdasarkan apa: cabang penempatan, cabang tempat scan, atau penugasan lain? Apakah satu karyawan bisa dibebankan ke lebih dari satu toko dalam satu periode?
+
+**Dampak:** laporan per cabang, pengajuan dana per toko, dan hubungan dengan cabang absen per karyawan (K-103).
+
+### Q-039. Sumber lembur supir dan kenek
+
+Lembur supir di rekap kadang tidak sama dengan scan pulang (misalnya 8 jam, padahal scan menunjukkan 5,5 jam). Lembur juga dicatat di Form Lemburan berisi jam keluar, kegiatan, dan tanda tangan. Apa sumber resminya: scan, form, atau scan yang boleh disesuaikan berdasarkan form? Siapa yang mengesahkan?
+
+**Dampak:** input lembur manual dengan keterangan kegiatan, verifikasi lembur (aturan-bisnis §5.3), dan laporan lembur.
+
+### Q-040. Aturan pembulatan jam lembur
+
+Dari scan pulang dikurangi 17:00: 3 j 28 m menjadi 3,5; 3 j 11 m menjadi 3,5; 1 j 3 m menjadi 1; 1 j 33 m menjadi 1,5. Pola ini tidak cocok dengan pembulatan ke atas ataupun ke bawah per 0,5 jam. Aturan pastinya apa (misalnya ada toleransi menit)?
+
+**Dampak:** perhitungan jam lembur otomatis (Q-008).
+
+### Q-041. Jumlah karyawan sebenarnya
+
+K-103 menyebut 25 karyawan, tetapi dokumen AS-IS memuat sekitar 32 orang (18 supir/kenek dan 14 staf). Berapa jumlah yang benar, dan apakah semuanya akan memakai mesin?
+
+**Dampak:** kapasitas sidik jari per mesin dan data awal.
+
+### Q-042. Departemen dan nama panggilan
+
+Laporan mesin lama mencatat Dept (OPS, PRC, FIN, MAR, SHIP), dan pengajuan dana memakai nama panggilan. Apakah keduanya perlu disimpan sebagai data karyawan dan ditampilkan di laporan?
+
+**Dampak:** schema karyawan dan kolom laporan.
+
+### Q-043. Metode bayar dan biaya transfer
+
+Supir dan kenek dibayar tunai, staf ditransfer, dan admin bank 2.500 per orang ditanggung perusahaan. Apakah metode bayar perlu disimpan per karyawan, dan apakah admin bank perlu dihitung di sistem (misalnya untuk pengajuan dana)?
+
+**Dampak:** laporan pengajuan dana per toko dan rekap pembayaran.
+
+### Q-044. Karyawan bulanan tanpa gaji pokok
+
+Beberapa baris di lembar gaji staf tampak memiliki Wages 140.000–180.000 per hari tanpa gaji pokok. Apakah ada staf bulanan yang dibayar harian murni? Foto miring, sehingga barisnya tidak bisa dipastikan.
+
+**Dampak:** kategori penggajian (aturan-bisnis §6.1).
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
 
 | Prioritas | ID | Alasan |
 |---|---|---|
-| P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
+| P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033, Q-038, Q-039, Q-040, Q-043, Q-044 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
 | P0 — Sebelum Fase 3 (uji X401) | Q-029 (sebagian terjawab 2026-10-12), Q-031, Q-032 | Menentukan format adapter ZK-Push dan pemetaan PIN karyawan. |
 | P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030, Q-034, Q-035, Q-036, Q-037 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
-| P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
+| P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028, Q-041, Q-042 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
 | P1 — Sebelum rilis produksi | Q-023 | Menentukan tata kelola data biometrik dan kontrol aksesnya. |
 | P2 — Sebelum UI final | Q-024, Q-025 | Menyelesaikan identitas visual dan nama aplikasi. |
 

@@ -11,6 +11,7 @@ Indeks dokumentasi proyek. Semua dokumen ditulis dalam Bahasa Indonesia.
 | [design-system.md](design-system.md) | Identitas brand, token, layout responsif, dan gaya setiap komponen UI |
 | [keputusan.md](keputusan.md) | Catatan keputusan beserta alasannya |
 | [pertanyaan-terbuka.md](pertanyaan-terbuka.md) | Hal yang belum diketahui atau belum diputuskan |
+| [dokumen-as-is.md](dokumen-as-is.md) | Laporan rekap, upah, dan lembur yang dipakai client sekarang: kolom, rumus, indikasi aturan, dan daftar konfirmasi |
 | [rencana-pengerjaan.md](rencana-pengerjaan.md) | Fase pengerjaan, tugas, dan kriteria selesai |
 | [rencana-fase-2.md](rencana-fase-2.md) | Rencana teknis Fase 2: schema aturan kerja, mesin perhitungan, API, dan pengujian |
 | [rencana-fase-3.md](rencana-fase-3.md) | Rencana teknis Fase 3: penerimaan scan, adapter ZK-Push, rekap, koreksi, dashboard real-time |
