@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, KeyRound, UserRound } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
 import { ActiveBadge } from '@/components/CrudPage'
+import { BranchAccessCard } from '@/components/BranchAccessCard'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { FingerprintSection } from '@/components/FingerprintSection'
 import { PageHeader } from '@/components/PageHeader'
@@ -134,6 +135,8 @@ export function EmployeeDetailPage() {
             </p>
           )}
         </section>
+
+        {data && <BranchAccessCard employee={data} />}
 
         {data && <FingerprintSection employee={data} />}
       </div>

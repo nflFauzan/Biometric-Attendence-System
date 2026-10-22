@@ -7,8 +7,9 @@ import { ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
+import { branchAccessKey } from '@/lib/branchAccess'
 import { formatDateTime } from '@/lib/format'
-import type { Deletion, Employee, FingerprintOverview } from '@/lib/types'
+import type { BranchAccess, Deletion, Employee, FingerprintOverview } from '@/lib/types'
 import { dialogSheetClass } from '@/lib/ui'
 import { type StreamEvent, useDashboardStream } from '@/lib/useDashboardStream'
 
@@ -25,6 +26,14 @@ export function FingerprintSection({ employee }: { employee: Employee }) {
     queryKey,
     queryFn: () => api<FingerprintOverview>(`/api/employees/${employee.id}/fingerprints`),
   })
+  // Berbagi query dengan kartu "Cabang absen"; selama belum termuat, hanya cabang penempatan.
+  const branchAccess = useQuery({
+    queryKey: branchAccessKey(employee.id),
+    queryFn: () => api<BranchAccess>(`/api/employees/${employee.id}/branches`),
+  })
+  const allowedBranchIds = branchAccess.data
+    ? [branchAccess.data.placementBranchId, ...branchAccess.data.extraBranchIds]
+    : [employee.branchId]
   const [enrolling, setEnrolling] = useState<{ finger: number; commandId?: string } | null>(null)
   const [confirmFinger, setConfirmFinger] = useState<number | null>(null)
 
@@ -243,6 +252,7 @@ export function FingerprintSection({ employee }: { employee: Employee }) {
           employee={employee}
           finger={enrolling.finger}
           commandId={enrolling.commandId}
+          allowedBranchIds={allowedBranchIds}
           onClose={() => setEnrolling(null)}
         />
       )}

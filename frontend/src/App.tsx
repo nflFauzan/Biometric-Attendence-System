@@ -26,6 +26,7 @@ import { MyLeavePage } from '@/pages/MyLeavePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { TeamMemberPage } from '@/pages/TeamMemberPage'
 import { TeamPage } from '@/pages/TeamPage'
+import { HeldScansPage } from '@/pages/HeldScansPage'
 import { UnmatchedScansPage } from '@/pages/UnmatchedScansPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { WorkRulesPage } from '@/pages/WorkRulesPage'
@@ -86,6 +87,7 @@ function App() {
         <Route path="absensi" element={managers(<AttendancePage />)} />
         <Route path="absensi/karyawan/:id" element={managers(<AttendanceEmployeePage />)} />
         <Route path="absensi/scan-tak-dikenal" element={managers(<UnmatchedScansPage />)} />
+        <Route path="absensi/scan-tertahan" element={managers(<HeldScansPage />)} />
         <Route path="izin" element={managers(<LeaveRequestsPage />)} />
         <Route path="izin/:id" element={managers(<LeaveDetailPage mode="manager" />)} />
         <Route path="jenis-izin" element={<RequireRole roles={['OWNER']}><LeaveTypesPage /></RequireRole>} />

@@ -47,6 +47,14 @@ export interface Employee {
   devicePin: string | null
 }
 
+/** Cabang tempat karyawan boleh absen (K-103): penempatan + tambahan. */
+export interface BranchAccess {
+  placementBranchId: number
+  extraBranchIds: number[]
+  /** Jumlah catatan jari yang dihapus karena cabangnya dicabut; 0 pada GET. */
+  removedFingerprints: number
+}
+
 /** Status perintah mesin; "aktif" = MENUNGGU atau DIKIRIM (spec §16). */
 export type CommandStatus = 'MENUNGGU' | 'DIKIRIM' | 'BERHASIL' | 'GAGAL' | 'KEDALUWARSA' | 'DIBATALKAN'
 
@@ -309,6 +317,7 @@ export type CalculationFlag =
   | 'URUTAN_TIDAK_WAJAR'
   | 'HADIR_SAAT_IZIN'
   | 'IZIN_MENUNGGU'
+  | 'ADA_SCAN_TERTAHAN'
 
 export interface TimeValue {
   time: string
@@ -340,7 +349,10 @@ export interface DailyPreview {
 
 // ---- Fase 3: absensi, koreksi, dashboard ----
 
-export type ScanFlag = 'PIN_TIDAK_DIKENAL' | 'WAKTU_DI_MASA_DEPAN' | 'CABANG_BERBEDA'
+export type ScanFlag = 'PIN_TIDAK_DIKENAL' | 'WAKTU_DI_MASA_DEPAN' | 'CABANG_BERBEDA' | 'CABANG_TIDAK_DIIZINKAN'
+
+/** Status peninjauan scan yang tertahan karena cabang (K-103). */
+export type ReviewStatus = 'BELUM_DITINJAU' | 'DITERIMA' | 'DIABAIKAN'
 
 /** Scan asli dari mesin; deviceLocalTime persis seperti dikirim mesin. */
 export interface Scan {
@@ -353,6 +365,21 @@ export interface Scan {
   employeeId: number | null
   flags: ScanFlag[]
   receivedAt: string
+  /** Null bila scan tidak tertahan karena cabang. */
+  review: ReviewStatus | null
+  /** False bila tertahan dan belum diterima, sehingga tidak masuk rekap. */
+  counted: boolean
+}
+
+export interface HeldScan {
+  scan: Scan
+  employeeName: string | null
+  placementBranchName: string | null
+  deviceBranchName: string | null
+  status: ReviewStatus
+  reason: string | null
+  decidedBy: string | null
+  decidedAt: string | null
 }
 
 export interface Correction {
@@ -445,6 +472,8 @@ export interface DashboardSummary {
     flags: ScanFlag[]
   }[]
   unmatchedScans: number
+  /** Scan tertahan karena cabang yang belum ditinjau (K-103). */
+  heldScans: number
   /** Pengajuan izin/cuti yang menunggu keputusan (semua tanggal). */
   pendingLeaveRequests?: number
 }

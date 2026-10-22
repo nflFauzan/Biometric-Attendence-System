@@ -1,4 +1,4 @@
-import type { AttendanceStatus, CalculationFlag, DayRecord, ScanFlag } from '@/lib/types'
+import type { AttendanceStatus, CalculationFlag, DayRecord, ReviewStatus, Scan, ScanFlag } from '@/lib/types'
 
 export const STATUS_LABELS: Record<AttendanceStatus, string> = {
   LENGKAP: 'Lengkap',
@@ -11,7 +11,8 @@ export const STATUS_LABELS: Record<AttendanceStatus, string> = {
 export const SCAN_FLAG_LABELS: Record<ScanFlag, string> = {
   PIN_TIDAK_DIKENAL: 'PIN belum dipetakan ke karyawan',
   WAKTU_DI_MASA_DEPAN: 'Waktu scan di masa depan, jam mesin mungkin salah',
-  CABANG_BERBEDA: 'Scan di mesin cabang lain',
+  CABANG_BERBEDA: 'Scan di cabang tambahan',
+  CABANG_TIDAK_DIIZINKAN: 'Cabang tidak diizinkan',
 }
 
 export const CALCULATION_FLAG_LABELS: Record<CalculationFlag, string> = {
@@ -20,6 +21,19 @@ export const CALCULATION_FLAG_LABELS: Record<CalculationFlag, string> = {
   URUTAN_TIDAK_WAJAR: 'Jam pulang tidak setelah jam masuk',
   HADIR_SAAT_IZIN: 'Ada scan padahal izin disetujui, perlu ditinjau',
   IZIN_MENUNGGU: 'Ada pengajuan izin yang belum diputus',
+  ADA_SCAN_TERTAHAN: 'Ada scan tertahan',
+}
+
+export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
+  BELUM_DITINJAU: 'Belum ditinjau',
+  DITERIMA: 'Diterima',
+  DIABAIKAN: 'Diabaikan',
+}
+
+/** Label scan yang tidak ikut rekap karena tertahan (K-103): "Tertahan" bila belum ditinjau, "Diabaikan" bila ditolak. */
+export function heldScanLabel(scan: Scan): string | null {
+  if (scan.counted) return null
+  return scan.review === 'DIABAIKAN' ? 'Diabaikan' : 'Tertahan'
 }
 
 export type Tone = 'success' | 'warning' | 'danger' | 'neutral' | 'info'
@@ -28,7 +42,7 @@ export type Tone = 'success' | 'warning' | 'danger' | 'neutral' | 'info'
 export function dayStatus(day: DayRecord): { label: string; tone: Tone } {
   const approvedLeave = day.leave?.status === 'DISETUJUI' ? day.leave : null
   // Izin disetujui tanpa kehadiran tetap tampil walau aturan kerja belum diatur (K-076).
-  if (approvedLeave && (day.result?.status === 'IZIN' || (!day.result && day.scans.length === 0 && !day.correction))) {
+  if (approvedLeave && (day.result?.status === 'IZIN' || (!day.result && !day.scans.some((s) => s.counted) && !day.correction))) {
     return { label: `Izin: ${approvedLeave.leaveTypeName}`, tone: 'info' }
   }
   if (day.ruleMissing) {
@@ -45,7 +59,8 @@ export function dayStatus(day: DayRecord): { label: string; tone: Tone } {
 
 /** Penanda yang perlu dicek pengguna: penanda scan + penanda perhitungan selain informasi istirahat. */
 export function reviewNotes(day: DayRecord): string[] {
-  const notes = day.scanFlags.map((flag) => SCAN_FLAG_LABELS[flag])
+  // CABANG_BERBEDA hanya informasi (label per scan sudah menampilkannya), bukan catatan tinjauan.
+  const notes = day.scanFlags.filter((flag) => flag !== 'CABANG_BERBEDA').map((flag) => SCAN_FLAG_LABELS[flag])
   day.result?.flags
     .filter((flag) => flag !== 'ISTIRAHAT_BELUM_DIATUR')
     .forEach((flag) => notes.push(CALCULATION_FLAG_LABELS[flag]))

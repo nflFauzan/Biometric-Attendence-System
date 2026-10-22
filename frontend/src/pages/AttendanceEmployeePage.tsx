@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
-import { SCAN_FLAG_LABELS, dayStatus, reviewNotes } from '@/lib/attendance'
+import { SCAN_FLAG_LABELS, dayStatus, heldScanLabel, reviewNotes } from '@/lib/attendance'
 import { emptyToNull } from '@/lib/form'
 import { addDays, formatDate, formatDateTime, formatDuration, formatTime, localDateIso } from '@/lib/format'
 import type { DayRecord, EmployeeAttendance } from '@/lib/types'
@@ -141,6 +141,11 @@ export function AttendanceEmployeePage() {
                       <li key={scan.id} className="rounded-md border bg-secondary/50 px-2 py-1">
                         <span className="font-semibold tabular-nums">{formatTime(scan.deviceLocalTime.slice(11))}</span>
                         <span className="text-xs text-muted-foreground"> · {scan.deviceName}</span>
+                        {heldScanLabel(scan) && (
+                          <Badge variant="warning" className="ml-1.5">
+                            {heldScanLabel(scan)}
+                          </Badge>
+                        )}
                         {scan.flags.map((flag) => (
                           <span key={flag} className="block text-xs text-warning">
                             {SCAN_FLAG_LABELS[flag]}

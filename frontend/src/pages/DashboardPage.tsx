@@ -65,6 +65,7 @@ export function DashboardPage() {
         { label: 'Perlu ditinjau', value: data.totals.needsReview, to: '/absensi' },
         { label: 'Aturan kerja belum diatur', value: data.totals.ruleMissing, to: '/aturan-kerja' },
         { label: 'Scan dengan PIN tak dikenal', value: data.unmatchedScans, to: '/absensi/scan-tak-dikenal' },
+        { label: 'Scan tertahan', value: data.heldScans, to: '/absensi/scan-tertahan' },
         { label: 'Pengajuan izin menunggu persetujuan', value: data.pendingLeaveRequests ?? 0, to: '/izin' },
       ]
     : []

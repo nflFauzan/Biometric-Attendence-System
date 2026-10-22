@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   ContactRound,
   ScanSearch,
+  ShieldAlert,
   Fingerprint,
   SlidersHorizontal,
   LayoutDashboard,
@@ -42,6 +43,7 @@ export const MENU: MenuItem[] = [
   { path: '/', label: 'Dashboard', roles: MANAGERS, icon: LayoutDashboard, group: 'Operasional', mobile: true },
   { path: '/absensi', label: 'Absensi Harian', roles: MANAGERS, icon: ClipboardCheck, group: 'Operasional', mobile: true },
   { path: '/absensi/scan-tak-dikenal', label: 'Scan Tak Dikenal', roles: MANAGERS, icon: ScanSearch, group: 'Operasional' },
+  { path: '/absensi/scan-tertahan', label: 'Scan Tertahan', roles: MANAGERS, icon: ShieldAlert, group: 'Operasional' },
   // Di HP diakses lewat lonceng notifikasi di header atau menu "Lainnya", agar bottom navigation tidak penuh.
   { path: '/izin', label: 'Izin & Cuti', roles: MANAGERS, icon: CalendarCheck, group: 'Operasional' },
   { path: '/karyawan', label: 'Karyawan', roles: MANAGERS, icon: Users, group: 'Master data', mobile: true },

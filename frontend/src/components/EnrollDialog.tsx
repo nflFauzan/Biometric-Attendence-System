@@ -22,6 +22,8 @@ interface EnrollDialogProps {
   finger: number
   /** Perintah aktif yang sudah ada (mis. halaman dibuka ulang saat pendaftaran berjalan). */
   commandId?: string
+  /** Cabang tempat karyawan boleh absen (K-103); hanya mesin di cabang ini yang bisa dipilih. */
+  allowedBranchIds: number[]
   onClose: () => void
 }
 
@@ -29,13 +31,15 @@ interface EnrollDialogProps {
  * Pendaftaran sidik jari dari web untuk alat rakitan (spec §3.2): pilih mesin, mulai, lalu ikuti status yang
  * dilaporkan mesin. Teks status berasal dari server; dialog hanya menampilkannya.
  */
-export function EnrollDialog({ employee, finger, commandId: initialCommandId, onClose }: EnrollDialogProps) {
+export function EnrollDialog({ employee, finger, commandId: initialCommandId, allowedBranchIds, onClose }: EnrollDialogProps) {
   const queryClient = useQueryClient()
   const [commandId, setCommandId] = useState(initialCommandId)
   const [deviceId, setDeviceId] = useState('')
 
   const devices = useQuery({ queryKey: ['/api/devices'], queryFn: () => api<Device[]>('/api/devices') })
-  const candidates = (devices.data ?? []).filter((d) => d.protocol === 'RAKITAN_V1' && d.active && d.online)
+  const candidates = (devices.data ?? []).filter(
+    (d) => d.protocol === 'RAKITAN_V1' && d.active && d.online && allowedBranchIds.includes(d.branchId),
+  )
   // Bawaan: mesin di cabang karyawan, lalu alat rakitan online pertama.
   const selected =
     deviceId || String((candidates.find((d) => d.branchId === employee.branchId) ?? candidates[0])?.id ?? '')
