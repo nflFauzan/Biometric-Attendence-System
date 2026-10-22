@@ -250,7 +250,7 @@ class ZkPushIngestTests extends AttendanceFixtures {
 
 		assertThat(jdbc.queryForList("select flags from attendance_scans where device_id = ? order by scanned_at",
 				String.class, device))
-			.containsExactly("CABANG_BERBEDA", "CABANG_BERBEDA,WAKTU_DI_MASA_DEPAN");
+			.containsExactly("CABANG_TIDAK_DIIZINKAN", "CABANG_TIDAK_DIIZINKAN,WAKTU_DI_MASA_DEPAN");
 	}
 
 	/** K-063: tabel selain ATTLOG (data user, operasi) dibalas OK tanpa disimpan. */

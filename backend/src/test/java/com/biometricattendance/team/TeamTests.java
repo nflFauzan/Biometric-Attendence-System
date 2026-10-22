@@ -201,6 +201,20 @@ class TeamTests extends AttendanceFixtures {
 		daily(OWNER, SCAN_DAY, branch).andExpect(jsonPath("$.rows[0].day.status").value("BELUM_DIATUR"));
 	}
 
+	/** Tanpa aturan kerja, scan tertahan (cabang tidak diizinkan) bukan kehadiran: izin disetujui tetap Izin. */
+	@Test
+	void approvedLeaveWithHeldScanAndNoRuleIsStillIzin() throws Exception {
+		long branch = createBranch();
+		String pin = uniquePin();
+		long employee = createEmployee(branch, pin);
+		String sn = uniqueSerial();
+		createDevice(createBranch(), sn, ACCEPT_FROM);
+		approve(idOf(submitLeave(employee, createLeaveType(unique("Cuti-uji-")), LEAVE_DAY)));
+		postAttlog(sn, lines(line(pin, LEAVE_DAY + " 08:00:00"))).andExpect(status().isOk());
+
+		daily(OWNER, LEAVE_DAY, branch).andExpect(jsonPath("$.rows[0].day.status").value("IZIN"));
+	}
+
 	@Test
 	void inactiveEmployeesAreHiddenAndTheirHistoryIsNotFound() throws Exception {
 		long branch = createBranch();

@@ -87,6 +87,8 @@ class AccessControlTests extends IntegrationTest {
 				Arguments.of(HttpMethod.PUT, "/api/employee-categories/" + MISSING, CATEGORY),
 				Arguments.of(HttpMethod.GET, "/api/employees/" + MISSING, null),
 				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING, EMPLOYEE_BODY),
+				Arguments.of(HttpMethod.GET, "/api/employees/" + MISSING + "/branches", null),
+				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING + "/branches", "{\"extraBranchIds\":[]}"),
 				Arguments.of(HttpMethod.PUT, "/api/devices/" + MISSING, DEVICE),
 				Arguments.of(HttpMethod.PUT, "/api/users/" + MISSING, USER_UPDATE),
 				Arguments.of(HttpMethod.POST, "/api/users/" + MISSING + "/reset-password", RESET));
@@ -141,10 +143,14 @@ class AccessControlTests extends IntegrationTest {
 	private static final String CORRECTION = "{\"employeeId\":" + MISSING + ",\"date\":\"2026-10-05\","
 			+ "\"checkIn\":\"08:00\",\"reason\":\"Uji hak akses\"}";
 
+	private static final String HELD_REVIEW = "{\"scanIds\":[" + MISSING + "],\"decision\":\"DITERIMA\","
+			+ "\"reason\":\"Uji hak akses\"}";
+
 	/** Fase 3: rekap, koreksi (K-059), dan dashboard hanya untuk Owner dan HR/Finance. */
 	static Stream<Arguments> phase3ManagerEndpoints() {
 		return Stream.of(Arguments.of(HttpMethod.GET, "/api/attendance/employees/" + MISSING, null),
-				Arguments.of(HttpMethod.POST, "/api/attendance/corrections", CORRECTION));
+				Arguments.of(HttpMethod.POST, "/api/attendance/corrections", CORRECTION),
+				Arguments.of(HttpMethod.POST, "/api/attendance/held-scans/review", HELD_REVIEW));
 	}
 
 	@ParameterizedTest(name = "{0} {1}")
@@ -155,6 +161,7 @@ class AccessControlTests extends IntegrationTest {
 
 	@ParameterizedTest
 	@ValueSource(strings = { "/api/attendance/daily?date=2026-10-05", "/api/attendance/unmatched-scans",
+			"/api/attendance/held-scans?from=2026-10-05&to=2026-10-05",
 			"/api/dashboard/summary?date=2026-10-05", "/api/devices/unregistered-attempts" })
 	void phase3ReadsForOwnerAndHrFinanceOnly(String url) throws Exception {
 		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());

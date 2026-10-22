@@ -52,6 +52,8 @@ const day = (overrides: Partial<DayRecord> = {}): DayRecord => ({
       employeeId: 12,
       flags: [],
       receivedAt: '2026-10-05T01:10:02Z',
+      review: null,
+      counted: true,
     },
   ],
   correction: null,
@@ -108,6 +110,7 @@ describe('Halaman absensi Fase 3', () => {
         { id: 10, scannedAt: '2026-10-12T01:06:00Z', devicePin: '1696', employeeId: null, employeeName: null, deviceName: 'X401 Pusat', flags: ['PIN_TIDAK_DIKENAL'] },
       ],
       unmatchedScans: 1,
+      heldScans: 0,
     }
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
