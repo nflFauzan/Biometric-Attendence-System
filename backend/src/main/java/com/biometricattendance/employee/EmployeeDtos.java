@@ -1,6 +1,7 @@
 package com.biometricattendance.employee;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,6 +25,14 @@ public final class EmployeeDtos {
 			@NotNull(message = "Status aktif wajib diisi") Boolean active,
 			@Pattern(regexp = "^\\s*$|^[A-Za-z0-9]{1,20}$",
 					message = "PIN mesin hanya huruf/angka, maksimal 20 karakter") String devicePin) {
+	}
+
+	/** K-103: cabang absen tambahan; ID penempatan di daftar diabaikan, duplikat digabung. */
+	public record BranchAccessRequest(@NotNull(message = "Daftar cabang wajib diisi") @Size(max = 50,
+			message = "Maksimal 50 cabang") List<Long> extraBranchIds) {
+	}
+
+	public record BranchAccessResponse(Long placementBranchId, List<Long> extraBranchIds, int removedFingerprints) {
 	}
 
 	public record EmployeeResponse(Long id, String employeeNumber, String fullName, String phone, Long branchId,

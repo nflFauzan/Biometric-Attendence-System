@@ -7,6 +7,7 @@ import java.util.Set;
 
 import com.biometricattendance.attendance.AttendanceDtos.DailyRow;
 import com.biometricattendance.attendance.AttendanceDtos.DayRecord;
+import com.biometricattendance.attendance.AttendanceDtos.ScanResponse;
 import com.biometricattendance.attendance.ScanFlag;
 import com.biometricattendance.calculation.DailyResult.AttendanceStatus;
 import com.biometricattendance.calculation.DailyResult.Flag;
@@ -35,7 +36,7 @@ public final class DashboardDtos {
 				DayRecord day = row.day();
 				var result = day.result();
 				AttendanceStatus status = result == null ? null : result.status();
-				boolean hasData = result == null ? !day.scans().isEmpty() || day.correction() != null
+				boolean hasData = result == null ? day.scans().stream().anyMatch(ScanResponse::counted) || day.correction() != null
 						: status == AttendanceStatus.LENGKAP || status == AttendanceStatus.TIDAK_LENGKAP;
 				boolean isIncomplete = status == AttendanceStatus.TIDAK_LENGKAP;
 				present += hasData ? 1 : 0;
@@ -47,8 +48,11 @@ public final class DashboardDtos {
 				missing += day.ruleMissing() != null ? 1 : 0;
 				boolean flagged = result != null && (result.flags().contains(Flag.URUTAN_TIDAK_WAJAR)
 						|| result.flags().contains(Flag.PERLU_TINJAUAN_HARI_LIBUR)
-						|| result.flags().contains(Flag.HADIR_SAAT_IZIN));
-				review += isIncomplete || day.ruleMissing() != null || !day.scanFlags().isEmpty() || flagged ? 1 : 0;
+						|| result.flags().contains(Flag.HADIR_SAAT_IZIN)
+						|| result.flags().contains(Flag.ADA_SCAN_TERTAHAN));
+				// CABANG_BERBEDA hanya informasi (scan sah di cabang tambahan), bukan alasan tinjauan.
+				boolean scanFlagged = day.scanFlags().stream().anyMatch(f -> f != ScanFlag.CABANG_BERBEDA);
+				review += isIncomplete || day.ruleMissing() != null || scanFlagged || flagged ? 1 : 0;
 				// Izin disetujui tanpa kehadiran; dihitung juga bila aturan kerja belum diatur (result null).
 				boolean approvedLeave = day.leave() != null && day.leave().status() == LeaveStatus.DISETUJUI;
 				leave += status == AttendanceStatus.IZIN || (result == null && approvedLeave && !hasData) ? 1 : 0;
@@ -65,10 +69,12 @@ public final class DashboardDtos {
 			String deviceName, Set<ScanFlag> flags) {
 	}
 
-	/** @param pendingLeaveRequests pengajuan izin/cuti yang menunggu keputusan (K-081), semua tanggal */
+	/**
+	 * @param heldScans scan di cabang yang tidak diizinkan dan belum ditinjau (K-103)
+	 * @param pendingLeaveRequests pengajuan izin/cuti yang menunggu keputusan (K-081), semua tanggal */
 	public record DashboardSummary(LocalDate date, Counts totals, List<BranchSummary> branches,
 			List<DeviceResponse> devices, List<RecentScan> recentScans, long unmatchedScans,
-			long pendingLeaveRequests) {
+			long heldScans, long pendingLeaveRequests) {
 	}
 
 }

@@ -78,13 +78,19 @@ public class ScanIngestService {
 				ignored++;
 				continue;
 			}
-			Optional<Employee> employee = byPin.computeIfAbsent(event.pin(), employees::findByDevicePin);
+			Optional<Employee> employee = byPin.computeIfAbsent(event.pin(), employees::findByDevicePinWithBranches);
 			Set<ScanFlag> flags = EnumSet.noneOf(ScanFlag.class);
 			if (employee.isEmpty()) {
 				flags.add(ScanFlag.PIN_TIDAK_DIKENAL);
 			}
-			else if (!employee.get().getBranch().getId().equals(device.getBranch().getId())) {
-				flags.add(ScanFlag.CABANG_BERBEDA);
+			else {
+				Employee found = employee.get();
+				Long deviceBranchId = device.getBranch().getId();
+				if (!found.getBranch().getId().equals(deviceBranchId)) {
+					// Cabang tambahan hanya diberi penanda informasi; cabang lain ditahan untuk ditinjau (K-103).
+					flags.add(found.isAllowedAt(deviceBranchId) ? ScanFlag.CABANG_BERBEDA
+							: ScanFlag.CABANG_TIDAK_DIIZINKAN);
+				}
 			}
 			if (scannedAt.isAfter(now.plus(futureTolerance))) {
 				flags.add(ScanFlag.WAKTU_DI_MASA_DEPAN);

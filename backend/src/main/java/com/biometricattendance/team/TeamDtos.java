@@ -6,6 +6,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import com.biometricattendance.attendance.AttendanceDtos.DayRecord;
+import com.biometricattendance.attendance.AttendanceDtos.ScanResponse;
 import com.biometricattendance.calculation.CalculationDtos.DailyResultResponse;
 import com.biometricattendance.calculation.DailyResult.AttendanceStatus;
 import com.biometricattendance.calculation.DailyResult.TimeValue;
@@ -46,7 +47,7 @@ public final class TeamDtos {
 		static TeamStatus statusOf(DayRecord day) {
 			DailyResultResponse r = day.result();
 			boolean approvedLeave = day.leave() != null && day.leave().status() == LeaveStatus.DISETUJUI;
-			boolean noPresence = r == null && day.scans().isEmpty() && day.correction() == null;
+			boolean noPresence = r == null && day.scans().stream().noneMatch(ScanResponse::counted) && day.correction() == null;
 			if (approvedLeave && ((r != null && r.status() == AttendanceStatus.IZIN) || noPresence)) {
 				return TeamStatus.IZIN;
 			}

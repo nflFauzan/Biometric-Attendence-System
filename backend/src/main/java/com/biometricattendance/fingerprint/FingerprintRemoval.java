@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,34 @@ public class FingerprintRemoval {
 			commands.create(DeviceCommand.deleteTemplate(device, employee, employee.getDevicePin(), record.getFinger(),
 					actor, now), actor);
 		}
+	}
+
+	/**
+	 * K-103: cabang tambahan dicabut. Batalkan ENROLL aktif di mesin cabang itu, lupakan jari yang direkam di mesin
+	 * cabang itu, dan kirim DELETE_TEMPLATE hanya ke mesin tempat jari itu direkam (bukan ke semua mesin).
+	 * Mengembalikan jumlah jari yang dilupakan.
+	 */
+	@Transactional
+	public int revokeBranches(Employee employee, Set<Long> revokedBranchIds, String actor, Instant now) {
+		if (revokedBranchIds.isEmpty()) {
+			return 0;
+		}
+		commands.cancelActiveEnrollsOnBranches(employee.getId(), revokedBranchIds, actor, now);
+		int forgotten = 0;
+		for (EmployeeFingerprint record : fingerprints.findByEmployeeIdOrderByFinger(employee.getId())) {
+			Device device = record.getDevice();
+			if (!revokedBranchIds.contains(device.getBranch().getId())) {
+				continue;
+			}
+			int finger = record.getFinger();
+			forget(record, actor);
+			if (device.isRakitan()) {
+				commands.create(DeviceCommand.deleteTemplate(device, employee, employee.getDevicePin(), finger, actor,
+						now), actor);
+			}
+			forgotten++;
+		}
+		return forgotten;
 	}
 
 	/** Nonaktif, atau tanggal keluar (hari kerja terakhir) sudah lewat menurut zona waktu cabang. */

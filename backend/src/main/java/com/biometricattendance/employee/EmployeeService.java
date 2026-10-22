@@ -1,7 +1,11 @@
 package com.biometricattendance.employee;
 
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -9,9 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.biometricattendance.attendance.AttendanceScanRepository;
 import com.biometricattendance.audit.AuditService;
+import com.biometricattendance.branch.Branch;
 import com.biometricattendance.branch.BranchRepository;
 import com.biometricattendance.category.EmployeeCategoryRepository;
 import com.biometricattendance.common.ApiException;
+import com.biometricattendance.common.CurrentUser;
+import com.biometricattendance.fingerprint.FingerprintRemoval;
+import com.biometricattendance.employee.EmployeeDtos.BranchAccessRequest;
+import com.biometricattendance.employee.EmployeeDtos.BranchAccessResponse;
 import com.biometricattendance.employee.EmployeeDtos.EmployeeRequest;
 import com.biometricattendance.employee.EmployeeDtos.EmployeeResponse;
 
@@ -26,16 +35,18 @@ public class EmployeeService {
 	private final AuditService audit;
 	private final AttendanceScanRepository scans;
 	private final ApplicationEventPublisher events;
+	private final FingerprintRemoval fingerprintRemoval;
 
 	public EmployeeService(EmployeeRepository repository, BranchRepository branches,
 			EmployeeCategoryRepository categories, AuditService audit, AttendanceScanRepository scans,
-			ApplicationEventPublisher events) {
+			ApplicationEventPublisher events, FingerprintRemoval fingerprintRemoval) {
 		this.repository = repository;
 		this.branches = branches;
 		this.categories = categories;
 		this.audit = audit;
 		this.scans = scans;
 		this.events = events;
+		this.fingerprintRemoval = fingerprintRemoval;
 	}
 
 	@Transactional(readOnly = true)
@@ -78,12 +89,83 @@ public class EmployeeService {
 			throw ApiException.conflict("PIN mesin sudah dipakai karyawan lain");
 		}
 		EmployeeResponse before = EmployeeResponse.from(employee);
+		List<Long> extrasBefore = sortedExtraIds(employee);
+		Branch previousBranch = employee.getBranch();
 		apply(employee, request);
+		keepPlacementConsistent(employee, previousBranch);
 		events.publishEvent(new EmployeeChangedEvent(employee, before.devicePin(), false));
 		EmployeeResponse after = EmployeeResponse.from(repository.save(employee));
-		audit.record("UPDATE", ENTITY, id, before, after);
+		audit.record("UPDATE", ENTITY, id, snapshot(before, extrasBefore),
+				snapshot(after, sortedExtraIds(employee)));
 		linkUnmatchedScans(employee, before.devicePin());
 		return after;
+	}
+
+	@Transactional(readOnly = true)
+	public BranchAccessResponse branchAccess(Long id) {
+		return branchAccessOf(find(id));
+	}
+
+	/** K-103: mengganti daftar cabang absen tambahan. ID penempatan diabaikan, duplikat digabung. */
+	@Transactional
+	public BranchAccessResponse updateBranchAccess(Long id, BranchAccessRequest request) {
+		Employee employee = find(id);
+		Set<Long> wanted = new LinkedHashSet<>(request.extraBranchIds());
+		wanted.remove(null);
+		wanted.remove(employee.getBranch().getId());
+		List<Branch> found = branches.findAllById(wanted);
+		if (found.size() != wanted.size()) {
+			throw ApiException.notFound("Cabang");
+		}
+		Map<String, Object> before = snapshot(EmployeeResponse.from(employee), sortedExtraIds(employee));
+		Set<Long> revoked = new LinkedHashSet<>(employee.allowedBranchIds());
+		employee.getExtraBranches().clear();
+		employee.getExtraBranches().addAll(found);
+		revoked.removeAll(employee.allowedBranchIds());
+		repository.saveAndFlush(employee);
+		// Cabang yang dicabut melupakan jari yang direkam di mesinnya (K-103), di transaksi yang sama.
+		int removed = fingerprintRemoval.revokeBranches(employee, revoked, CurrentUser.username(), Instant.now());
+		Map<String, Object> after = snapshot(EmployeeResponse.from(employee), sortedExtraIds(employee));
+		after.put("removedFingerprints", removed);
+		audit.record("UPDATE", ENTITY, id, before, after);
+		return new BranchAccessResponse(employee.getBranch().getId(), sortedExtraIds(employee), removed);
+	}
+
+	private static BranchAccessResponse branchAccessOf(Employee employee) {
+		return new BranchAccessResponse(employee.getBranch().getId(), sortedExtraIds(employee), 0);
+	}
+
+	private static List<Long> sortedExtraIds(Employee employee) {
+		return employee.getExtraBranches().stream().map(Branch::getId).sorted().toList();
+	}
+
+	/** CB-10: penempatan lama menjadi cabang tambahan saat berpindah; penempatan baru keluar dari daftar tambahan. */
+	private static void keepPlacementConsistent(Employee employee, Branch previousBranch) {
+		Long currentId = employee.getBranch().getId();
+		if (!currentId.equals(previousBranch.getId())) {
+			employee.getExtraBranches().add(previousBranch);
+		}
+		employee.getExtraBranches().removeIf(b -> b.getId().equals(currentId));
+	}
+
+	/** Snapshot audit karyawan (datar): kolom EmployeeResponse ditambah extraBranchIds terurut. */
+	private static Map<String, Object> snapshot(EmployeeResponse e, List<Long> extraBranchIds) {
+		Map<String, Object> m = new LinkedHashMap<>();
+		m.put("id", e.id());
+		m.put("employeeNumber", e.employeeNumber());
+		m.put("fullName", e.fullName());
+		m.put("phone", e.phone());
+		m.put("branchId", e.branchId());
+		m.put("branchName", e.branchName());
+		m.put("categoryId", e.categoryId());
+		m.put("categoryName", e.categoryName());
+		m.put("position", e.position());
+		m.put("joinDate", e.joinDate());
+		m.put("endDate", e.endDate());
+		m.put("active", e.active());
+		m.put("devicePin", e.devicePin());
+		m.put("extraBranchIds", extraBranchIds);
+		return m;
 	}
 
 	/**
@@ -96,7 +178,7 @@ public class EmployeeService {
 			return;
 		}
 		repository.flush();
-		int linked = scans.linkUnmatched(pin, employee.getId());
+		int linked = scans.linkUnmatched(pin, employee.getId(), employee.getBranch().getId());
 		if (linked > 0) {
 			audit.record("LINK_SCANS", ENTITY, employee.getId(), null, Map.of("devicePin", pin, "linkedScans", linked));
 		}

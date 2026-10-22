@@ -92,6 +92,9 @@ public class FingerprintService {
 			throw ApiException.badRequest("Centang persetujuan karyawan dulu.");
 		}
 		Device device = devices.findWithBranch(request.deviceId()).orElseThrow(() -> ApiException.notFound("Mesin"));
+		if (!employee.isAllowedAt(device.getBranch().getId())) {
+			throw ApiException.badRequest("Karyawan tidak diizinkan absen di cabang mesin ini.");
+		}
 		Instant now = Instant.now();
 		if (!device.isRakitan()) {
 			throw ApiException.badRequest("Mesin ini tidak mendukung pendaftaran dari web; daftarkan langsung di mesin.");

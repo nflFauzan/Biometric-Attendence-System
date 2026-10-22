@@ -22,6 +22,9 @@ import com.biometricattendance.attendance.AttendanceDtos.CorrectionRequest;
 import com.biometricattendance.attendance.AttendanceDtos.CorrectionResponse;
 import com.biometricattendance.attendance.AttendanceDtos.DailyAttendanceResponse;
 import com.biometricattendance.attendance.AttendanceDtos.EmployeeAttendanceResponse;
+import com.biometricattendance.attendance.AttendanceDtos.HeldScanResponse;
+import com.biometricattendance.attendance.AttendanceDtos.ReviewRequest;
+import com.biometricattendance.attendance.AttendanceDtos.ReviewStatus;
 import com.biometricattendance.attendance.AttendanceDtos.ScanResponse;
 
 import jakarta.validation.Valid;
@@ -35,13 +38,15 @@ public class AttendanceController {
 
 	private final AttendanceService attendance;
 	private final CorrectionService corrections;
+	private final HeldScanService heldScans;
 	private final AttendanceScanRepository scans;
 	private final ZoneId companyZone;
 
 	public AttendanceController(AttendanceService attendance, CorrectionService corrections,
-			AttendanceScanRepository scans, @Value("${app.company-timezone}") String companyZone) {
+			HeldScanService heldScans, AttendanceScanRepository scans, @Value("${app.company-timezone}") String companyZone) {
 		this.attendance = attendance;
 		this.corrections = corrections;
+		this.heldScans = heldScans;
 		this.scans = scans;
 		this.companyZone = ZoneId.of(companyZone);
 	}
@@ -75,6 +80,21 @@ public class AttendanceController {
 			.stream()
 			.map(ScanResponse::from)
 			.toList();
+	}
+
+	/** Scan tertahan karena cabang (K-103); tanpa status = semua keputusan. Rentang bawaan sama dengan scan tak dikenal. */
+	@GetMapping("/held-scans")
+	public List<HeldScanResponse> heldScans(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+			@RequestParam(required = false) ReviewStatus status) {
+		LocalDate end = to == null ? attendance.today() : to;
+		return heldScans.list(from == null ? end.minusDays(6) : from, end, status);
+	}
+
+	@PostMapping("/held-scans/review")
+	List<HeldScanResponse> reviewHeldScans(@Valid @RequestBody ReviewRequest request) {
+		return heldScans.review(request);
 	}
 
 	@PostMapping("/corrections")

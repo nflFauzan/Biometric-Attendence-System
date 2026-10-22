@@ -54,7 +54,9 @@ public record DailyResult(LocalDate date, DayType dayType, AttendanceStatus stat
 		/** Ada scan/koreksi pada hari kerja yang tercakup izin disetujui; perlu ditinjau (K-076). */
 		HADIR_SAAT_IZIN,
 		/** Ada pengajuan izin yang belum diputus; status tidak berubah (LEAVE-006). */
-		IZIN_MENUNGGU
+		IZIN_MENUNGGU,
+		/** Ada scan di cabang yang tidak diizinkan dan belum ditinjau; scan itu tidak dihitung (K-103). */
+		ADA_SCAN_TERTAHAN
 	}
 
 	public enum TimeSource {

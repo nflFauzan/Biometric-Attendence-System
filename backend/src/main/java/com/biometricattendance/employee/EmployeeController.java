@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.biometricattendance.employee.EmployeeDtos.BranchAccessRequest;
+import com.biometricattendance.employee.EmployeeDtos.BranchAccessResponse;
 import com.biometricattendance.employee.EmployeeDtos.EmployeeRequest;
 import com.biometricattendance.employee.EmployeeDtos.EmployeeResponse;
 
@@ -49,6 +51,16 @@ public class EmployeeController {
 	@PutMapping("/{id}")
 	EmployeeResponse update(@PathVariable Long id, @Valid @RequestBody EmployeeRequest request) {
 		return service.update(id, request);
+	}
+
+	@GetMapping("/{id}/branches")
+	BranchAccessResponse branchAccess(@PathVariable Long id) {
+		return service.branchAccess(id);
+	}
+
+	@PutMapping("/{id}/branches")
+	BranchAccessResponse updateBranchAccess(@PathVariable Long id, @Valid @RequestBody BranchAccessRequest request) {
+		return service.updateBranchAccess(id, request);
 	}
 
 }

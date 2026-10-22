@@ -18,6 +18,7 @@ import com.biometricattendance.attendance.AttendanceDtos.DailyRow;
 import com.biometricattendance.attendance.AttendanceScan;
 import com.biometricattendance.attendance.AttendanceScanRepository;
 import com.biometricattendance.attendance.AttendanceService;
+import com.biometricattendance.attendance.HeldScanService;
 import com.biometricattendance.dashboard.DashboardDtos.BranchSummary;
 import com.biometricattendance.dashboard.DashboardDtos.Counts;
 import com.biometricattendance.dashboard.DashboardDtos.DashboardSummary;
@@ -39,16 +40,18 @@ public class DashboardService {
 	private final AttendanceScanRepository scans;
 	private final EmployeeRepository employees;
 	private final LeaveRequestRepository leaves;
+	private final HeldScanService heldScans;
 	private final ZoneId companyZone;
 
 	public DashboardService(AttendanceService attendance, DeviceService devices, AttendanceScanRepository scans,
-			EmployeeRepository employees, LeaveRequestRepository leaves,
+			EmployeeRepository employees, LeaveRequestRepository leaves, HeldScanService heldScans,
 			@Value("${app.company-timezone}") String companyZone) {
 		this.attendance = attendance;
 		this.devices = devices;
 		this.scans = scans;
 		this.employees = employees;
 		this.leaves = leaves;
+		this.heldScans = heldScans;
 		this.companyZone = ZoneId.of(companyZone);
 	}
 
@@ -83,7 +86,7 @@ public class DashboardService {
 			.toList();
 
 		return new DashboardSummary(date, Counts.of(rows), branches, devices.list(), recentScans,
-				scans.countUnmatched(start, end), leaves.countByStatus(LeaveStatus.MENUNGGU));
+				scans.countUnmatched(start, end), heldScans.countPending(), leaves.countByStatus(LeaveStatus.MENUNGGU));
 	}
 
 }

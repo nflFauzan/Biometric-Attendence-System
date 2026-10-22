@@ -54,15 +54,45 @@ public interface AttendanceScanRepository extends JpaRepository<AttendanceScan, 
 	@Query("select count(s) from AttendanceScan s where s.employeeId is null and s.scannedAt >= :from and s.scannedAt < :to")
 	long countUnmatched(@Param("from") Instant from, @Param("to") Instant to);
 
-	/** K-068: menghubungkan scan PIN_TIDAK_DIKENAL ke karyawan yang baru diberi PIN tersebut. */
+	/**
+	 * K-068 + K-103: menghubungkan scan PIN_TIDAK_DIKENAL ke karyawan yang baru diberi PIN tersebut, dan menambah
+	 * CABANG_TIDAK_DIIZINKAN bila mesin bukan di penempatan maupun cabang tambahan. Penanda lain (mis.
+	 * WAKTU_DI_MASA_DEPAN) dipertahankan; daftar tetap terurut seperti {@code ScanFlag.join}.
+	 */
 	@Modifying
 	@Query(value = """
-			update attendance_scans
+			update attendance_scans s
 			set employee_id = :employeeId,
-			    flags = nullif(array_to_string(array_remove(string_to_array(flags, ','), 'PIN_TIDAK_DIKENAL'), ','), '')
-			where employee_id is null and device_pin = :pin
+			    flags = nullif(array_to_string(array(
+			        select f from unnest(
+			            array_remove(string_to_array(s.flags, ','), 'PIN_TIDAK_DIKENAL')
+			            || case when d.branch_id <> :placementBranchId
+			                    and not exists (select 1 from employee_extra_branches x
+			                                    where x.employee_id = :employeeId and x.branch_id = d.branch_id)
+			                    then array['CABANG_TIDAK_DIIZINKAN'] else array[]::text[] end) as f
+			        order by f), ','), '')
+			from devices d
+			where d.id = s.device_id and s.employee_id is null and s.device_pin = :pin
 			""", nativeQuery = true)
-	int linkUnmatched(@Param("pin") String pin, @Param("employeeId") long employeeId);
+	int linkUnmatched(@Param("pin") String pin, @Param("employeeId") long employeeId,
+			@Param("placementBranchId") long placementBranchId);
+
+	/** K-103: scan yang ditandai CABANG_TIDAK_DIIZINKAN dalam rentang waktu (belum disaring menurut keputusan). */
+	@Query("""
+			select s from AttendanceScan s join fetch s.device
+			where s.employeeId is not null and s.flags like '%CABANG_TIDAK_DIIZINKAN%'
+			  and s.scannedAt >= :from and s.scannedAt < :to
+			order by s.scannedAt desc
+			""")
+	List<AttendanceScan> findHeldFlagged(@Param("from") Instant from, @Param("to") Instant to);
+
+	/** K-103: tertahan dan belum ada keputusan sama sekali (DIABAIKAN tidak lagi menunggu). */
+	@Query("""
+			select count(s) from AttendanceScan s
+			where s.employeeId is not null and s.flags like '%CABANG_TIDAK_DIIZINKAN%'
+			  and not exists (select 1 from ScanReview r where r.scanId = s.id)
+			""")
+	long countPendingHeld();
 
 	long countByDeviceId(Long deviceId);
 

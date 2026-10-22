@@ -2,6 +2,9 @@ package com.biometricattendance.employee;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.DynamicUpdate;
@@ -17,6 +20,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
@@ -48,6 +53,12 @@ public class Employee {
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "category_id", nullable = false)
 	private EmployeeCategory category;
+
+	/** Cabang absen tambahan (K-103); penempatan ada di {@link #branch}. */
+	@ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(name = "employee_extra_branches", joinColumns = @JoinColumn(name = "employee_id"),
+			inverseJoinColumns = @JoinColumn(name = "branch_id"))
+	private Set<Branch> extraBranches = new HashSet<>();
 
 	private String position;
 
@@ -112,6 +123,21 @@ public class Employee {
 
 	public void setBranch(Branch branch) {
 		this.branch = branch;
+	}
+
+	public Set<Branch> getExtraBranches() {
+		return extraBranches;
+	}
+
+	/** Boleh absen di cabang ini: penempatan atau cabang tambahan. */
+	public boolean isAllowedAt(Long branchId) {
+		return allowedBranchIds().contains(branchId);
+	}
+
+	public Set<Long> allowedBranchIds() {
+		Set<Long> ids = extraBranches.stream().map(Branch::getId).collect(Collectors.toCollection(HashSet::new));
+		ids.add(branch.getId());
+		return ids;
 	}
 
 	public EmployeeCategory getCategory() {

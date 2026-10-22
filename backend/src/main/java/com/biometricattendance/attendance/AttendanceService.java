@@ -22,11 +22,13 @@ import com.biometricattendance.attendance.AttendanceDtos.DailyRow;
 import com.biometricattendance.attendance.AttendanceDtos.DayRecord;
 import com.biometricattendance.attendance.AttendanceDtos.EmployeeAttendanceResponse;
 import com.biometricattendance.attendance.AttendanceDtos.LeaveInfo;
+import com.biometricattendance.attendance.AttendanceDtos.ReviewStatus;
 import com.biometricattendance.attendance.AttendanceDtos.ScanResponse;
 import com.biometricattendance.calculation.CalculationDtos.DailyResultResponse;
 import com.biometricattendance.calculation.DailyAttendanceCalculator;
 import com.biometricattendance.calculation.DailyInput;
 import com.biometricattendance.calculation.DailyInput.LeaveState;
+import com.biometricattendance.calculation.DailyResult.Flag;
 import com.biometricattendance.calculation.RuleNotConfiguredException;
 import com.biometricattendance.common.ApiException;
 import com.biometricattendance.employee.Employee;
@@ -54,16 +56,18 @@ public class AttendanceService {
 	private final HolidayRepository holidays;
 	private final WorkRuleService workRules;
 	private final LeaveRequestRepository leaves;
+	private final ScanReviewRepository scanReviews;
 
 	public AttendanceService(EmployeeRepository employees, AttendanceScanRepository scans,
 			AttendanceCorrectionRepository corrections, HolidayRepository holidays, WorkRuleService workRules,
-			LeaveRequestRepository leaves) {
+			LeaveRequestRepository leaves, ScanReviewRepository scanReviews) {
 		this.employees = employees;
 		this.scans = scans;
 		this.corrections = corrections;
 		this.holidays = holidays;
 		this.workRules = workRules;
 		this.leaves = leaves;
+		this.scanReviews = scanReviews;
 	}
 
 	public LocalDate today() {
@@ -122,6 +126,18 @@ public class AttendanceService {
 		Map<Long, List<AttendanceScan>> scansByEmployee = scans.findForEmployees(ids, windowFrom, windowTo)
 			.stream()
 			.collect(Collectors.groupingBy(AttendanceScan::getEmployeeId));
+		// K-103: keputusan atas scan yang tertahan karena cabang, dimuat sekali untuk seluruh rentang.
+		List<Long> heldIds = scansByEmployee.values()
+			.stream()
+			.flatMap(List::stream)
+			.filter(s -> s.getFlags().contains(ScanFlag.CABANG_TIDAK_DIIZINKAN))
+			.map(AttendanceScan::getId)
+			.toList();
+		Map<Long, ReviewStatus> reviewStatus = new HashMap<>();
+		if (!heldIds.isEmpty()) {
+			scanReviews.findByScanIdIn(heldIds)
+				.forEach(r -> reviewStatus.put(r.getScanId(), HeldScanService.statusOf(r)));
+		}
 		Map<String, AttendanceCorrection> activeCorrections = new HashMap<>();
 		corrections.findActive(ids, from, to).forEach(c -> activeCorrections.put(key(c.getEmployeeId(), c.getWorkDate()), c));
 		Set<LocalDate> holidayDates = holidays.findByHolidayDateBetweenOrderByHolidayDateAsc(from, to)
@@ -147,7 +163,7 @@ public class AttendanceService {
 					.filter(s -> !s.getScannedAt().isBefore(start) && s.getScannedAt().isBefore(end))
 					.toList();
 				days.add(calculate(e, date, zone, dayScans, activeCorrections.get(key(e.getId(), date)),
-						holidayDates.contains(date), leaveOn(employeeLeaves, date)));
+						holidayDates.contains(date), leaveOn(employeeLeaves, date), reviewStatus));
 			}
 			result.put(e.getId(), days);
 		}
@@ -155,21 +171,51 @@ public class AttendanceService {
 	}
 
 	private DayRecord calculate(Employee employee, LocalDate date, ZoneId zone, List<AttendanceScan> dayScans,
-			AttendanceCorrection correction, boolean holiday, LeaveRequest leave) {
+			AttendanceCorrection correction, boolean holiday, LeaveRequest leave,
+			Map<Long, ReviewStatus> reviewStatus) {
+		List<ScanResponse> scanResponses = dayScans.stream()
+			.map(s -> ScanResponse.from(s, reviewStatus.get(s.getId())))
+			.toList();
+		// K-103: CABANG_TIDAK_DIIZINKAN hanya jadi penanda hari selama scannya belum ditinjau; setelah diputuskan
+		// (diterima/diabaikan) penandanya tetap di scan, tetapi hari tidak lagi "perlu ditinjau" karenanya.
 		Set<ScanFlag> scanFlags = EnumSet.noneOf(ScanFlag.class);
-		dayScans.forEach(s -> scanFlags.addAll(s.getFlags()));
-		List<ScanResponse> scanResponses = dayScans.stream().map(ScanResponse::from).toList();
+		for (int i = 0; i < dayScans.size(); i++) {
+			Set<ScanFlag> flags = dayScans.get(i).getFlags();
+			boolean pending = scanResponses.get(i).review() == ReviewStatus.BELUM_DITINJAU;
+			for (ScanFlag flag : flags) {
+				if (flag != ScanFlag.CABANG_TIDAK_DIIZINKAN || pending) {
+					scanFlags.add(flag);
+				}
+			}
+		}
+		// K-103: scan tertahan yang belum diterima tidak dihitung; kalkulator tetap murni.
+		List<AttendanceScan> counted = new ArrayList<>();
+		for (int i = 0; i < dayScans.size(); i++) {
+			if (scanResponses.get(i).counted()) {
+				counted.add(dayScans.get(i));
+			}
+		}
+		boolean hasPendingHeld = scanResponses.stream().anyMatch(s -> s.review() == ReviewStatus.BELUM_DITINJAU);
 		DailyInput.Correction input = correction == null ? null
 				: new DailyInput.Correction(correction.getCheckIn(), correction.getCheckOut());
 		DailyResultResponse result = null;
 		String ruleMissing = null;
 		try {
 			result = DailyResultResponse.from(DailyAttendanceCalculator.calculate(new DailyInput(date, zone,
-					dayScans.stream().map(AttendanceScan::getScannedAt).toList(), input,
+					counted.stream().map(AttendanceScan::getScannedAt).toList(), input,
 					workRules.resolve(employee, date), holiday, leaveState(leave))));
 		}
 		catch (RuleNotConfiguredException ex) {
 			ruleMissing = ex.getMessage();
+		}
+		if (result != null && hasPendingHeld) {
+			Set<Flag> flags = EnumSet.noneOf(Flag.class);
+			flags.addAll(result.flags());
+			flags.add(Flag.ADA_SCAN_TERTAHAN);
+			result = new DailyResultResponse(result.date(), result.dayType(), result.status(), result.scanTimes(),
+					result.checkIn(), result.checkOut(), result.lateSeconds(), result.earlyLeaveSeconds(),
+					result.regularWorkSeconds(), result.overtimeCandidateSeconds(), result.totalPresenceSeconds(),
+					flags);
 		}
 		return new DayRecord(date, result, ruleMissing, scanResponses, CorrectionResponse.from(correction),
 				scanFlags.isEmpty() ? Set.of() : Set.copyOf(scanFlags), LeaveInfo.from(leave));

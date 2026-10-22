@@ -46,6 +46,13 @@ public interface DeviceCommandRepository extends JpaRepository<DeviceCommand, UU
 			+ " and c.type = 'ENROLL' and c.status in ('MENUNGGU', 'DIKIRIM') order by c.createdAt")
 	List<DeviceCommand> findActiveForEmployee(@Param("employeeId") Long employeeId);
 
+	/** ENROLL aktif karyawan ini pada mesin milik cabang-cabang tertentu (K-103). */
+	@Query("select c from DeviceCommand c join fetch c.device d where c.employee.id = :employeeId"
+			+ " and c.type = 'ENROLL' and c.status in ('MENUNGGU', 'DIKIRIM') and d.branch.id in :branchIds"
+			+ " order by c.createdAt")
+	List<DeviceCommand> findActiveForEmployeeOnBranches(@Param("employeeId") Long employeeId,
+			@Param("branchIds") java.util.Collection<Long> branchIds);
+
 	/**
 	 * Perintah aktif mesin ini yang belum lewat batas waktu. Yang sudah lewat tidak dikirim dan dibiarkan untuk sweeper,
 	 * supaya heartbeat tidak pernah menulis perintah mesin lain.

@@ -367,6 +367,22 @@ public class DeviceCommandService {
 		return active.size();
 	}
 
+	/** K-103: cabang dicabut, batalkan ENROLL aktif di mesin cabang itu saja; perintah hapus tidak disentuh. */
+	@Transactional
+	public int cancelActiveEnrollsOnBranches(Long employeeId, java.util.Set<Long> branchIds, String actor,
+			Instant now) {
+		if (branchIds.isEmpty()) {
+			return 0;
+		}
+		List<DeviceCommand> active = commands.findActiveForEmployeeOnBranches(employeeId, branchIds);
+		for (DeviceCommand command : active) {
+			Map<String, Object> before = snapshot(command);
+			command.cancel(now);
+			changed(actor, "CANCEL_COMMAND", command, before);
+		}
+		return active.size();
+	}
+
 	private DeviceCommand find(String id) {
 		UUID uuid;
 		try {

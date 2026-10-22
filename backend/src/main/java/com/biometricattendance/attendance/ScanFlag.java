@@ -12,8 +12,10 @@ public enum ScanFlag {
 	PIN_TIDAK_DIKENAL,
 	/** Waktu scan lebih dari batas toleransi di depan waktu server; jam mesin mungkin salah. */
 	WAKTU_DI_MASA_DEPAN,
-	/** Mesin berada di cabang yang berbeda dari cabang karyawan (Q-022). */
-	CABANG_BERBEDA;
+	/** Mesin berada di cabang tambahan karyawan (bukan penempatan) (Q-022, K-103). */
+	CABANG_BERBEDA,
+	/** Mesin berada di cabang yang tidak diizinkan untuk karyawan; scan tertahan sampai ditinjau (K-103). */
+	CABANG_TIDAK_DIIZINKAN;
 
 	public static String join(Set<ScanFlag> flags) {
 		return flags.isEmpty() ? null : flags.stream().map(Enum::name).sorted().collect(Collectors.joining(","));

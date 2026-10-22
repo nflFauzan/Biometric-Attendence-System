@@ -26,6 +26,10 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 	@Query("select e from Employee e join fetch e.branch where e.devicePin = :pin")
 	Optional<Employee> findByDevicePin(@Param("pin") String pin);
 
+	/** Untuk penerimaan scan: cabang tambahan ikut diambil agar tidak ada lazy-load per scan (K-103). */
+	@Query("select e from Employee e join fetch e.branch left join fetch e.extraBranches where e.devicePin = :pin")
+	Optional<Employee> findByDevicePinWithBranches(@Param("pin") String pin);
+
 	/**
 	 * Kandidat penghapusan sidik jari terjadwal (spec §17.4): belum ditandai, dan nonaktif atau tanggal keluarnya
 	 * sebelum {@code maxEndDate}. Zona waktu cabang diperiksa oleh pemanggil.
