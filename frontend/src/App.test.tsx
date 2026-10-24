@@ -93,7 +93,7 @@ describe('App', () => {
     expect(within(sidebar).getByRole('link', { name: 'Karyawan' })).toBeInTheDocument()
   })
 
-  it('Karyawan diarahkan ke profil dan tidak melihat menu master data', async () => {
+  it('Karyawan diarahkan ke beranda dan tidak melihat menu master data', async () => {
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: me('EMPLOYEE') }),
       'GET /api/me/employee': () => ({
@@ -102,12 +102,12 @@ describe('App', () => {
       }),
     })
     renderApp('/karyawan')
-    expect(await screen.findByText('K-01')).toBeInTheDocument()
+    expect(await screen.findByText('Halo, Siti')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Karyawan' })).not.toBeInTheDocument()
     const sidebar = screen.getByRole('navigation', { name: 'Menu utama' })
-    expect(within(sidebar).getByRole('link', { name: 'Profil Saya' })).toBeInTheDocument()
+    expect(within(sidebar).getByRole('link', { name: 'Profil' })).toBeInTheDocument()
     // Di HP, menu yang sama tersedia di bottom navigation.
     const bottomNav = screen.getByRole('navigation', { name: 'Menu bawah' })
-    expect(within(bottomNav).getByRole('link', { name: 'Profil Saya' })).toBeInTheDocument()
+    expect(within(bottomNav).getByRole('link', { name: 'Profil' })).toBeInTheDocument()
   })
 })

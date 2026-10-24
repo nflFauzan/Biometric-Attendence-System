@@ -74,13 +74,26 @@ describe('Halaman Rekan Kerja', () => {
     renderAt('/rekan-kerja?tanggal=2026-10-05')
     const table = await screen.findByRole('table')
 
-    fireEvent.change(screen.getByLabelText('Cari'), { target: { value: 'SITI' } })
+    fireEvent.change(screen.getByLabelText('Cari nama'), { target: { value: 'SITI' } })
     expect(within(table).queryByText('Budi Santoso')).not.toBeInTheDocument()
     expect(within(table).getByText('Siti Aminah')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('Cari'), { target: { value: 'k-012' } })
+    fireEvent.change(screen.getByLabelText('Cari nama'), { target: { value: 'k-012' } })
     expect(within(table).getByText('Budi Santoso')).toBeInTheDocument()
     expect(within(table).queryByText('Siti Aminah')).not.toBeInTheDocument()
+  })
+
+  it('daftar kartu di HP ikut tersaring oleh Cari nama', async () => {
+    mockFetch(dailyRoutes)
+    renderAt('/rekan-kerja?tanggal=2026-10-05')
+    await screen.findByRole('table')
+    const list = screen.getByRole('list', { name: 'Daftar rekan kerja' })
+    expect(within(list).getByText('Budi Santoso')).toBeInTheDocument()
+    expect(within(list).getByText('Siti Aminah')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Cari nama'), { target: { value: 'budi' } })
+    expect(within(list).getByText('Budi Santoso')).toBeInTheDocument()
+    expect(within(list).queryByText('Siti Aminah')).not.toBeInTheDocument()
   })
 
   it('filter cabang memanggil API dengan branchId', async () => {

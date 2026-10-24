@@ -9,6 +9,9 @@ export function mockFetch(routes: Record<string, Handler>) {
     const key = `${init?.method ?? 'GET'} ${url}`
     const handler = routes[key]
     const { status, body } = handler ? handler(init) : { status: 404, body: { detail: `Tidak ada mock: ${key}` } }
+    if (body instanceof Blob) {
+      return new Response(body, { status, headers: { 'Content-Type': body.type } })
+    }
     return new Response(body === undefined ? null : JSON.stringify(body), {
       status,
       headers: { 'Content-Type': 'application/json' },

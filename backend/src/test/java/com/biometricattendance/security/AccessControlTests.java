@@ -182,13 +182,28 @@ class AccessControlTests extends IntegrationTest {
 				Arguments.of(HttpMethod.POST, "/api/leave-requests/" + MISSING + "/reject", "{\"note\":\"x\"}"),
 				Arguments.of(HttpMethod.POST, "/api/leave-requests/" + MISSING + "/cancel", "{\"note\":\"x\"}"),
 				Arguments.of(HttpMethod.GET, "/api/leave-requests/usage?employeeId=" + MISSING + "&year=2026", null),
-				Arguments.of(HttpMethod.GET, "/api/leave-requests/" + MISSING + "/attachments/1", null));
+				Arguments.of(HttpMethod.GET, "/api/leave-requests/" + MISSING + "/attachments/1", null),
+				Arguments.of(HttpMethod.GET, "/api/leave-requests/" + MISSING + "/approvals/OWNER/evidence", null),
+				Arguments.of(HttpMethod.GET, "/api/leave-requests/" + MISSING + "/letter.pdf", null));
 	}
 
 	@ParameterizedTest(name = "{0} {1}")
 	@MethodSource("phase4ManagerEndpoints")
 	void phase4ManagerEndpointMatrix(HttpMethod method, String url, String body) throws Exception {
 		managerEndpointMatrix(method, url, body);
+	}
+
+	/** Pencatatan keputusan Owner oleh HR: HR 404 (id tak ada), Owner 403 (memutus lewat tombol sendiri). */
+	@Test
+	void ownerDecisionRecordingIsForHrFinanceOnly() throws Exception {
+		String url = "/api/leave-requests/" + MISSING + "/owner-decision";
+		var decision = new org.springframework.mock.web.MockMultipartFile("decision", "", "application/json",
+				("{\"approved\":true,\"method\":\"LISAN\",\"decidedAt\":\"2026-10-05T10:00:00\","
+						+ "\"note\":\"Uji hak akses\"}").getBytes());
+		mockMvc.perform(multipart(url).file(decision).with(HR_FINANCE).with(csrf())).andExpect(status().isNotFound());
+		mockMvc.perform(multipart(url).file(decision).with(OWNER).with(csrf())).andExpect(status().isForbidden());
+		mockMvc.perform(multipart(url).file(decision).with(EMPLOYEE).with(csrf())).andExpect(status().isForbidden());
+		mockMvc.perform(multipart(url).file(decision).with(csrf())).andExpect(status().isUnauthorized());
 	}
 
 	@ParameterizedTest
@@ -235,10 +250,71 @@ class AccessControlTests extends IntegrationTest {
 	 * punya akun di database sehingga ditolak 403 oleh service, bukan oleh aturan URL.
 	 */
 	@ParameterizedTest
-	@ValueSource(strings = { "/api/me/leave-requests", "/api/me/leave-requests/" + MISSING })
+	@ValueSource(strings = { "/api/me/leave-requests", "/api/me/leave-requests/" + MISSING,
+			"/api/me/leave-requests/" + MISSING + "/letter.pdf" })
 	void ownLeaveRequestsRequireLinkedEmployee(String url) throws Exception {
 		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
 		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
+	}
+
+	/** Verifikasi surat publik: tanpa login. Token tidak dikenal dibalas 404 (bukan 401), untuk semua peran. */
+	@Test
+	void publicLetterVerificationNeedsNoLogin() throws Exception {
+		mockMvc.perform(get("/api/public/letters/xxx")).andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/public/letters/xxx").with(EMPLOYEE)).andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/public/letters/" + "0".repeat(32)).with(OWNER)).andExpect(status().isNotFound());
+	}
+
+	/** Draft: ubah, hapus, dan kirim hanya butuh login; kepemilikan dicek service (akun uji tanpa karyawan: 403). */
+	static Stream<Arguments> draftEndpoints() {
+		String body = "{\"leaveTypeId\":1,\"draft\":true}";
+		return Stream.of(Arguments.of(HttpMethod.PUT, "/api/me/leave-requests/" + MISSING, body),
+				Arguments.of(HttpMethod.DELETE, "/api/me/leave-requests/" + MISSING, null),
+				Arguments.of(HttpMethod.POST, "/api/me/leave-requests/" + MISSING + "/submit", null));
+	}
+
+	@ParameterizedTest(name = "{0} {1}")
+	@MethodSource("draftEndpoints")
+	void draftEndpointsRequireLoginAndLinkedEmployee(HttpMethod method, String url, String body) throws Exception {
+		mockMvc.perform(build(method, url, body)).andExpect(status().isUnauthorized());
+		mockMvc.perform(build(method, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(method, url, body).with(HR_FINANCE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(method, url, body).with(OWNER)).andExpect(status().isForbidden());
+	}
+
+	/** Spesimen tanda tangan: semua role yang login; akun uji tanpa baris di database dibalas 404 oleh service. */
+	static Stream<Arguments> signatureEndpoints() {
+		return Stream.of(Arguments.of(HttpMethod.GET, "/api/me/signature"),
+				Arguments.of(HttpMethod.GET, "/api/me/signature/status"),
+				Arguments.of(HttpMethod.PUT, "/api/me/signature"),
+				Arguments.of(HttpMethod.DELETE, "/api/me/signature"));
+	}
+
+	@ParameterizedTest(name = "{0} {1}")
+	@MethodSource("signatureEndpoints")
+	void signatureEndpointsAreOpenToAllSignedInRoles(HttpMethod method, String url) throws Exception {
+		mockMvc.perform(signatureRequest(method, url)).andExpect(status().isUnauthorized());
+		for (RequestPostProcessor who : new RequestPostProcessor[] { OWNER, HR_FINANCE, EMPLOYEE }) {
+			int code = mockMvc.perform(withUser(signatureRequest(method, url), who)).andReturn().getResponse().getStatus();
+			assertThat(code).isNotIn(401, 403);
+		}
+	}
+
+	private static org.springframework.test.web.servlet.RequestBuilder withUser(
+			org.springframework.test.web.servlet.RequestBuilder builder, RequestPostProcessor who) {
+		return builder instanceof org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder m
+				? m.with(who) : ((MockHttpServletRequestBuilder) builder).with(who);
+	}
+
+	private static org.springframework.test.web.servlet.RequestBuilder signatureRequest(HttpMethod method,
+			String url) {
+		if (method == HttpMethod.PUT) {
+			return multipart(HttpMethod.PUT, url)
+				.file(new org.springframework.mock.web.MockMultipartFile("file", "t.png", "image/png",
+						new byte[] { 1, 2, 3 }))
+				.with(csrf());
+		}
+		return request(method, url).with(csrf());
 	}
 
 	/** Daftar rekan kerja dibuka semua role yang login (K-083); kolomnya dibatasi DTO, bukan role. */

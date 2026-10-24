@@ -119,7 +119,7 @@ describe('EmployeeDetailPage', () => {
     })
     renderAt('/karyawan/12')
 
-    expect(await screen.findByText('K-001', {}, LOAD)).toBeInTheDocument()
+    expect(await screen.findByText('Halo, Siti', {}, LOAD)).toBeInTheDocument()
     expect(screen.queryByText('Data kepegawaian')).not.toBeInTheDocument()
   })
 })

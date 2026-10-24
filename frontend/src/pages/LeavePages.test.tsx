@@ -22,9 +22,10 @@ function renderAt(path: string) {
 }
 
 const employee: Me = { username: 'budi', role: 'EMPLOYEE', employeeId: 12, employeeName: 'Budi Santoso', mustChangePassword: false }
+const owner: Me = { username: 'owner', role: 'OWNER', employeeId: null, employeeName: null, mustChangePassword: false }
 const hr: Me = { username: 'hr', role: 'HR_FINANCE', employeeId: null, employeeName: null, mustChangePassword: false }
 
-const sakit: LeaveType = { id: 1, name: 'Sakit', requiresDocument: true, paid: null, description: 'Lampirkan surat dokter', active: true }
+const sakit: LeaveType = { id: 1, name: 'Sakit', requiresDocument: true, paid: null, description: 'Lampirkan surat dokter', active: true, requiresOwnerApproval: true, letterTemplate: 'SAKIT' }
 
 const request = (overrides: Partial<LeaveRequest> = {}): LeaveRequest => ({
   id: 7,
@@ -42,7 +43,7 @@ const request = (overrides: Partial<LeaveRequest> = {}): LeaveRequest => ({
   calendarDays: 2,
   workingDays: 2,
   reason: 'Demam',
-  status: 'MENUNGGU',
+  status: 'PERLU_TINJAU_HR',
   submittedBy: 'budi',
   submittedAt: '2026-10-05T01:00:00Z',
   decidedBy: null,
@@ -52,53 +53,95 @@ const request = (overrides: Partial<LeaveRequest> = {}): LeaveRequest => ({
   cancelledAt: null,
   cancelReason: null,
   attachments: [],
+  contactPhone: null,
+  leaveAddress: null,
+  delegateTo: null,
+  healthFacility: null,
+  letterTemplate: 'SAKIT',
+  requiresOwnerApproval: false,
+  createdAt: '2026-10-05T00:59:00Z',
+  approvals: [],
+  nextStage: 'HR',
   ...overrides,
 })
 
 describe('Halaman izin dan cuti Fase 4', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('karyawan mengisi form, melampirkan surat, lalu dibawa ke detail pengajuannya', async () => {
-    const created = request()
-    const fetch = mockFetch({
+  it('karyawan: pengajuan menunggu menampilkan Kirim ke WhatsApp, Bagikan PDF, Tarik pengajuan, Unduh PDF', async () => {
+    mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: employee }),
+      'GET /api/me/leave-requests/7': () => ({ status: 200, body: request() }),
+    })
+    renderAt('/izin-saya/7')
+    expect(await screen.findByRole('button', { name: 'Kirim ke WhatsApp' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bagikan PDF' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tarik pengajuan' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Unduh PDF/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Hapus' })).not.toBeInTheDocument()
+  })
+
+  it('karyawan: Kirim ke WhatsApp membuka wa.me dengan pesan permohonan', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: employee }),
+      'GET /api/me/leave-requests/7': () => ({ status: 200, body: request() }),
+    })
+    renderAt('/izin-saya/7')
+    fireEvent.click(await screen.findByRole('button', { name: 'Kirim ke WhatsApp' }))
+    const [url, target] = open.mock.calls[0]
+    expect(String(url).startsWith('https://wa.me/?text=')).toBe(true)
+    expect(decodeURIComponent(String(url))).toContain(`${window.location.origin}/izin/7`)
+    expect(target).toBe('_blank')
+    open.mockRestore()
+  })
+
+  it('karyawan: draft menampilkan Ubah, Hapus, Kirim; Hapus meminta konfirmasi', async () => {
+    let deleted = false
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: employee }),
+      'GET /api/me/leave-requests/7': () => ({ status: 200, body: request({ status: 'DRAFT', submittedAt: null, submittedBy: null, nextStage: null }) }),
       'GET /api/me/leave-requests': () => ({ status: 200, body: [] }),
-      'GET /api/leave-types': () => ({ status: 200, body: [sakit, { ...sakit, id: 2, name: 'Lama', active: false }] }),
-      'POST /api/me/leave-requests': () => ({ status: 201, body: created }),
-      'POST /api/me/leave-requests/7/attachments': () => ({
-        status: 201,
-        body: { id: 3, originalName: 'surat.pdf', contentType: 'application/pdf', sizeBytes: 9, uploadedBy: 'budi', uploadedAt: '2026-10-05T01:01:00Z' },
-      }),
-      'GET /api/me/leave-requests/7': () => ({ status: 200, body: created }),
+      'DELETE /api/me/leave-requests/7': () => {
+        deleted = true
+        return { status: 204 }
+      },
     })
-    renderAt('/izin-saya')
+    document.cookie = 'XSRF-TOKEN=abc'
+    renderAt('/izin-saya/7')
+    expect(await screen.findByRole('link', { name: 'Ubah' })).toHaveAttribute('href', '/izin-saya/7/ubah')
+    expect(screen.getByRole('button', { name: 'Kirim' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tarik pengajuan' })).not.toBeInTheDocument()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Ajukan izin' }))
-    const dialog = await screen.findByRole('dialog')
-    const typeSelect = within(dialog).getByLabelText(/Jenis izin/)
-    await waitFor(() => expect(within(typeSelect).getByRole('option', { name: 'Sakit (wajib surat)' })).toBeInTheDocument())
-    // Jenis yang nonaktif tidak bisa dipilih.
-    expect(within(typeSelect).queryByRole('option', { name: /Lama/ })).not.toBeInTheDocument()
-    fireEvent.change(typeSelect, { target: { value: '1' } })
-    fireEvent.change(within(dialog).getByLabelText(/Tanggal mulai/), { target: { value: '2026-10-05' } })
-    fireEvent.change(within(dialog).getByLabelText(/Tanggal selesai/), { target: { value: '2026-10-06' } })
-    fireEvent.change(within(dialog).getByLabelText(/Alasan/), { target: { value: 'Demam' } })
-    const file = new File(['%PDF-1.4'], 'surat.pdf', { type: 'application/pdf' })
-    fireEvent.change(within(dialog).getByLabelText(/Surat pendukung/), { target: { files: [file] } })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Kirim pengajuan' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hapus' }))
+    const dialog = await screen.findByRole('alertdialog')
+    expect(deleted).toBe(false)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ya, hapus' }))
+    await waitFor(() => expect(deleted).toBe(true))
+    expect(await screen.findByText('Belum ada pengajuan berjalan')).toBeInTheDocument()
+  })
 
-    expect(await screen.findByText('Sakit · Budi Santoso')).toBeInTheDocument()
-    const post = fetch.mock.calls.find(([url, init]) => url === '/api/me/leave-requests' && init?.method === 'POST')
-    expect(JSON.parse(String(post?.[1]?.body))).toEqual({
-      employeeId: null,
-      leaveTypeId: 1,
-      startDate: '2026-10-05',
-      endDate: '2026-10-06',
-      reason: 'Demam',
+  it('karyawan: Kirim dari detail draft menampilkan pesan validasi server', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: employee }),
+      'GET /api/me/leave-requests/7': () => ({ status: 200, body: request({ status: 'DRAFT', submittedAt: null, submittedBy: null, nextStage: null }) }),
+      'POST /api/me/leave-requests/7/submit': () => ({ status: 400, body: { detail: 'Alamat selama cuti wajib diisi' } }),
     })
-    const upload = fetch.mock.calls.find(([url]) => url === '/api/me/leave-requests/7/attachments')
-    expect(upload).toBeDefined()
-    expect((upload![1]!.body as FormData).get('file')).toBe(file)
+    document.cookie = 'XSRF-TOKEN=abc'
+    renderAt('/izin-saya/7')
+    fireEvent.click(await screen.findByRole('button', { name: 'Kirim' }))
+    expect(await screen.findByText('Alamat selama cuti wajib diisi')).toBeInTheDocument()
+  })
+
+  it('karyawan: pengajuan disetujui hanya punya Unduh PDF tanpa Tarik pengajuan', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: employee }),
+      'GET /api/me/leave-requests/7': () => ({ status: 200, body: request({ status: 'DISETUJUI', nextStage: null }) }),
+    })
+    renderAt('/izin-saya/7')
+    expect(await screen.findByRole('button', { name: /Unduh PDF/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tarik pengajuan' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Kirim ke WhatsApp' })).not.toBeInTheDocument()
   })
 
   it('HR melihat peringatan wajib surat dan bisa menyetujui dengan catatan', async () => {
@@ -109,7 +152,7 @@ describe('Halaman izin dan cuti Fase 4', () => {
       'GET /api/leave-requests/7': () => ({ status: 200, body: current }),
       'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: usage }),
       'POST /api/leave-requests/7/approve': () => {
-        current = request({ status: 'DISETUJUI', decidedBy: 'hr', decidedAt: '2026-10-05T02:00:00Z', decisionNote: 'Cepat sembuh' })
+        current = request({ status: 'DISETUJUI', nextStage: null, decidedBy: 'hr', decidedAt: '2026-10-05T02:00:00Z', decisionNote: 'Cepat sembuh' })
         return { status: 200, body: current }
       },
     })
@@ -129,40 +172,87 @@ describe('Halaman izin dan cuti Fase 4', () => {
     expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument()
   })
 
-  it('surat pengajuan siap cetak memuat data karyawan dan tombol cetak/PDF', async () => {
-    const print = vi.fn()
-    vi.stubGlobal('print', print)
+  it('rute surat lama diarahkan ke halaman detail', async () => {
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: employee }),
-      'GET /api/me/leave-requests/7': () => ({
-        status: 200,
-        body: request({ status: 'DISETUJUI', decidedBy: 'hr', decidedAt: '2026-10-05T02:00:00Z', leaveTypeName: 'Cuti' }),
-      }),
+      'GET /api/me/leave-requests/7': () => ({ status: 200, body: request() }),
     })
     renderAt('/izin-saya/7/surat')
+    expect(await screen.findByText('Sakit · Budi Santoso')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Unduh PDF/ })).toBeInTheDocument()
+  })
 
-    expect(await screen.findByRole('heading', { name: 'Surat Permohonan Izin / Cuti' })).toBeInTheDocument()
-    expect(screen.getByText('Cuti', { selector: 'strong' })).toBeInTheDocument()
-    expect(screen.getByText(/IZ-000007/)).toBeInTheDocument()
-    expect(screen.getByText('Staf gudang')).toBeInTheDocument()
-    expect(screen.getByText('Disetujui oleh,')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Cetak / Simpan PDF' }))
-    expect(print).toHaveBeenCalled()
+  it('HR melihat Catat keputusan Owner tanpa tombol Setujui saat menunggu Owner', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/leave-requests/7': () => ({
+        status: 200,
+        body: request({ status: 'PERLU_TINJAU_OWNER', nextStage: 'OWNER', requiresOwnerApproval: true }),
+      }),
+      'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: { employeeId: 12, year: 2026, types: [], pendingRequests: 0 } }),
+    })
+    renderAt('/izin/7')
+    expect(await screen.findByRole('button', { name: 'Catat keputusan Owner' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument()
+  })
+
+  it('Owner melihat Setujui saat menunggu Owner, dan tidak melihat Catat keputusan Owner', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: owner }),
+      'GET /api/leave-requests/7': () => ({
+        status: 200,
+        body: request({ status: 'PERLU_TINJAU_OWNER', nextStage: 'OWNER', requiresOwnerApproval: true }),
+      }),
+      'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: { employeeId: 12, year: 2026, types: [], pendingRequests: 0 } }),
+    })
+    renderAt('/izin/7')
+    expect(await screen.findByRole('button', { name: 'Setujui' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Catat keputusan Owner' })).not.toBeInTheDocument()
+  })
+
+  it('HR tidak melihat Setujui pada tahap Owner dan Owner melihatnya pada jenis satu persetujuan di tahap HR', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: owner }),
+      'GET /api/leave-requests/7': () => ({ status: 200, body: request() }),
+      'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: { employeeId: 12, year: 2026, types: [], pendingRequests: 0 } }),
+    })
+    renderAt('/izin/7')
+    expect(await screen.findByRole('button', { name: 'Setujui' })).toBeInTheDocument()
+  })
+
+  it('form Jenis Izin selalu mengirim requiresOwnerApproval dan letterTemplate saat mengubah', async () => {
+    const fetch = mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: owner }),
+      'GET /api/leave-types': () => ({ status: 200, body: [sakit] }),
+      'PUT /api/leave-types/1': () => ({ status: 200, body: sakit }),
+    })
+    document.cookie = 'XSRF-TOKEN=abc'
+    renderAt('/jenis-izin')
+    fireEvent.click((await screen.findAllByRole('button', { name: /Ubah/ }))[0])
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByLabelText('Butuh persetujuan Owner')).toBeChecked()
+    expect(within(dialog).getByLabelText('Templat surat')).toHaveValue('SAKIT')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan' }))
+    await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => url === '/api/leave-types/1' && init?.method === 'PUT')).toBe(true))
+    const put = fetch.mock.calls.find(([url, init]) => url === '/api/leave-types/1' && init?.method === 'PUT')!
+    const body = JSON.parse(String(put[1]!.body))
+    expect(body.requiresOwnerApproval).toBe(true)
+    expect(body.letterTemplate).toBe('SAKIT')
   })
 
   it('lonceng notifikasi menampilkan jumlah dan daftar pengajuan yang menunggu', async () => {
     const pending: PendingLeaveSummary = {
       count: 2,
       items: [
-        { id: 7, employeeId: 12, employeeName: 'Budi Santoso', branchName: 'Pusat', leaveTypeName: 'Sakit', startDate: '2026-10-05', endDate: '2026-10-05', submittedAt: '2026-10-05T01:00:00Z' },
-        { id: 8, employeeId: 13, employeeName: 'Siti Aminah', branchName: 'Pusat', leaveTypeName: 'Cuti', startDate: '2026-10-07', endDate: '2026-10-09', submittedAt: '2026-10-05T02:00:00Z' },
+        { id: 7, employeeId: 12, employeeName: 'Budi Santoso', branchName: 'Pusat', leaveTypeName: 'Sakit', startDate: '2026-10-05', endDate: '2026-10-05', submittedAt: '2026-10-05T01:00:00Z', status: 'PERLU_TINJAU_HR' },
+        { id: 8, employeeId: 13, employeeName: 'Siti Aminah', branchName: 'Pusat', leaveTypeName: 'Cuti', startDate: '2026-10-07', endDate: '2026-10-09', submittedAt: '2026-10-05T02:00:00Z', status: 'PERLU_TINJAU_OWNER' },
       ],
     }
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
       'GET /api/branches': () => ({ status: 200, body: [] }),
       'GET /api/leave-requests/pending': () => ({ status: 200, body: pending }),
-      'GET /api/leave-requests?status=MENUNGGU': () => ({ status: 200, body: [request()] }),
+      'GET /api/leave-requests?status=PERLU_TINJAU_HR': () => ({ status: 200, body: [request()] }),
     })
     renderAt('/izin')
 
@@ -170,5 +260,63 @@ describe('Halaman izin dan cuti Fase 4', () => {
     fireEvent.click(bell)
     expect(await screen.findByText('Siti Aminah')).toBeInTheDocument()
     expect(screen.getByText('Siti Aminah').closest('a')).toHaveAttribute('href', '/izin/8')
+  })
+
+  it('unduh bukti keputusan memakai ekstensi dari tipe berkas', async () => {
+    const approval = {
+      stage: 'OWNER' as const, approved: true, decidedBy: 'owner', decidedByName: 'Owner', decidedAt: '2026-10-05T03:00:00Z',
+      method: 'WHATSAPP' as const, recordedBy: 'hr', recordedByName: 'Sari HR', recordedAt: '2026-10-05T03:05:00Z', note: null, hasEvidence: true,
+    }
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/leave-requests/7': () => ({ status: 200, body: request({ status: 'DISETUJUI', nextStage: null, approvals: [approval] }) }),
+      'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: { employeeId: 12, year: 2026, types: [], pendingRequests: 0 } }),
+      'GET /api/leave-requests/7/approvals/OWNER/evidence': () => ({ status: 200, body: new Blob(['x'], { type: 'image/png' }) }),
+    })
+    URL.createObjectURL = vi.fn(() => 'blob:bukti')
+    URL.revokeObjectURL = vi.fn()
+    const names: string[] = []
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      names.push(this.download)
+    })
+    renderAt('/izin/7')
+    fireEvent.click(await screen.findByRole('button', { name: /Unduh bukti tahap Owner/ }))
+    await waitFor(() => expect(names).toEqual(['bukti-IZ-000007-owner.png']))
+    click.mockRestore()
+  })
+
+  it('Owner secara bawaan melihat semua pengajuan yang menunggu, termasuk satu persetujuan di tahap HR', async () => {
+    const fetch = mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: owner }),
+      'GET /api/branches': () => ({ status: 200, body: [] }),
+      'GET /api/leave-requests/pending': () => ({ status: 200, body: { count: 0, items: [] } }),
+      'GET /api/leave-requests?': () => ({
+        status: 200,
+        body: [
+          request({ id: 1, employeeName: 'Satu Hr', status: 'PERLU_TINJAU_HR' }),
+          request({ id: 2, employeeName: 'Dua Owner', status: 'PERLU_TINJAU_OWNER' }),
+          request({ id: 3, employeeName: 'Tiga Setuju', status: 'DISETUJUI' }),
+        ],
+      }),
+    })
+    renderAt('/izin')
+    expect((await screen.findAllByText('Satu Hr')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Dua Owner').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Tiga Setuju')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Semua menunggu' })).toHaveAttribute('aria-pressed', 'true')
+    expect(fetch.mock.calls.some(([url]) => String(url).includes('status='))).toBe(false)
+  })
+
+  it('draft tanpa tanggal menampilkan Tanggal belum diisi', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: employee }),
+      'GET /api/me/leave-requests/7': () => ({
+        status: 200,
+        body: request({ status: 'DRAFT', startDate: null, endDate: null, calendarDays: 0, workingDays: null, submittedAt: null, submittedBy: null, nextStage: null }),
+      }),
+    })
+    renderAt('/izin-saya/7')
+    expect((await screen.findAllByText('Tanggal belum diisi')).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/0 hari/)).not.toBeInTheDocument()
   })
 })

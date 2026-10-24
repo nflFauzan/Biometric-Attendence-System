@@ -52,7 +52,7 @@ class LeaveTests extends AttendanceFixtures {
 					+ ",\"startDate\":\"2026-10-05\",\"endDate\":\"2026-10-07\",\"reason\":\"Acara keluarga\"}"))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.employeeId").value(employee))
-			.andExpect(jsonPath("$.status").value("MENUNGGU"))
+			.andExpect(jsonPath("$.status").value("PERLU_TINJAU_HR"))
 			.andExpect(jsonPath("$.calendarDays").value(3));
 		long id = idOf(submitted);
 
@@ -143,6 +143,30 @@ class LeaveTests extends AttendanceFixtures {
 			.content("{\"name\":\"" + unique("Nonaktif ") + "\",\"requiresDocument\":false,\"active\":false}"))
 			.andExpect(status().isOk());
 		mockMvc.perform(submitFor(employee, type, "2026-10-05", "2026-10-05").with(HR)).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void ownerSetsApprovalChainAndTemplateOnLeaveType() throws Exception {
+		long id = createLeaveType(false);
+		String name = unique("Rantai ");
+		mockMvc.perform(put("/api/leave-types/" + id).with(OWNER)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"" + name + "\",\"requiresDocument\":false,\"active\":true,"
+					+ "\"requiresOwnerApproval\":true,\"letterTemplate\":\"CUTI\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.requiresOwnerApproval").value(true))
+			.andExpect(jsonPath("$.letterTemplate").value("CUTI"));
+		mockMvc.perform(get("/api/leave-types").with(OWNER))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[?(@.id==" + id + ")].requiresOwnerApproval").value(true))
+			.andExpect(jsonPath("$[?(@.id==" + id + ")].letterTemplate").value("CUTI"));
+		mockMvc.perform(put("/api/leave-types/" + id).with(OWNER)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"name\":\"" + name + "\",\"requiresDocument\":false,\"active\":true,"
+					+ "\"letterTemplate\":\"XYZ\"}"))
+			.andExpect(status().isBadRequest());
 	}
 
 	// ---- Tumpang tindih (K-075) ----
@@ -329,7 +353,7 @@ class LeaveTests extends AttendanceFixtures {
 		mockMvc.perform(get(recap).with(HR))
 			.andExpect(jsonPath("$.days[0].result.status").value("TIDAK_HADIR"))
 			.andExpect(jsonPath("$.days[0].result.flags[0]").value("IZIN_MENUNGGU"))
-			.andExpect(jsonPath("$.days[0].leave.status").value("MENUNGGU"))
+			.andExpect(jsonPath("$.days[0].leave.status").value("PERLU_TINJAU_HR"))
 			.andExpect(jsonPath("$.days[1].leave").doesNotExist());
 
 		mockMvc.perform(decide(id, "approve", null).with(HR)).andExpect(status().isOk());
@@ -372,7 +396,7 @@ class LeaveTests extends AttendanceFixtures {
 		long type = createLeaveType(false);
 		long approved = idOf(mockMvc.perform(submitFor(employee, type, "2026-12-01", "2026-12-01").with(HR)));
 		mockMvc.perform(decide(approved, "approve", null).with(HR)).andExpect(status().isOk());
-		long pendingBefore = jdbc.queryForObject("select count(*) from leave_requests where status = 'MENUNGGU'",
+		long pendingBefore = jdbc.queryForObject("select count(*) from leave_requests where status = 'PERLU_TINJAU_HR'",
 				Long.class);
 		mockMvc.perform(submitFor(employee, type, "2026-12-02", "2026-12-02").with(HR)).andExpect(status().isCreated());
 
