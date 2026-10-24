@@ -39,6 +39,8 @@ public class SecurityConfig {
 				.requestMatchers("/iclock/**").permitAll()
 				// Endpoint alat rakitan: tanpa login; mesin divalidasi dari kunci per mesin di controller (K-088).
 				.requestMatchers("/device/v1/**").permitAll()
+				// Verifikasi keaslian surat izin lewat token acak: publik, dibatasi laju per IP (spec 2026-10-24 bagian 8).
+				.requestMatchers(HttpMethod.GET, "/api/public/letters/*").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 				.requestMatchers("/api/auth/**", "/api/me/**").authenticated()

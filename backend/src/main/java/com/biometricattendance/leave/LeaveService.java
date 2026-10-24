@@ -1,11 +1,13 @@
 package com.biometricattendance.leave;
 
+import java.security.SecureRandom;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +16,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,13 +38,16 @@ import com.biometricattendance.employee.EmployeeRepository;
 import com.biometricattendance.holiday.Holiday;
 import com.biometricattendance.holiday.HolidayRepository;
 import com.biometricattendance.leave.LeaveChangedEvent.Action;
+import com.biometricattendance.leave.LeaveDtos.ApprovalResponse;
 import com.biometricattendance.leave.LeaveDtos.AttachmentResponse;
+import com.biometricattendance.leave.LeaveDtos.LeaveDraftRequest;
 import com.biometricattendance.leave.LeaveDtos.LeaveRequestResponse;
+import com.biometricattendance.leave.LeaveDtos.OwnerDecisionRequest;
 import com.biometricattendance.leave.LeaveDtos.PendingItem;
 import com.biometricattendance.leave.LeaveDtos.PendingSummary;
-import com.biometricattendance.leave.LeaveDtos.SubmitLeaveRequest;
 import com.biometricattendance.leave.LeaveDtos.UsageResponse;
 import com.biometricattendance.leave.LeaveDtos.UsageRow;
+import com.biometricattendance.signature.SignatureService;
 import com.biometricattendance.workrule.WorkRuleService;
 
 /**
@@ -57,39 +63,51 @@ public class LeaveService {
 
 	static final String ENTITY = "LEAVE_REQUEST";
 	static final String ATTACHMENT_ENTITY = "LEAVE_ATTACHMENT";
+	static final String EVIDENCE_ENTITY = "LEAVE_EVIDENCE";
 	static final int MAX_ATTACHMENTS = 5;
 	static final int MAX_RANGE_DAYS = 366;
 	static final int PENDING_LIST_LIMIT = 20;
-	static final Set<LeaveStatus> ACTIVE = EnumSet.of(LeaveStatus.MENUNGGU, LeaveStatus.DISETUJUI);
+	static final Set<LeaveStatus> ACTIVE = LeaveStatuses.ACTIVE;
+	private static final SecureRandom RANDOM = new SecureRandom();
 	private static final String OVERLAP_CONSTRAINT = "leave_requests_no_overlap";
+	private static final String STAGE_CONSTRAINT = "leave_approvals_stage_uq";
 	private static final LocalDate EARLIEST = LocalDate.of(1900, 1, 1);
 	private static final LocalDate LATEST = LocalDate.of(9999, 12, 31);
 
 	private final LeaveRequestRepository requests;
 	private final LeaveTypeRepository types;
 	private final LeaveAttachmentRepository attachments;
+	private final LeaveApprovalRepository approvals;
+	private final HrReviewerCounter hrReviewers;
 	private final AttachmentStorage storage;
 	private final EmployeeRepository employees;
 	private final UserAccountRepository accounts;
 	private final HolidayRepository holidays;
 	private final WorkRuleService workRules;
 	private final AuditService audit;
+	private final SignatureService signatures;
 	private final ApplicationEventPublisher events;
+	private final ZoneId companyZone;
 
 	public LeaveService(LeaveRequestRepository requests, LeaveTypeRepository types,
-			LeaveAttachmentRepository attachments, AttachmentStorage storage, EmployeeRepository employees,
+			LeaveAttachmentRepository attachments, LeaveApprovalRepository approvals, HrReviewerCounter hrReviewers,
+			AttachmentStorage storage, EmployeeRepository employees,
 			UserAccountRepository accounts, HolidayRepository holidays, WorkRuleService workRules, AuditService audit,
-			ApplicationEventPublisher events) {
+			SignatureService signatures, ApplicationEventPublisher events, @Value("${app.company-timezone}") String companyZone) {
 		this.requests = requests;
 		this.types = types;
 		this.attachments = attachments;
+		this.approvals = approvals;
+		this.hrReviewers = hrReviewers;
 		this.storage = storage;
 		this.employees = employees;
 		this.accounts = accounts;
 		this.holidays = holidays;
 		this.workRules = workRules;
 		this.audit = audit;
+		this.signatures = signatures;
 		this.events = events;
+		this.companyZone = ZoneId.of(companyZone);
 	}
 
 	/** Isi pengajuan yang dicatat di audit (tanpa isi lampiran). */
@@ -97,7 +115,8 @@ public class LeaveService {
 			String reason, LeaveStatus status, String decisionNote, String cancelReason) {
 
 		static AuditView of(LeaveRequest r) {
-			return new AuditView(r.getEmployee().getId(), r.getEmployee().getFullName(), r.getLeaveType().getName(),
+			return new AuditView(r.getEmployee().getId(), r.getEmployee().getFullName(),
+					r.getLeaveType() == null ? null : r.getLeaveType().getName(),
 					r.getStartDate(), r.getEndDate(), r.getReason(), r.getStatus(), r.getDecisionNote(),
 					r.getCancelReason());
 		}
@@ -128,27 +147,42 @@ public class LeaveService {
 	}
 
 	@Transactional
-	public LeaveRequestResponse submitFor(SubmitLeaveRequest request) {
+	public LeaveRequestResponse submitFor(LeaveDraftRequest request) {
 		if (request.employeeId() == null) {
 			throw ApiException.badRequest("Karyawan wajib dipilih");
 		}
 		Employee employee = employees.findById(request.employeeId())
 			.orElseThrow(() -> ApiException.notFound("Karyawan"));
-		return submit(employee, request);
+		// Pencatatan oleh Owner/HR selalu langsung dikirim; flag draft diabaikan.
+		return create(employee, request, false, false);
 	}
 
+	/**
+	 * Menyetujui tahap yang sedang berjalan. HR menyetujui tahap HR; pada jenis persetujuan ganda pengajuan lalu
+	 * menunggu Owner, selain itu langsung disetujui. Owner mengerjakan tahap Owner, dan tahap HR hanya untuk jenis
+	 * satu persetujuan atau bila tidak ada HR/Finance lain yang bisa meninjau (K-079).
+	 */
 	@Transactional
 	public LeaveRequestResponse approve(Long id, String note) {
 		LeaveRequest r = find(id);
 		requirePending(r);
 		requireNotOwnRequest(r);
-		if (r.getLeaveType().isRequiresDocument() && attachments.countByLeaveRequestId(r.getId()) == 0) {
+		ApprovalStage stage = actingStage(r);
+		if (stage == ApprovalStage.HR && r.getLeaveType().isRequiresDocument()
+				&& attachments.countByLeaveRequestId(r.getId()) == 0) {
 			throw ApiException.badRequest("Jenis \"" + r.getLeaveType().getName()
 					+ "\" wajib surat pendukung. Unggah surat sebelum menyetujui");
 		}
+		String reason = trimToNull(note);
 		AuditView before = AuditView.of(r);
-		r.approve(CurrentUser.username(), Instant.now(), trimToNull(note));
-		return decided(r, before, "APPROVE", Action.APPROVED, trimToNull(note));
+		Instant now = Instant.now();
+		boolean moreStages = stage == ApprovalStage.HR && Boolean.TRUE.equals(r.getRequiresOwnerApproval());
+		if (moreStages) {
+			r.passHrStage();
+			return decided(r, before, stage, true, reason, now, "STAGE_APPROVE", Action.STAGE_APPROVED);
+		}
+		r.approve(CurrentUser.username(), now, reason);
+		return decided(r, before, stage, true, reason, now, "APPROVE", Action.APPROVED);
 	}
 
 	@Transactional
@@ -156,10 +190,12 @@ public class LeaveService {
 		LeaveRequest r = find(id);
 		requirePending(r);
 		requireNotOwnRequest(r);
+		ApprovalStage stage = actingStage(r);
 		String reason = requireText(note, "Alasan penolakan wajib diisi");
 		AuditView before = AuditView.of(r);
-		r.reject(CurrentUser.username(), Instant.now(), reason);
-		return decided(r, before, "REJECT", Action.REJECTED, reason);
+		Instant now = Instant.now();
+		r.reject(CurrentUser.username(), now, reason);
+		return decided(r, before, stage, false, reason, now, "REJECT", Action.REJECTED);
 	}
 
 	/** Owner/HR membatalkan pengajuan yang masih menunggu atau sudah disetujui; alasan wajib (K-074). */
@@ -172,7 +208,7 @@ public class LeaveService {
 		String reason = requireText(note, "Alasan pembatalan wajib diisi");
 		AuditView before = AuditView.of(r);
 		r.cancel(CurrentUser.username(), Instant.now(), reason);
-		return decided(r, before, "CANCEL", Action.CANCELLED, reason);
+		return cancelled(r, before, reason);
 	}
 
 	@Transactional
@@ -190,6 +226,81 @@ public class LeaveService {
 						a.getSha256()),
 				null);
 		return new AttachmentFile(a.getOriginalName(), a.getContentType(), storage.load(a.getStorageKey()));
+	}
+
+	/**
+	 * HR mencatat keputusan Owner yang diberikan di luar web (WhatsApp, lisan, tertulis; spec bagian 6). Riwayat
+	 * mencatat Owner sebagai pemberi keputusan dan HR sebagai pencatat; tanda tangan Owner tidak ditempel.
+	 */
+	@Transactional
+	public LeaveRequestResponse recordOwnerDecision(Long id, OwnerDecisionRequest req, MultipartFile evidence) {
+		if (CurrentUser.hasRole("OWNER")) {
+			throw ApiException.forbidden("Owner memutus langsung lewat tombol Setujui atau Tolak");
+		}
+		LeaveRequest r = find(id);
+		if (r.getStatus() != LeaveStatus.PERLU_TINJAU_OWNER) {
+			throw ApiException.conflict("Pengajuan ini tidak sedang menunggu keputusan Owner; muat ulang halaman");
+		}
+		requireNotOwnRequest(r);
+		if (req.method() == DecisionMethod.WEB) {
+			throw ApiException.badRequest("Keputusan lewat web dibuat Owner sendiri, bukan dicatat HR");
+		}
+		String note = requireText(req.note(), "Catatan wajib diisi");
+		boolean hasEvidence = evidence != null && !evidence.isEmpty();
+		if (!hasEvidence && (req.method() == DecisionMethod.WHATSAPP || req.method() == DecisionMethod.TERTULIS)) {
+			throw ApiException.badRequest("Bukti wajib diunggah untuk keputusan lewat WhatsApp atau tertulis");
+		}
+		Instant now = Instant.now();
+		Instant decidedAt = req.decidedAt().atZone(companyZone).toInstant();
+		if (decidedAt.isAfter(now)) {
+			throw ApiException.badRequest("Waktu keputusan Owner tidak boleh di masa depan");
+		}
+		Instant hrStageAt = approvals.findByLeaveRequestIdAndStage(r.getId(), ApprovalStage.HR)
+			.map(LeaveApproval::getDecidedAt)
+			.orElse(null);
+		// Isian waktu dari UI presisi menit, jadi tahap HR dibandingkan per menit (10:05 sah setelah HR 10:05:30).
+		if (hrStageAt != null && decidedAt.isBefore(hrStageAt.truncatedTo(java.time.temporal.ChronoUnit.MINUTES))) {
+			throw ApiException.badRequest("Waktu keputusan Owner tidak boleh sebelum tahap HR");
+		}
+
+		AttachmentStorage.Stored stored = hasEvidence ? storeWithCleanup(evidence) : null;
+		AuditView before = AuditView.of(r);
+		if (req.approved()) {
+			r.approve(CurrentUser.username(), now, note);
+		}
+		else {
+			r.reject(CurrentUser.username(), now, note);
+		}
+		requests.saveAndFlush(r);
+		LeaveApproval row = LeaveApproval.recordedForOwner(r.getId(), req.approved(), req.method(), decidedAt,
+				CurrentUser.username(), now, note, hasEvidence ? originalName(evidence) : null, stored);
+		try {
+			approvals.saveAndFlush(row);
+		}
+		catch (DataIntegrityViolationException ex) {
+			if (String.valueOf(ex.getMostSpecificCause().getMessage()).contains(STAGE_CONSTRAINT)) {
+				throw ApiException.conflict("Pengajuan ini baru saja diputus; muat ulang halaman");
+			}
+			throw ex;
+		}
+		audit.record(CurrentUser.username(), "OWNER_DECISION", ENTITY, r.getId(), before, AuditView.of(r), note);
+		publish(r, Action.OWNER_DECISION_RECORDED);
+		return detailed(r);
+	}
+
+	/** Bukti keputusan Owner yang dicatat HR; setiap pembukaan diaudit seperti lampiran. */
+	@Transactional
+	public AttachmentFile downloadEvidence(Long id, ApprovalStage stage) {
+		LeaveRequest r = find(id);
+		LeaveApproval a = approvals.findByLeaveRequestIdAndStage(r.getId(), stage)
+			.filter(row -> row.getEvidenceStorageKey() != null)
+			.orElseThrow(() -> ApiException.notFound("Bukti keputusan"));
+		audit.record(CurrentUser.username(), "VIEW", EVIDENCE_ENTITY, a.getId(), null,
+				new AttachmentAuditView(r.getId(), a.getEvidenceOriginalName(), a.getEvidenceContentType(),
+						a.getEvidenceSizeBytes(), a.getEvidenceSha256()),
+				null);
+		return new AttachmentFile(a.getEvidenceOriginalName(), a.getEvidenceContentType(),
+				storage.load(a.getEvidenceStorageKey()));
 	}
 
 	/** Pemakaian izin yang disetujui per jenis pada satu tahun (K-072, tanpa kuota). */
@@ -219,15 +330,29 @@ public class LeaveService {
 			rows.add(new UsageRow(list.get(0).getLeaveType().getId(), list.get(0).getLeaveType().getName(),
 					list.size(), calendar, working));
 		}
-		int pending = requests.findOverlapping(List.of(employeeId), Set.of(LeaveStatus.MENUNGGU), EARLIEST, LATEST)
+		int pending = requests.findOverlapping(List.of(employeeId), LeaveStatuses.PENDING, EARLIEST, LATEST)
 			.size();
 		return new UsageResponse(employeeId, year, rows, pending);
 	}
 
-	/** Pengajuan yang menunggu keputusan, untuk lonceng notifikasi (K-081). */
+	/**
+	 * Pengajuan yang menunggu keputusan pemanggil, untuk lonceng notifikasi (K-081). HR melihat tahap HR; Owner
+	 * melihat tahap Owner ditambah tahap HR pada jenis satu persetujuan (yang juga boleh diputusnya).
+	 */
 	@Transactional(readOnly = true)
 	public PendingSummary pending() {
-		List<LeaveRequest> list = requests.findByStatusDetailed(LeaveStatus.MENUNGGU);
+		boolean owner = CurrentUser.hasRole("OWNER");
+		// Hasil hitung HR lain per pemohon disimpan sementara agar tidak query berulang untuk pemohon yang sama.
+		Map<Long, Boolean> soleHr = new java.util.HashMap<>();
+		List<LeaveRequest> list = owner
+				? requests.findByStatusDetailed(LeaveStatuses.PENDING)
+					.stream()
+					.filter(r -> r.getStatus() == LeaveStatus.PERLU_TINJAU_OWNER
+							|| !Boolean.TRUE.equals(r.getRequiresOwnerApproval())
+							|| soleHr.computeIfAbsent(r.getEmployee().getId(),
+									e -> hrReviewers.countOtherActiveHr(e) == 0))
+					.toList()
+				: requests.findByStatusDetailed(Set.of(LeaveStatus.PERLU_TINJAU_HR));
 		return new PendingSummary(list.size(),
 				list.stream().limit(PENDING_LIST_LIMIT).map(PendingItem::from).toList());
 	}
@@ -244,23 +369,81 @@ public class LeaveService {
 		return detailed(findMine(id));
 	}
 
+	/** Menyimpan draft ({@code draft=true}) atau langsung mengirim pengajuan sendiri. */
 	@Transactional
-	public LeaveRequestResponse submitMine(SubmitLeaveRequest request) {
-		return submit(myEmployee(), request);
+	public LeaveRequestResponse createMine(LeaveDraftRequest request) {
+		return create(myEmployee(), request, Boolean.TRUE.equals(request.draft()), true);
+	}
+
+	@Transactional
+	public LeaveRequestResponse updateMyDraft(Long id, LeaveDraftRequest request) {
+		LeaveRequest r = findMine(id);
+		if (r.getStatus() != LeaveStatus.DRAFT) {
+			throw ApiException.conflict("Hanya draft yang bisa diubah");
+		}
+		if (!r.getEmployee().isActive()) {
+			throw ApiException.badRequest("Karyawan tidak aktif");
+		}
+		AuditView before = AuditView.of(r);
+		LeaveType type = resolveType(request.leaveTypeId());
+		checkDates(request.startDate(), request.endDate());
+		r.updateDraft(type, request.startDate(), request.endDate(), trimToNull(request.reason()));
+		applyLetterFields(r, request);
+		requests.saveAndFlush(r);
+		audit.record(CurrentUser.username(), "UPDATE", ENTITY, r.getId(), before, AuditView.of(r), null);
+		return detailed(r);
+	}
+
+	/** Hapus permanen: draft belum menjadi dokumen resmi. File lampiran dihapus dari disk setelah commit. */
+	@Transactional
+	public void deleteMyDraft(Long id) {
+		LeaveRequest r = findMine(id);
+		if (r.getStatus() != LeaveStatus.DRAFT) {
+			throw ApiException.conflict("Hanya draft yang bisa dihapus");
+		}
+		AuditView before = AuditView.of(r);
+		List<LeaveAttachment> files = attachments.findByLeaveRequestIdOrderByIdAsc(r.getId());
+		List<String> keys = files.stream().map(LeaveAttachment::getStorageKey).toList();
+		attachments.deleteAll(files);
+		requests.delete(r);
+		requests.flush();
+		audit.record(CurrentUser.username(), "DELETE", ENTITY, id, before, null, null);
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				keys.forEach(storage::delete);
+			}
+		});
+	}
+
+	@Transactional
+	public LeaveRequestResponse submitMyDraft(Long id) {
+		LeaveRequest r = findMine(id);
+		if (r.getStatus() != LeaveStatus.DRAFT) {
+			throw ApiException.conflict("Hanya draft yang bisa dikirim");
+		}
+		AuditView before = AuditView.of(r);
+		prepareSubmit(r);
+		r.submit(CurrentUser.username(), Instant.now(), newToken());
+		r.setApplicantSignatureKey(signatures.freezeCopy(CurrentUser.username()));
+		flushSubmitted(r);
+		audit.record(CurrentUser.username(), "SUBMIT", ENTITY, r.getId(), before, AuditView.of(r), null);
+		publish(r, Action.SUBMITTED);
+		return detailed(r);
 	}
 
 	/** Karyawan hanya bisa membatalkan pengajuan yang belum diputus (K-074). */
 	@Transactional
 	public LeaveRequestResponse cancelMine(Long id, String note) {
 		LeaveRequest r = findMine(id);
-		if (r.getStatus() != LeaveStatus.MENUNGGU) {
+		if (!r.getStatus().isPending()) {
 			throw ApiException.conflict("Pengajuan yang sudah " + label(r.getStatus())
 					+ " hanya bisa dibatalkan oleh Owner atau HR/Finance");
 		}
 		AuditView before = AuditView.of(r);
 		String reason = trimToNull(note);
 		r.cancel(CurrentUser.username(), Instant.now(), reason == null ? "Dibatalkan oleh pengaju" : reason);
-		return decided(r, before, "CANCEL", Action.CANCELLED, r.getCancelReason());
+		return cancelled(r, before, r.getCancelReason());
 	}
 
 	@Transactional
@@ -276,31 +459,102 @@ public class LeaveService {
 
 	// ---- Bersama ----
 
-	private LeaveRequestResponse submit(Employee employee, SubmitLeaveRequest request) {
+	/** Menyimpan draft, atau langsung mengirim bila bukan draft (validasi lengkap berlaku). */
+	/**
+	 * {@code own} true bila pengirim adalah pemohon sendiri; hanya saat itu spesimennya dibekukan sebagai tanda
+	 * tangan pemohon.
+	 */
+	private LeaveRequestResponse create(Employee employee, LeaveDraftRequest request, boolean draft, boolean own) {
 		if (!employee.isActive()) {
 			throw ApiException.badRequest("Karyawan tidak aktif");
 		}
-		LeaveType type = types.findById(request.leaveTypeId()).orElseThrow(() -> ApiException.notFound("Jenis izin"));
+		LeaveType type = resolveType(request.leaveTypeId());
+		checkDates(request.startDate(), request.endDate());
+		LeaveRequest r = new LeaveRequest(employee, type, request.startDate(), request.endDate(),
+				trimToNull(request.reason()), null, null, LeaveStatus.DRAFT);
+		applyLetterFields(r, request);
+		if (draft) {
+			r = requests.saveAndFlush(r);
+			audit.record(CurrentUser.username(), "CREATE", ENTITY, r.getId(), null, AuditView.of(r), null);
+			return detailed(r);
+		}
+		prepareSubmit(r);
+		r.submit(CurrentUser.username(), Instant.now(), newToken());
+		if (own) {
+			r.setApplicantSignatureKey(signatures.freezeCopy(CurrentUser.username()));
+		}
+		r = flushSubmitted(r);
+		audit.record(CurrentUser.username(), "CREATE", ENTITY, r.getId(), null, AuditView.of(r), null);
+		publish(r, Action.SUBMITTED);
+		return detailed(r);
+	}
+
+	/** Jenis yang diisi harus ada dan aktif; null berarti belum dipilih (hanya sah untuk draft). */
+	private LeaveType resolveType(Long leaveTypeId) {
+		if (leaveTypeId == null) {
+			return null;
+		}
+		LeaveType type = types.findById(leaveTypeId).orElseThrow(() -> ApiException.notFound("Jenis izin"));
 		if (!type.isActive()) {
 			throw ApiException.badRequest("Jenis izin \"" + type.getName() + "\" sudah tidak aktif");
 		}
-		if (request.endDate().isBefore(request.startDate())) {
+		return type;
+	}
+
+	/** Urutan dan rentang tanggal; dicek hanya bila kedua tanggal ada (draft boleh belum lengkap). */
+	private static void checkDates(LocalDate start, LocalDate end) {
+		if (start == null || end == null) {
+			return;
+		}
+		if (end.isBefore(start)) {
 			throw ApiException.badRequest("Tanggal selesai tidak boleh sebelum tanggal mulai");
 		}
-		if (ChronoUnit.DAYS.between(request.startDate(), request.endDate()) >= MAX_RANGE_DAYS) {
+		if (ChronoUnit.DAYS.between(start, end) >= MAX_RANGE_DAYS) {
 			throw ApiException.badRequest("Rentang izin maksimal " + MAX_RANGE_DAYS + " hari");
 		}
-		requests.findOverlapping(List.of(employee.getId()), ACTIVE, request.startDate(), request.endDate())
+	}
+
+	private static void applyLetterFields(LeaveRequest r, LeaveDraftRequest request) {
+		r.setContactPhone(trimToNull(request.contactPhone()));
+		r.setLeaveAddress(trimToNull(request.leaveAddress()));
+		r.setDelegateTo(trimToNull(request.delegateTo()));
+		r.setHealthFacility(trimToNull(request.healthFacility()));
+	}
+
+	/**
+	 * Pemeriksaan penuh sebelum kirim: jenis aktif, tanggal lengkap dan valid, isian templat, dan tidak
+	 * tumpang tindih dengan pengajuan aktif (K-075).
+	 */
+	private void prepareSubmit(LeaveRequest r) {
+		if (!r.getEmployee().isActive()) {
+			throw ApiException.badRequest("Karyawan tidak aktif");
+		}
+		LeaveType type = r.getLeaveType();
+		if (type == null) {
+			throw ApiException.badRequest("Jenis izin wajib dipilih");
+		}
+		if (!type.isActive()) {
+			throw ApiException.badRequest("Jenis izin \"" + type.getName() + "\" sudah tidak aktif");
+		}
+		if (r.getStartDate() == null) {
+			throw ApiException.badRequest("Tanggal mulai wajib diisi");
+		}
+		if (r.getEndDate() == null) {
+			throw ApiException.badRequest("Tanggal selesai wajib diisi");
+		}
+		checkDates(r.getStartDate(), r.getEndDate());
+		LetterFieldsValidator.validate(type.getLetterTemplate(), r);
+		requests.findOverlapping(List.of(r.getEmployee().getId()), ACTIVE, r.getStartDate(), r.getEndDate())
 			.stream()
 			.findFirst()
 			.ifPresent(existing -> {
 				throw overlapConflict(existing);
 			});
+	}
 
-		LeaveRequest r = new LeaveRequest(employee, type, request.startDate(), request.endDate(),
-				request.reason().trim(), CurrentUser.username(), Instant.now());
+	private LeaveRequest flushSubmitted(LeaveRequest r) {
 		try {
-			r = requests.saveAndFlush(r);
+			return requests.saveAndFlush(r);
 		}
 		catch (DataIntegrityViolationException ex) {
 			// Pengajuan lain yang beririsan tersimpan bersamaan (K-075).
@@ -309,37 +563,68 @@ public class LeaveService {
 			}
 			throw ex;
 		}
-		audit.record(CurrentUser.username(), "CREATE", ENTITY, r.getId(), null, AuditView.of(r), null);
-		publish(r, Action.SUBMITTED);
-		return detailed(r);
 	}
 
-	private LeaveRequestResponse decided(LeaveRequest r, AuditView before, String action, Action event,
-			String reason) {
+	private static String newToken() {
+		byte[] bytes = new byte[16];
+		RANDOM.nextBytes(bytes);
+		return HexFormat.of().formatHex(bytes);
+	}
+
+	/** Menyimpan keputusan satu tahap beserta barisnya di riwayat, dalam satu transaksi dengan audit. */
+	private LeaveRequestResponse decided(LeaveRequest r, AuditView before, ApprovalStage stage, boolean approved,
+			String note, Instant at, String action, Action event) {
 		// Flush di sini agar konflik @Version (dua penyetuju bersamaan) muncul sebelum audit tercatat.
 		requests.saveAndFlush(r);
-		audit.record(CurrentUser.username(), action, ENTITY, r.getId(), before, AuditView.of(r), reason);
+		try {
+			// Salinan beku spesimen penyetuju; penolakan tidak menempelkan tanda tangan.
+			String signatureKey = approved ? signatures.freezeCopy(CurrentUser.username()) : null;
+			approvals.saveAndFlush(
+					LeaveApproval.web(r.getId(), stage, approved, CurrentUser.username(), at, note, signatureKey));
+		}
+		catch (DataIntegrityViolationException ex) {
+			// Tahap yang sama sudah diputus oleh penyetuju lain pada saat yang sama.
+			if (String.valueOf(ex.getMostSpecificCause().getMessage()).contains(STAGE_CONSTRAINT)) {
+				throw ApiException.conflict("Pengajuan ini baru saja diputus; muat ulang halaman");
+			}
+			throw ex;
+		}
+		audit.record(CurrentUser.username(), action, ENTITY, r.getId(), before, AuditView.of(r), note);
 		publish(r, event);
 		return detailed(r);
 	}
 
+	private LeaveRequestResponse cancelled(LeaveRequest r, AuditView before, String reason) {
+		requests.saveAndFlush(r);
+		audit.record(CurrentUser.username(), "CANCEL", ENTITY, r.getId(), before, AuditView.of(r), reason);
+		publish(r, Action.CANCELLED);
+		return detailed(r);
+	}
+
+	/** Tahap yang dikerjakan pemanggil pada pengajuan yang sedang menunggu, atau 403 bila bukan gilirannya. */
+	private ApprovalStage actingStage(LeaveRequest r) {
+		boolean owner = CurrentUser.hasRole("OWNER");
+		if (r.getStatus() == LeaveStatus.PERLU_TINJAU_OWNER) {
+			if (!owner) {
+				throw ApiException.forbidden("Menunggu persetujuan Owner");
+			}
+			return ApprovalStage.OWNER;
+		}
+		if (owner && Boolean.TRUE.equals(r.getRequiresOwnerApproval())
+				&& hrReviewers.countOtherActiveHr(r.getEmployee().getId()) > 0) {
+			throw ApiException.forbidden("Tahap ini harus ditinjau HR/Finance lebih dulu");
+		}
+		return ApprovalStage.HR;
+	}
+
 	private AttachmentResponse attach(LeaveRequest r, MultipartFile file) {
-		if (r.getStatus() != LeaveStatus.MENUNGGU) {
-			throw ApiException.conflict("Lampiran hanya bisa ditambah selama pengajuan masih menunggu");
+		if (r.getStatus() != LeaveStatus.DRAFT && !r.getStatus().isPending()) {
+			throw ApiException.conflict("Lampiran hanya bisa ditambahkan pada draft atau pengajuan yang belum diputus");
 		}
 		if (attachments.countByLeaveRequestId(r.getId()) >= MAX_ATTACHMENTS) {
 			throw ApiException.badRequest("Maksimal " + MAX_ATTACHMENTS + " lampiran per pengajuan");
 		}
-		AttachmentStorage.Stored stored = storage.store(file);
-		// File sudah ditulis ke disk; hapus lagi bila transaksi yang mencatat metadatanya gagal.
-		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-			@Override
-			public void afterCompletion(int status) {
-				if (status != STATUS_COMMITTED) {
-					storage.delete(stored.key());
-				}
-			}
-		});
+		AttachmentStorage.Stored stored = storeWithCleanup(file);
 		LeaveAttachment saved = attachments.save(new LeaveAttachment(r.getId(), originalName(file),
 				stored.contentType(), stored.size(), stored.key(), stored.sha256(), CurrentUser.username()));
 		audit.record(CurrentUser.username(), "UPLOAD", ATTACHMENT_ENTITY, saved.getId(), null,
@@ -350,12 +635,29 @@ public class LeaveService {
 		return AttachmentResponse.from(saved);
 	}
 
-	private LeaveRequest find(Long id) {
-		return requests.findDetailed(id).orElseThrow(() -> ApiException.notFound("Pengajuan izin"));
+	/** Menulis file ke disk (validasi K-078); dihapus lagi bila transaksi yang mencatat metadatanya gagal. */
+	private AttachmentStorage.Stored storeWithCleanup(MultipartFile file) {
+		AttachmentStorage.Stored stored = storage.store(file);
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCompletion(int status) {
+				if (status != STATUS_COMMITTED) {
+					storage.delete(stored.key());
+				}
+			}
+		});
+		return stored;
+	}
+
+	/** Draft hanya terlihat oleh pemiliknya, jadi bagi Owner/HR draft sama dengan tidak ada. */
+	LeaveRequest find(Long id) {
+		return requests.findDetailed(id)
+			.filter(r -> r.getStatus() != LeaveStatus.DRAFT)
+			.orElseThrow(() -> ApiException.notFound("Pengajuan izin"));
 	}
 
 	/** Pengajuan karyawan lain dibalas 404 (bukan 403) agar ID tidak bisa ditebak. */
-	private LeaveRequest findMine(Long id) {
+	LeaveRequest findMine(Long id) {
 		Long mine = myEmployee().getId();
 		return requests.findDetailed(id)
 			.filter(r -> r.getEmployee().getId().equals(mine))
@@ -385,36 +687,73 @@ public class LeaveService {
 	}
 
 	private static void requirePending(LeaveRequest r) {
-		if (r.getStatus() != LeaveStatus.MENUNGGU) {
+		if (!r.getStatus().isPending()) {
 			throw ApiException.conflict("Pengajuan ini sudah " + label(r.getStatus()) + "; muat ulang halaman");
 		}
 	}
 
 	private LeaveRequestResponse detailed(LeaveRequest r) {
-		Integer working = workingDayCounter(r.getEmployee(), r.getStartDate(), r.getEndDate()).count(r.getStartDate(),
-				r.getEndDate());
+		Integer working = r.getStartDate() == null || r.getEndDate() == null ? null
+				: workingDayCounter(r.getEmployee(), r.getStartDate(), r.getEndDate()).count(r.getStartDate(),
+						r.getEndDate());
+		List<LeaveApproval> history = approvals.findByLeaveRequestIdOrderByIdAsc(r.getId());
 		return LeaveRequestResponse.from(r, working, attachments.findByLeaveRequestIdOrderByIdAsc(r.getId())
 			.stream()
 			.map(AttachmentResponse::from)
-			.toList());
+			.toList(), approvalResponses(history));
 	}
 
 	private List<LeaveRequestResponse> withAttachments(List<LeaveRequest> rows) {
 		if (rows.isEmpty()) {
 			return List.of();
 		}
-		Map<Long, List<AttachmentResponse>> byRequest = attachments
-			.findByLeaveRequestIdIn(rows.stream().map(LeaveRequest::getId).toList())
+		List<Long> ids = rows.stream().map(LeaveRequest::getId).toList();
+		Map<Long, List<AttachmentResponse>> byRequest = attachments.findByLeaveRequestIdIn(ids)
 			.stream()
 			.sorted((a, b) -> a.getId().compareTo(b.getId()))
 			.collect(Collectors.groupingBy(LeaveAttachment::getLeaveRequestId,
 					Collectors.mapping(AttachmentResponse::from, Collectors.toList())));
+		List<LeaveApproval> history = approvals.findByLeaveRequestIdIn(ids)
+			.stream()
+			.sorted((a, b) -> a.getId().compareTo(b.getId()))
+			.toList();
+		Function<String, String> nameOf = nameResolver(history);
+		Map<Long, List<ApprovalResponse>> approvalsByRequest = history.stream()
+			.collect(Collectors.groupingBy(LeaveApproval::getLeaveRequestId,
+					Collectors.mapping(a -> ApprovalResponse.from(a, nameOf), Collectors.toList())));
 		return rows.stream()
-			.map(r -> LeaveRequestResponse.from(r, null, byRequest.getOrDefault(r.getId(), List.of())))
+			.map(r -> LeaveRequestResponse.from(r, null, byRequest.getOrDefault(r.getId(), List.of()),
+					approvalsByRequest.getOrDefault(r.getId(), List.of())))
 			.toList();
 	}
 
+	private List<ApprovalResponse> approvalResponses(List<LeaveApproval> history) {
+		Function<String, String> nameOf = nameResolver(history);
+		return history.stream().map(a -> ApprovalResponse.from(a, nameOf)).toList();
+	}
+
+	/** Nama untuk username pemberi keputusan/pencatat: nama karyawan yang terhubung ke akun, atau username. */
+	Function<String, String> nameResolver(List<LeaveApproval> history) {
+		Set<String> usernames = history.stream()
+			.flatMap(a -> java.util.stream.Stream.of(a.getDecidedBy(), a.getRecordedBy()))
+			.filter(u -> !LeaveApproval.OWNER_ACTOR.equals(u))
+			.collect(Collectors.toSet());
+		if (usernames.isEmpty()) {
+			return u -> LeaveApproval.OWNER_ACTOR.equals(u) ? "Owner" : u;
+		}
+		Map<String, String> names = new LinkedHashMap<>();
+		for (UserAccount account : accounts.findByUsernameInWithEmployee(usernames)) {
+			if (account.getEmployee() != null) {
+				names.put(account.getUsername(), account.getEmployee().getFullName());
+			}
+		}
+		return username -> LeaveApproval.OWNER_ACTOR.equals(username) ? "Owner" : names.getOrDefault(username, username);
+	}
+
 	private void publish(LeaveRequest r, Action action) {
+		if (r.getStatus() == LeaveStatus.DRAFT) {
+			return; // draft tidak terlihat oleh Owner/HR, jadi tidak ada notifikasi
+		}
 		events.publishEvent(new LeaveChangedEvent(r.getId(), r.getEmployee().getId(), r.getEmployee().getFullName(),
 				r.getLeaveType().getName(), action));
 	}
@@ -459,7 +798,9 @@ public class LeaveService {
 
 	static String label(LeaveStatus status) {
 		return switch (status) {
-			case MENUNGGU -> "menunggu";
+			case DRAFT -> "draft";
+			case PERLU_TINJAU_HR -> "perlu ditinjau HR";
+			case PERLU_TINJAU_OWNER -> "perlu ditinjau Owner";
 			case DISETUJUI -> "disetujui";
 			case DITOLAK -> "ditolak";
 			case DIBATALKAN -> "dibatalkan";

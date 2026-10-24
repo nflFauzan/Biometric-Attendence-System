@@ -7,6 +7,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -33,6 +35,13 @@ public class LeaveType {
 	private Boolean paid;
 
 	private String description;
+
+	@Column(nullable = false)
+	private boolean requiresOwnerApproval;
+
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private LetterTemplate letterTemplate = LetterTemplate.UMUM;
 
 	@Column(nullable = false)
 	private boolean active = true;
@@ -79,6 +88,22 @@ public class LeaveType {
 
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	public boolean isRequiresOwnerApproval() {
+		return requiresOwnerApproval;
+	}
+
+	public void setRequiresOwnerApproval(boolean requiresOwnerApproval) {
+		this.requiresOwnerApproval = requiresOwnerApproval;
+	}
+
+	public LetterTemplate getLetterTemplate() {
+		return letterTemplate;
+	}
+
+	public void setLetterTemplate(LetterTemplate letterTemplate) {
+		this.letterTemplate = letterTemplate;
 	}
 
 	public boolean isActive() {

@@ -65,6 +65,8 @@ public class LeaveTypeService {
 		type.setDescription(request.description() == null || request.description().isBlank() ? null
 				: request.description().trim());
 		type.setActive(request.active());
+		type.setRequiresOwnerApproval(Boolean.TRUE.equals(request.requiresOwnerApproval()));
+		type.setLetterTemplate(request.letterTemplate() == null ? LetterTemplate.UMUM : request.letterTemplate());
 	}
 
 }

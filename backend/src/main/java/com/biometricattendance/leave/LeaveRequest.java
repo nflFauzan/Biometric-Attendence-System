@@ -36,28 +36,45 @@ public class LeaveRequest {
 	@JoinColumn(name = "employee_id")
 	private Employee employee;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "leave_type_id")
 	private LeaveType leaveType;
 
-	@Column(nullable = false)
 	private LocalDate startDate;
 
-	@Column(nullable = false)
 	private LocalDate endDate;
 
-	@Column(nullable = false)
 	private String reason;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
 	private LeaveStatus status;
 
-	@Column(nullable = false, updatable = false)
 	private String submittedBy;
 
-	@Column(nullable = false, updatable = false)
 	private Instant submittedAt;
+
+	private Boolean requiresOwnerApproval;
+
+	@Enumerated(EnumType.STRING)
+	private LetterTemplate letterTemplate;
+
+	private String contactPhone;
+
+	private String leaveAddress;
+
+	private String delegateTo;
+
+	private String healthFacility;
+
+	@Column(unique = true)
+	private String verificationToken;
+
+	/** Salinan beku spesimen pemohon saat mengirim sendiri; null bila dikirim orang lain atau tanpa spesimen. */
+	private String applicantSignatureKey;
+
+	@Column(nullable = false, updatable = false)
+	private Instant createdAt = Instant.now();
 
 	private String decidedBy;
 
@@ -78,7 +95,7 @@ public class LeaveRequest {
 	}
 
 	public LeaveRequest(Employee employee, LeaveType leaveType, LocalDate startDate, LocalDate endDate, String reason,
-			String submittedBy, Instant submittedAt) {
+			String submittedBy, Instant submittedAt, LeaveStatus initial) {
 		this.employee = employee;
 		this.leaveType = leaveType;
 		this.startDate = startDate;
@@ -86,7 +103,7 @@ public class LeaveRequest {
 		this.reason = reason;
 		this.submittedBy = submittedBy;
 		this.submittedAt = submittedAt;
-		this.status = LeaveStatus.MENUNGGU;
+		this.status = initial;
 	}
 
 	public void approve(String by, Instant at, String note) {
@@ -94,6 +111,11 @@ public class LeaveRequest {
 		this.decidedBy = by;
 		this.decidedAt = at;
 		this.decisionNote = note;
+	}
+
+	/** Tahap HR selesai pada jenis persetujuan ganda; keputusan akhir (decided_*) baru diisi oleh tahap Owner. */
+	public void passHrStage() {
+		this.status = LeaveStatus.PERLU_TINJAU_OWNER;
 	}
 
 	public void reject(String by, Instant at, String note) {
@@ -110,13 +132,102 @@ public class LeaveRequest {
 		this.cancelReason = reason;
 	}
 
-	/** Jumlah hari kalender termasuk tanggal awal dan akhir. */
+	/** Mengisi ulang isian draft; draft boleh belum lengkap sehingga semua nilai boleh null. */
+	public void updateDraft(LeaveType leaveType, LocalDate startDate, LocalDate endDate, String reason) {
+		this.leaveType = leaveType;
+		this.startDate = startDate;
+		this.endDate = endDate;
+		this.reason = reason;
+	}
+
+	/** Draft menjadi pengajuan yang menunggu HR; jenis dibekukan ke pengajuan saat ini. */
+	public void submit(String by, Instant at, String token) {
+		this.status = LeaveStatus.PERLU_TINJAU_HR;
+		this.submittedBy = by;
+		this.submittedAt = at;
+		this.verificationToken = token;
+		this.requiresOwnerApproval = leaveType.isRequiresOwnerApproval();
+		this.letterTemplate = leaveType.getLetterTemplate();
+	}
+
+	public String getApplicantSignatureKey() {
+		return applicantSignatureKey;
+	}
+
+	public void setApplicantSignatureKey(String applicantSignatureKey) {
+		this.applicantSignatureKey = applicantSignatureKey;
+	}
+
+	/** Jumlah hari kalender termasuk tanggal awal dan akhir; 0 bila tanggal draft belum lengkap. */
 	public long calendarDays() {
+		if (startDate == null || endDate == null) {
+			return 0;
+		}
 		return ChronoUnit.DAYS.between(startDate, endDate) + 1;
 	}
 
 	public boolean covers(LocalDate date) {
-		return !date.isBefore(startDate) && !date.isAfter(endDate);
+		return startDate != null && endDate != null && !date.isBefore(startDate) && !date.isAfter(endDate);
+	}
+
+	public void setRequiresOwnerApproval(Boolean v) {
+		this.requiresOwnerApproval = v;
+	}
+
+	public void setLetterTemplate(LetterTemplate v) {
+		this.letterTemplate = v;
+	}
+
+	public void setContactPhone(String v) {
+		this.contactPhone = v;
+	}
+
+	public void setLeaveAddress(String v) {
+		this.leaveAddress = v;
+	}
+
+	public void setDelegateTo(String v) {
+		this.delegateTo = v;
+	}
+
+	public void setHealthFacility(String v) {
+		this.healthFacility = v;
+	}
+
+	public void setVerificationToken(String v) {
+		this.verificationToken = v;
+	}
+
+	public Boolean getRequiresOwnerApproval() {
+		return requiresOwnerApproval;
+	}
+
+	public LetterTemplate getLetterTemplate() {
+		return letterTemplate;
+	}
+
+	public String getContactPhone() {
+		return contactPhone;
+	}
+
+	public String getLeaveAddress() {
+		return leaveAddress;
+	}
+
+	public String getDelegateTo() {
+		return delegateTo;
+	}
+
+	public String getHealthFacility() {
+		return healthFacility;
+	}
+
+	public String getVerificationToken() {
+		return verificationToken;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
 	}
 
 	public Long getId() {

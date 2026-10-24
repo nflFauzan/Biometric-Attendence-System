@@ -38,6 +38,7 @@ import com.biometricattendance.holiday.HolidayRepository;
 import com.biometricattendance.leave.LeaveRequest;
 import com.biometricattendance.leave.LeaveRequestRepository;
 import com.biometricattendance.leave.LeaveStatus;
+import com.biometricattendance.leave.LeaveStatuses;
 import com.biometricattendance.workrule.WorkRuleService;
 
 /**
@@ -146,7 +147,7 @@ public class AttendanceService {
 			.collect(Collectors.toSet());
 		// K-076: izin disetujui mengubah status hari kerja tanpa scan; yang menunggu hanya diberi penanda.
 		Map<Long, List<LeaveRequest>> leavesByEmployee = leaves
-			.findOverlapping(ids, EnumSet.of(LeaveStatus.DISETUJUI, LeaveStatus.MENUNGGU), from, to)
+			.findOverlapping(ids, LeaveStatuses.ACTIVE, from, to)
 			.stream()
 			.collect(Collectors.groupingBy(r -> r.getEmployee().getId()));
 

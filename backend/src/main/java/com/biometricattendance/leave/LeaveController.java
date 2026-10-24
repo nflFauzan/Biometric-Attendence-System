@@ -27,7 +27,8 @@ import com.biometricattendance.leave.LeaveDtos.AttachmentResponse;
 import com.biometricattendance.leave.LeaveDtos.DecisionRequest;
 import com.biometricattendance.leave.LeaveDtos.LeaveRequestResponse;
 import com.biometricattendance.leave.LeaveDtos.PendingSummary;
-import com.biometricattendance.leave.LeaveDtos.SubmitLeaveRequest;
+import com.biometricattendance.leave.LeaveDtos.OwnerDecisionRequest;
+import com.biometricattendance.leave.LeaveDtos.LeaveDraftRequest;
 import com.biometricattendance.leave.LeaveDtos.UsageResponse;
 import com.biometricattendance.leave.LeaveService.AttachmentFile;
 
@@ -39,9 +40,11 @@ import jakarta.validation.Valid;
 public class LeaveController {
 
 	private final LeaveService service;
+	private final LeaveLetterService letters;
 
-	public LeaveController(LeaveService service) {
+	public LeaveController(LeaveService service, LeaveLetterService letters) {
 		this.service = service;
+		this.letters = letters;
 	}
 
 	@GetMapping
@@ -69,7 +72,7 @@ public class LeaveController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	LeaveRequestResponse submit(@Valid @RequestBody SubmitLeaveRequest request) {
+	LeaveRequestResponse submit(@Valid @RequestBody LeaveDraftRequest request) {
 		return service.submitFor(request);
 	}
 
@@ -88,6 +91,25 @@ public class LeaveController {
 		return service.cancel(id, body == null ? null : body.note());
 	}
 
+	/** HR mencatat keputusan Owner yang diberikan di luar web; bagian {@code evidence} opsional (wajib per cara). */
+	@PostMapping(path = "/{id}/owner-decision", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	LeaveRequestResponse recordOwnerDecision(@PathVariable Long id,
+			@Valid @RequestPart("decision") OwnerDecisionRequest decision,
+			@RequestPart(value = "evidence", required = false) MultipartFile evidence) {
+		return service.recordOwnerDecision(id, decision, evidence);
+	}
+
+	/** Surat PDF untuk pengelola; draft 404 dan setiap unduhan diaudit (VIEW). */
+	@GetMapping("/{id}/letter.pdf")
+	ResponseEntity<byte[]> letter(@PathVariable Long id) {
+		return pdfResponse(letters.forManager(id));
+	}
+
+	@GetMapping("/{id}/approvals/{stage}/evidence")
+	ResponseEntity<Resource> evidence(@PathVariable Long id, @PathVariable ApprovalStage stage) {
+		return fileResponse(service.downloadEvidence(id, stage));
+	}
+
 	@PostMapping(path = "/{id}/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@ResponseStatus(HttpStatus.CREATED)
 	AttachmentResponse upload(@PathVariable Long id, @RequestPart("file") MultipartFile file) {
@@ -97,6 +119,15 @@ public class LeaveController {
 	@GetMapping("/{id}/attachments/{attachmentId}")
 	ResponseEntity<Resource> download(@PathVariable Long id, @PathVariable Long attachmentId) {
 		return fileResponse(service.download(id, attachmentId));
+	}
+
+	static ResponseEntity<byte[]> pdfResponse(LeaveLetterService.LetterFile file) {
+		return ResponseEntity.ok()
+			.contentType(MediaType.APPLICATION_PDF)
+			.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.filename() + "\"")
+			.header("X-Content-Type-Options", "nosniff")
+			.cacheControl(CacheControl.noStore().cachePrivate())
+			.body(file.pdf());
 	}
 
 	/**

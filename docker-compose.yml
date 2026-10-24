@@ -29,6 +29,7 @@ services:
       OPENAPI_ENABLED: ${OPENAPI_ENABLED:-false}
       DEVICE_OFFLINE_AFTER: ${DEVICE_OFFLINE_AFTER:-5m}
       DEVICE_PUBLIC_URL: ${DEVICE_PUBLIC_URL:-}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
       # Surat pendukung izin/cuti (K-078). Volume ini harus ikut dicadangkan bersama database.
       UPLOADS_DIR: /app/uploads

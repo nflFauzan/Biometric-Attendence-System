@@ -8,7 +8,7 @@ public record LeaveChangedEvent(Long requestId, Long employeeId, String employee
 		Action action) {
 
 	public enum Action {
-		SUBMITTED, APPROVED, REJECTED, CANCELLED, ATTACHMENT_ADDED
+		SUBMITTED, STAGE_APPROVED, APPROVED, REJECTED, CANCELLED, ATTACHMENT_ADDED, OWNER_DECISION_RECORDED
 	}
 
 }

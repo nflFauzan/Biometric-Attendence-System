@@ -27,7 +27,7 @@ import com.biometricattendance.device.DeviceService;
 import com.biometricattendance.employee.Employee;
 import com.biometricattendance.employee.EmployeeRepository;
 import com.biometricattendance.leave.LeaveRequestRepository;
-import com.biometricattendance.leave.LeaveStatus;
+import com.biometricattendance.leave.LeaveStatuses;
 
 /** Ringkasan dashboard untuk satu tanggal (bawaan hari ini menurut zona waktu perusahaan). */
 @Service
@@ -86,7 +86,7 @@ public class DashboardService {
 			.toList();
 
 		return new DashboardSummary(date, Counts.of(rows), branches, devices.list(), recentScans,
-				scans.countUnmatched(start, end), heldScans.countPending(), leaves.countByStatus(LeaveStatus.MENUNGGU));
+				scans.countUnmatched(start, end), heldScans.countPending(), leaves.countByStatusIn(LeaveStatuses.PENDING));
 	}
 
 }

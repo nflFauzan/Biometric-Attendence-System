@@ -75,6 +75,40 @@ public class AttachmentStorage {
 		}
 	}
 
+	/**
+	 * Menulis byte mentah ke volume tanpa aturan jenis lampiran (dipakai spesimen tanda tangan yang sudah
+	 * divalidasi dan dinormalkan pemanggilnya). Mengembalikan kunci acak.
+	 */
+	public String storeBytes(byte[] bytes) {
+		try {
+			String key = UUID.randomUUID().toString().replace("-", "");
+			Path temp = Files.createTempFile(root, "upload-", ".tmp");
+			try {
+				Files.write(temp, bytes);
+				Files.move(temp, path(key), StandardCopyOption.ATOMIC_MOVE);
+			}
+			finally {
+				Files.deleteIfExists(temp);
+			}
+			return key;
+		}
+		catch (IOException ex) {
+			throw new UncheckedIOException("Gagal menyimpan berkas", ex);
+		}
+	}
+
+	public byte[] readBytes(String key) {
+		try {
+			return Files.readAllBytes(path(key));
+		}
+		catch (java.nio.file.NoSuchFileException ex) {
+			throw ApiException.notFound("File");
+		}
+		catch (IOException ex) {
+			throw new UncheckedIOException("Gagal membaca berkas", ex);
+		}
+	}
+
 	public Resource load(String key) {
 		Path file = path(key);
 		if (!Files.isRegularFile(file)) {
