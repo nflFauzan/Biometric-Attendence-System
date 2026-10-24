@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Navigate, Route, Routes } from 'react-router'
+import { Navigate, Route, Routes, useParams } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
 import { AppLayout } from '@/components/AppLayout'
@@ -18,16 +18,18 @@ import { EmployeeDetailPage } from '@/pages/EmployeeDetailPage'
 import { EmployeesPage } from '@/pages/EmployeesPage'
 import { HolidaysPage } from '@/pages/HolidaysPage'
 import { LeaveDetailPage } from '@/pages/LeaveDetailPage'
-import { LeaveLetterPage } from '@/pages/LeaveLetterPage'
 import { LeaveRequestsPage } from '@/pages/LeaveRequestsPage'
+import { LeaveWizardPage } from '@/pages/LeaveWizardPage'
 import { LeaveTypesPage } from '@/pages/LeaveTypesPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MyLeavePage } from '@/pages/MyLeavePage'
+import { HomePage } from '@/pages/HomePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { TeamMemberPage } from '@/pages/TeamMemberPage'
 import { TeamPage } from '@/pages/TeamPage'
 import { HeldScansPage } from '@/pages/HeldScansPage'
 import { UnmatchedScansPage } from '@/pages/UnmatchedScansPage'
+import { VerifyLetterPage } from '@/pages/VerifyLetterPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { WorkRulesPage } from '@/pages/WorkRulesPage'
 
@@ -64,18 +66,22 @@ function ChangePasswordRoute() {
   return me ? <ChangePasswordPage /> : <Navigate to="/login" replace />
 }
 
+function LetterRedirect({ base }: { base: string }) {
+  const { id } = useParams()
+  return <Navigate to={`${base}/${id}`} replace />
+}
+
 function App() {
   const managers = (page: ReactNode) => <RequireRole roles={MANAGERS}>{page}</RequireRole>
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      {/* Publik: tanpa login dan tanpa kerangka aplikasi (dibuka dari QR di PDF). */}
+      <Route path="/verifikasi/:token" element={<VerifyLetterPage />} />
       <Route path="/ganti-password" element={<ChangePasswordRoute />} />
-      {/* Surat siap cetak (K-082) tanpa kerangka aplikasi agar hasil cetak/PDF bersih. */}
-      <Route
-        path="/izin/:id/surat"
-        element={<RequireAuth>{managers(<LeaveLetterPage mode="manager" />)}</RequireAuth>}
-      />
-      <Route path="/izin-saya/:id/surat" element={<RequireAuth><LeaveLetterPage mode="mine" /></RequireAuth>} />
+      {/* Halaman cetak lama diganti PDF dari server; tautan lama dialihkan ke detail pengajuan. */}
+      <Route path="/izin/:id/surat" element={<LetterRedirect base="/izin" />} />
+      <Route path="/izin-saya/:id/surat" element={<LetterRedirect base="/izin-saya" />} />
       <Route
         element={
           <RequireAuth>
@@ -92,7 +98,10 @@ function App() {
         <Route path="izin/:id" element={managers(<LeaveDetailPage mode="manager" />)} />
         <Route path="jenis-izin" element={<RequireRole roles={['OWNER']}><LeaveTypesPage /></RequireRole>} />
         {/* Pengajuan sendiri: backend memastikan akun terhubung ke data karyawan. */}
+        <Route path="beranda" element={<RequireRole roles={['EMPLOYEE']}><HomePage /></RequireRole>} />
         <Route path="izin-saya" element={<MyLeavePage />} />
+        <Route path="izin-saya/baru" element={<LeaveWizardPage />} />
+        <Route path="izin-saya/:id/ubah" element={<LeaveWizardPage />} />
         <Route path="izin-saya/:id" element={<LeaveDetailPage mode="mine" />} />
         {/* Rekan kerja: semua role yang login; kolom dibatasi backend (K-083). */}
         <Route path="rekan-kerja" element={<TeamPage />} />

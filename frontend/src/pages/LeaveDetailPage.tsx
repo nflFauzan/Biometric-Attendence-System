@@ -1,30 +1,38 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Check, Download, Paperclip, Printer, Upload, X } from 'lucide-react'
+import { ArrowLeft, Check, Download, FileCheck2, Paperclip, Upload, UserCheck, X } from 'lucide-react'
 import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 
+import { useAuth } from '@/auth/AuthContext'
+import { ApprovalTimeline } from '@/components/leave/ApprovalTimeline'
+import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
+import { LetterDownloadButton } from '@/components/leave/LetterDownloadButton'
+import { MyLeaveActions } from '@/components/leave/MyLeaveActions'
+import { OwnerDecisionDialog } from '@/components/leave/OwnerDecisionDialog'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { PageHeader } from '@/components/PageHeader'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { api, ApiError, apiUpload } from '@/lib/api'
+import { api, ApiError, apiBlob, apiUpload } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
 import {
   ATTACHMENT_ACCEPT,
+  evidenceExtension,
   attachmentProblem,
   formatFileSize,
   formatLeaveDays,
   formatLeaveRange,
-  LEAVE_STATUS_LABELS,
-  LEAVE_STATUS_TONES,
+  isPendingStatus,
   leaveApiBase,
   leavePageBase,
+  letterNumber,
+  LETTER_FIELDS,
   MAX_ATTACHMENTS,
   type LeaveMode,
 } from '@/lib/leave'
-import type { LeaveRequest, LeaveUsage } from '@/lib/types'
+import { saveBlob } from '@/lib/leaveLetter'
+import type { ApprovalStage, LeaveRequest, LeaveUsage } from '@/lib/types'
 import { dialogSheetClass } from '@/lib/ui'
 import { useDashboardStream } from '@/lib/useDashboardStream'
 
@@ -46,7 +54,9 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
     queryKey: [base, 'detail', id],
     queryFn: () => api<LeaveRequest>(`${base}/${id}`),
   })
+  const { me } = useAuth()
   const [decision, setDecision] = useState<Decision | null>(null)
+  const [ownerDialog, setOwnerDialog] = useState(false)
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: [base] })
@@ -54,9 +64,16 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
     void queryClient.invalidateQueries({ queryKey: ['/api/attendance'] })
   }
 
-  const pending = data?.status === 'MENUNGGU'
-  const canDecide = mode === 'manager' && pending
-  const canCancel = data && (mode === 'manager' ? data.status === 'MENUNGGU' || data.status === 'DISETUJUI' : pending)
+  const pending = data ? isPendingStatus(data.status) : false
+  const isOwner = me?.role === 'OWNER'
+  const isHr = me?.role === 'HR_FINANCE'
+  // Server tetap penentu (K-079, HR tunggal); tombol hanya ditampilkan bila tahapnya cocok dengan peran.
+  const canDecide =
+    mode === 'manager' &&
+    !!data &&
+    ((isHr && data.nextStage === 'HR') || (isOwner && (data.nextStage === 'OWNER' || (data.nextStage === 'HR' && !data.requiresOwnerApproval))))
+  const canRecordOwner = mode === 'manager' && isHr && data?.status === 'PERLU_TINJAU_OWNER'
+  const canCancel = mode === 'manager' && !!data && (pending || data.status === 'DISETUJUI')
 
   return (
     <div className="flex flex-col gap-5">
@@ -73,29 +90,34 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
         <>
           <PageHeader
             title={`${data.leaveTypeName} · ${data.employeeName}`}
-            description={`${formatLeaveRange(data)} · ${formatLeaveDays(data)}`}
+            description={data.startDate && data.endDate ? `${formatLeaveRange(data)} · ${formatLeaveDays(data)}` : formatLeaveRange(data)}
             actions={
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" asChild>
-                  <Link to={`${leavePageBase(mode)}/${data.id}/surat`}>
-                    <Printer />
-                    Cetak / PDF surat
-                  </Link>
-                </Button>
+                {mode === 'mine' ? (
+                  <MyLeaveActions request={data} onWithdraw={() => setDecision('cancel')} />
+                ) : (
+                  <LetterDownloadButton mode={mode} request={data} />
+                )}
+                {canRecordOwner && (
+                  <Button className="min-h-11" onClick={() => setOwnerDialog(true)}>
+                    <UserCheck />
+                    Catat keputusan Owner
+                  </Button>
+                )}
                 {canDecide && (
                   <>
-                    <Button onClick={() => setDecision('approve')}>
+                    <Button className="min-h-11" onClick={() => setDecision('approve')}>
                       <Check />
                       Setujui
                     </Button>
-                    <Button variant="outline" onClick={() => setDecision('reject')}>
+                    <Button variant="outline" className="min-h-11" onClick={() => setDecision('reject')}>
                       <X />
                       Tolak
                     </Button>
                   </>
                 )}
                 {canCancel && (
-                  <Button variant="ghost" onClick={() => setDecision('cancel')}>
+                  <Button variant="ghost" className="min-h-11" onClick={() => setDecision('cancel')}>
                     Batalkan
                   </Button>
                 )}
@@ -103,7 +125,7 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
             }
           />
 
-          {mode === 'manager' && pending && data.requiresDocument && data.attachments.length === 0 && (
+          {mode === 'manager' && data.nextStage && data.requiresDocument && data.attachments.length === 0 && (
             <ErrorAlert message={`Jenis "${data.leaveTypeName}" wajib surat pendukung. Pengajuan baru bisa disetujui setelah surat diunggah.`} />
           )}
 
@@ -111,7 +133,7 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
             <section className="rounded-lg border glass lg:col-span-7">
               <div className="flex items-center justify-between border-b px-5 py-4">
                 <h2 className="text-base font-semibold">Rincian pengajuan</h2>
-                <Badge variant={LEAVE_STATUS_TONES[data.status]}>{LEAVE_STATUS_LABELS[data.status]}</Badge>
+                <LeaveStatusBadge status={data.status} size={mode === 'mine' ? 'lg' : 'sm'} />
               </div>
               <dl className="grid gap-x-6 gap-y-4 p-5 sm:grid-cols-2">
                 <Item label="Karyawan">
@@ -121,12 +143,20 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
                 <Item label="Jenis">{data.leaveTypeName}</Item>
                 <Item label="Tanggal">{formatLeaveRange(data)}</Item>
                 <Item label="Jumlah hari">{formatLeaveDays(data)}</Item>
+                <Item label="Nomor surat">{letterNumber(data.id)}</Item>
                 <Item label="Diajukan">
-                  {formatDateTime(data.submittedAt)} oleh {data.submittedBy}
+                  {data.submittedAt ? `${formatDateTime(data.submittedAt)} oleh ${data.submittedBy ?? '-'}` : 'Belum dikirim'}
                 </Item>
-                <Item label="Alasan" wide>
+                <Item label={LETTER_FIELDS[data.letterTemplate]?.reasonLabel ?? 'Alasan'} wide>
                   <span className="whitespace-pre-wrap">{data.reason}</span>
                 </Item>
+                {(LETTER_FIELDS[data.letterTemplate]?.fields ?? [])
+                  .filter((f) => data[f.key])
+                  .map((f) => (
+                    <Item key={f.key} label={f.label}>
+                      {data[f.key]}
+                    </Item>
+                  ))}
                 {data.decidedAt && (
                   <Item label={data.status === 'DITOLAK' ? 'Ditolak' : 'Disetujui'} wide>
                     {formatDateTime(data.decidedAt)} oleh {data.decidedBy}
@@ -143,10 +173,28 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
             </section>
 
             <div className="flex flex-col gap-4 lg:col-span-5">
+              <section className="rounded-lg border glass">
+                <h2 className="border-b px-5 py-4 text-base font-semibold">Riwayat persetujuan</h2>
+                <div className="p-5">
+                  <ApprovalTimeline request={data} />
+                </div>
+                <Evidence request={data} mode={mode} />
+              </section>
               <Attachments request={data} mode={mode} onUploaded={refresh} />
-              {mode === 'manager' && <Usage employeeId={data.employeeId} year={Number(data.startDate.slice(0, 4))} />}
+              {mode === 'manager' && <Usage employeeId={data.employeeId} year={Number((data.startDate ?? data.createdAt).slice(0, 4))} />}
             </div>
           </div>
+
+          {ownerDialog && (
+            <OwnerDecisionDialog
+              request={data}
+              onClose={() => setOwnerDialog(false)}
+              onDone={() => {
+                setOwnerDialog(false)
+                refresh()
+              }}
+            />
+          )}
 
           {decision && (
             <DecisionDialog
@@ -162,6 +210,35 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+/** Bukti keputusan Owner yang dicatat HR; hanya HR/Owner yang bisa membukanya (FR-LV-002). */
+function Evidence({ request, mode }: { request: LeaveRequest; mode: LeaveMode }) {
+  const [error, setError] = useState<string | null>(null)
+  const withEvidence = request.approvals.filter((a) => a.hasEvidence)
+  if (mode !== 'manager' || withEvidence.length === 0) {
+    return null
+  }
+  const open = async (stage: ApprovalStage) => {
+    setError(null)
+    try {
+      const blob = await apiBlob(`${leaveApiBase(mode)}/${request.id}/approvals/${stage}/evidence`)
+      saveBlob(blob, `bukti-${letterNumber(request.id)}-${stage.toLowerCase()}${evidenceExtension(blob)}`)
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Gagal mengunduh bukti. Coba lagi.')
+    }
+  }
+  return (
+    <div className="border-t px-5 py-3">
+      {error && <ErrorAlert message={error} className="mb-2" />}
+      {withEvidence.map((a) => (
+        <Button key={a.stage} size="sm" variant="ghost" className="min-h-11" onClick={() => void open(a.stage)}>
+          <FileCheck2 />
+          Unduh bukti tahap {a.stage === 'HR' ? 'HR' : 'Owner'}
+        </Button>
+      ))}
     </div>
   )
 }
@@ -185,7 +262,7 @@ function Attachments({ request, mode, onUploaded }: { request: LeaveRequest; mod
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const base = leaveApiBase(mode)
-  const canUpload = request.status === 'MENUNGGU' && request.attachments.length < MAX_ATTACHMENTS
+  const canUpload = (isPendingStatus(request.status) || request.status === 'DRAFT') && request.attachments.length < MAX_ATTACHMENTS
 
   const upload = async (file: File | undefined) => {
     if (!file) {
@@ -258,7 +335,7 @@ function Attachments({ request, mode, onUploaded }: { request: LeaveRequest; mod
           </li>
         ))}
       </ul>
-      {request.status === 'MENUNGGU' && (
+      {(isPendingStatus(request.status) || request.status === 'DRAFT') && (
         <p className="border-t px-5 py-3 text-xs text-muted-foreground">
           PDF, JPG, atau PNG, maks. 5 MB, maks. {MAX_ATTACHMENTS} file. Surat tidak bisa dihapus setelah diunggah.
         </p>

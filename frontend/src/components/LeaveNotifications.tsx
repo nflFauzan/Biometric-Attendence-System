@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router'
 
+import { useAuth } from '@/auth/AuthContext'
+import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
@@ -25,6 +27,8 @@ interface Toast {
  * dalam hitungan detik saat karyawan mengirim pengajuan baru (lewat SSE).
  */
 export function LeaveNotifications() {
+  const { me } = useAuth()
+  const isOwner = me?.role === 'OWNER'
   const [open, setOpen] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const { data } = useQuery({
@@ -32,16 +36,29 @@ export function LeaveNotifications() {
     queryFn: () => api<PendingLeaveSummary>('/api/leave-requests/pending'),
   })
 
-  const onEvent = useCallback((event: StreamEvent) => {
-    if (event.type === 'LEAVE' && event.action === 'SUBMITTED' && event.requestId) {
-      const toast = {
-        key: Date.now() + Math.random(),
-        requestId: event.requestId,
-        text: `${event.employeeName ?? 'Karyawan'} mengajukan ${event.leaveType ?? 'izin'}`,
+  const onEvent = useCallback(
+    (event: StreamEvent) => {
+      if (event.type !== 'LEAVE' || !event.requestId) {
+        return
       }
-      setToasts((current) => [...current.slice(-2), toast])
-    }
-  }, [])
+      const who = event.employeeName ?? 'Karyawan'
+      const what = event.leaveType ?? 'izin'
+      let text: string | null = null
+      if (event.action === 'SUBMITTED') {
+        text = `${who} mengajukan ${what}`
+      } else if (event.action === 'STAGE_APPROVED' && isOwner) {
+        text = `Pengajuan ${what} ${who} menunggu persetujuan Anda`
+      } else if (event.action === 'OWNER_DECISION_RECORDED' && isOwner) {
+        // Hanya Owner yang perlu tahu keputusannya dicatat orang lain; bila keliru, Owner membatalkan pengajuan.
+        text = `HR mencatat keputusan Anda untuk ${what} ${who}`
+      }
+      if (text) {
+        const toast = { key: Date.now() + Math.random(), requestId: event.requestId, text }
+        setToasts((current) => [...current.slice(-2), toast])
+      }
+    },
+    [isOwner],
+  )
   useDashboardStream(onEvent)
 
   const dismiss = useCallback((key: number) => setToasts((current) => current.filter((t) => t.key !== key)), [])
@@ -84,12 +101,15 @@ export function LeaveNotifications() {
                     onClick={() => setOpen(false)}
                     className="flex flex-col gap-0.5 px-4 py-3 hover:bg-accent/60"
                   >
-                    <span className="font-semibold">{item.employeeName}</span>
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="font-semibold">{item.employeeName}</span>
+                      <LeaveStatusBadge status={item.status} />
+                    </span>
                     <span className="text-sm">
                       {item.leaveTypeName} · {formatLeaveRange(item)}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {item.branchName} · diajukan {formatDateTime(item.submittedAt)}
+                      {item.branchName} · {item.submittedAt ? `diajukan ${formatDateTime(item.submittedAt)}` : 'draft'}
                     </span>
                   </Link>
                 </li>
@@ -133,7 +153,7 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: (key: number
     <div role="status" className="pointer-events-auto flex items-start gap-3 rounded-lg border border-l-4 border-l-gold-500 glass-strong p-4">
       <Bell className="mt-0.5 size-5 shrink-0 text-primary" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold">Pengajuan izin baru</p>
+        <p className="text-sm font-semibold">Pembaruan pengajuan izin</p>
         <p className="text-sm">{toast.text}</p>
         <Link to={`/izin/${toast.requestId}`} onClick={close} className="mt-1 inline-block text-sm font-semibold text-primary underline">
           Tinjau sekarang

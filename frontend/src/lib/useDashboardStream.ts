@@ -9,7 +9,7 @@ export interface StreamEvent {
   /** DEVICE_COMMAND: status perintah mesin ini berubah; ambil ulang lewat API. */
   commandId?: string
   deviceName?: string
-  action?: 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'ATTACHMENT_ADDED'
+  action?: 'SUBMITTED' | 'STAGE_APPROVED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'ATTACHMENT_ADDED' | 'OWNER_DECISION_RECORDED'
   requestId?: number
   employeeName?: string
   leaveType?: string

@@ -4,6 +4,7 @@ import {
   CalendarCheck,
   CalendarDays,
   FileText,
+  House,
   ClipboardCheck,
   ContactRound,
   ScanSearch,
@@ -56,9 +57,10 @@ export const MENU: MenuItem[] = [
   { path: '/jenis-izin', label: 'Jenis Izin/Cuti', roles: ['OWNER'], icon: FileText, group: 'Pengaturan' },
   { path: '/simulasi', label: 'Simulasi Perhitungan', roles: MANAGERS, icon: Calculator, group: 'Pengaturan' },
   { path: '/audit-log', label: 'Audit Log', roles: ['OWNER'], icon: ScrollText, group: 'Sistem' },
-  { path: '/rekan-kerja', label: 'Rekan Kerja', roles: ['EMPLOYEE'], icon: ContactRound, group: 'Saya', mobile: true },
-  { path: '/profil', label: 'Profil Saya', roles: ['EMPLOYEE'], icon: UserRound, group: 'Saya', mobile: true },
-  { path: '/izin-saya', label: 'Izin & Cuti Saya', roles: ['EMPLOYEE'], icon: CalendarCheck, group: 'Saya', mobile: true },
+  { path: '/beranda', label: 'Beranda', roles: ['EMPLOYEE'], icon: House, group: 'Saya', mobile: true },
+  { path: '/izin-saya', label: 'Izin', roles: ['EMPLOYEE'], icon: CalendarCheck, group: 'Saya', mobile: true },
+  { path: '/rekan-kerja', label: 'Rekan', roles: ['EMPLOYEE'], icon: ContactRound, group: 'Saya', mobile: true },
+  { path: '/profil', label: 'Profil', roles: ['EMPLOYEE'], icon: UserRound, group: 'Saya', mobile: true },
 ]
 
 export function menuFor(role: Role): MenuItem[] {
@@ -75,5 +77,5 @@ export function menuItemFor(pathname: string): MenuItem | undefined {
 }
 
 export function homePathFor(role: Role): string {
-  return role === 'EMPLOYEE' ? '/profil' : '/'
+  return role === 'EMPLOYEE' ? '/beranda' : '/'
 }

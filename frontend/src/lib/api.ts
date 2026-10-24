@@ -77,6 +77,30 @@ export async function apiUpload<T>(path: string, file: File): Promise<T> {
   return handle<T>(path, response)
 }
 
+/** Kirim FormData apa adanya (multipart); Content-Type diisi browser. Mis. keputusan Owner beserta bukti. */
+export async function apiForm<T>(path: string, form: FormData, method: 'POST' | 'PUT' = 'POST'): Promise<T> {
+  const response = await fetch(path, {
+    method,
+    headers: { Accept: 'application/json', [CSRF_HEADER]: await csrfToken() },
+    credentials: 'same-origin',
+    body: form,
+  })
+  return handle<T>(path, response)
+}
+
+/** Ambil file biner (mis. PDF surat atau bukti keputusan) sebagai Blob. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const response = await fetch(path, { credentials: 'same-origin' })
+  if (!response.ok) {
+    if (response.status === 401) {
+      unauthorizedListeners.forEach((listener) => listener())
+    }
+    const problem = await response.json().catch(() => null)
+    throw new ApiError(response.status, problem?.detail ?? `Terjadi kesalahan (${response.status})`, problem?.errors ?? {})
+  }
+  return response.blob()
+}
+
 async function handle<T>(path: string, response: Response): Promise<T> {
   if (!response.ok) {
     if (response.status === 401 && !SESSION_CHECK_PATHS.includes(path)) {

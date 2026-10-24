@@ -15,6 +15,8 @@ import {
   attachmentProblem,
   formatFileSize,
   leaveApiBase,
+  LETTER_FIELDS,
+  type LetterFieldKey,
   type LeaveMode,
 } from '@/lib/leave'
 import type { LeaveRequest, LeaveType } from '@/lib/types'
@@ -46,12 +48,14 @@ export function LeaveRequestForm({ open, mode, onClose, onCreated }: LeaveReques
   const [startDate, setStartDate] = useState(today)
   const [endDate, setEndDate] = useState(today)
   const [reason, setReason] = useState('')
+  const [extra, setExtra] = useState<Partial<Record<LetterFieldKey, string>>>({})
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
   const selectedType = activeTypes.find((t) => String(t.id) === leaveTypeId)
+  const template = LETTER_FIELDS[selectedType?.letterTemplate ?? 'UMUM']
   const fileProblem = file ? attachmentProblem(file) : null
 
   const reset = () => {
@@ -60,6 +64,7 @@ export function LeaveRequestForm({ open, mode, onClose, onCreated }: LeaveReques
     setStartDate(today)
     setEndDate(today)
     setReason('')
+    setExtra({})
     setFile(null)
     setError(null)
     setFieldErrors({})
@@ -89,6 +94,8 @@ export function LeaveRequestForm({ open, mode, onClose, onCreated }: LeaveReques
           startDate,
           endDate,
           reason,
+          // Hanya isian milik templat jenis yang dipilih; kewajibannya divalidasi server saat dikirim.
+          ...Object.fromEntries(template.fields.flatMap((f) => (extra[f.key]?.trim() ? [[f.key, extra[f.key]!.trim()]] : []))),
         },
       })
       if (file) {
@@ -178,7 +185,7 @@ export function LeaveRequestForm({ open, mode, onClose, onCreated }: LeaveReques
             </Field>
           </div>
 
-          <Field label="Alasan" htmlFor="reason" required error={fieldErrors.reason}>
+          <Field label={template.reasonLabel} htmlFor="reason" required error={fieldErrors.reason}>
             <textarea
               id="reason"
               className="min-h-24 rounded-md border border-input bg-card px-3 py-2 text-base md:text-sm"
@@ -188,6 +195,19 @@ export function LeaveRequestForm({ open, mode, onClose, onCreated }: LeaveReques
               required
             />
           </Field>
+
+          {template.fields.map((f) => (
+            <Field key={f.key} label={f.label} htmlFor={f.key} required={f.required} error={fieldErrors[f.key]}>
+              <Input
+                id={f.key}
+                type={f.inputMode === 'tel' ? 'tel' : 'text'}
+                inputMode={f.inputMode}
+                className={fieldClass}
+                value={extra[f.key] ?? ''}
+                onChange={(e) => setExtra((current) => ({ ...current, [f.key]: e.target.value }))}
+              />
+            </Field>
+          ))}
 
           <Field
             label={selectedType?.requiresDocument ? 'Surat pendukung (wajib sebelum disetujui)' : 'Surat pendukung (opsional)'}

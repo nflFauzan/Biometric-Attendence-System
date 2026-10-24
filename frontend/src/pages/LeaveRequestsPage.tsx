@@ -3,24 +3,30 @@ import { Paperclip, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 
+import { useAuth } from '@/auth/AuthContext'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { selectClass } from '@/components/FormDialog'
+import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
 import { LeaveRequestForm } from '@/components/LeaveRequestForm'
 import { PageHeader } from '@/components/PageHeader'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
-import { formatLeaveRange, LEAVE_STATUS_LABELS, LEAVE_STATUS_TONES } from '@/lib/leave'
+import { formatLeaveRange, isPendingStatus } from '@/lib/leave'
 import type { LeaveRequest, LeaveStatus } from '@/lib/types'
 import { useDashboardStream } from '@/lib/useDashboardStream'
 import { cn } from '@/lib/utils'
 import { useBranchOptions } from '@/pages/options'
 
-const FILTERS: { value: LeaveStatus | ''; label: string }[] = [
-  { value: 'MENUNGGU', label: 'Menunggu' },
+/** Pilihan tampilan saja: bukan nilai status di server. Menampilkan kedua status menunggu sekaligus. */
+type StatusFilter = LeaveStatus | '' | 'MENUNGGU'
+
+const FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: 'MENUNGGU', label: 'Semua menunggu' },
+  { value: 'PERLU_TINJAU_HR', label: 'Perlu ditinjau HR' },
+  { value: 'PERLU_TINJAU_OWNER', label: 'Perlu ditinjau Owner' },
   { value: 'DISETUJUI', label: 'Disetujui' },
   { value: 'DITOLAK', label: 'Ditolak' },
   { value: 'DIBATALKAN', label: 'Dibatalkan' },
@@ -33,15 +39,19 @@ const HEADERS = ['Karyawan', 'Jenis', 'Tanggal', 'Hari', 'Status', 'Diajukan', '
 export function LeaveRequestsPage() {
   useDashboardStream()
   const navigate = useNavigate()
+  const { me } = useAuth()
   const branchOptions = useBranchOptions()
-  const [status, setStatus] = useState<LeaveStatus | ''>('MENUNGGU')
+  const [status, setStatus] = useState<StatusFilter>(me?.role === 'OWNER' ? 'MENUNGGU' : 'PERLU_TINJAU_HR')
   const [branchId, setBranchId] = useState('')
   const [formOpen, setFormOpen] = useState(false)
-  const params = new URLSearchParams({ ...(status ? { status } : {}), ...(branchId ? { branchId } : {}) })
-  const { data, error, isPending } = useQuery({
-    queryKey: ['/api/leave-requests', 'list', status, branchId],
+  // Server hanya menerima satu status; "Semua menunggu" diambil tanpa status lalu disaring di sini.
+  const pendingOnly = status === 'MENUNGGU'
+  const params = new URLSearchParams({ ...(status && !pendingOnly ? { status } : {}), ...(branchId ? { branchId } : {}) })
+  const { data: fetched, error, isPending } = useQuery({
+    queryKey: ['/api/leave-requests', 'list', pendingOnly ? '' : status, branchId],
     queryFn: () => api<LeaveRequest[]>(`/api/leave-requests?${params}`),
   })
+  const data = pendingOnly ? fetched?.filter((r) => isPendingStatus(r.status)) : fetched
 
   return (
     <div className="flex flex-col gap-5">
@@ -94,7 +104,7 @@ export function LeaveRequestsPage() {
         {data && <p className="border-b px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{data.length} pengajuan</p>}
         {isPending && <SkeletonLines />}
         {data?.length === 0 && (
-          <EmptyState message={status === 'MENUNGGU' ? 'Tidak ada pengajuan yang menunggu keputusan.' : 'Belum ada pengajuan.'} />
+          <EmptyState message={pendingOnly || (status && isPendingStatus(status)) ? 'Tidak ada pengajuan yang menunggu keputusan.' : 'Belum ada pengajuan.'} />
         )}
         {data && data.length > 0 && (
           <>
@@ -120,11 +130,11 @@ export function LeaveRequestsPage() {
                       </TableCell>
                       <TableCell className="px-4">{r.leaveTypeName}</TableCell>
                       <TableCell className="px-4 tabular-nums">{formatLeaveRange(r)}</TableCell>
-                      <TableCell className="px-4 tabular-nums">{r.calendarDays}</TableCell>
+                      <TableCell className="px-4 tabular-nums">{r.startDate && r.endDate ? r.calendarDays : '-'}</TableCell>
                       <TableCell className="px-4">
-                        <Badge variant={LEAVE_STATUS_TONES[r.status]}>{LEAVE_STATUS_LABELS[r.status]}</Badge>
+                        <LeaveStatusBadge status={r.status} />
                       </TableCell>
-                      <TableCell className="px-4 text-sm tabular-nums">{formatDateTime(r.submittedAt)}</TableCell>
+                      <TableCell className="px-4 text-sm tabular-nums">{r.submittedAt ? formatDateTime(r.submittedAt) : '-'}</TableCell>
                       <TableCell className="px-4">
                         <AttachmentCount request={r} />
                       </TableCell>
@@ -147,7 +157,7 @@ export function LeaveRequestsPage() {
                         {r.branchName} · <AttachmentCount request={r} />
                       </p>
                     </div>
-                    <Badge variant={LEAVE_STATUS_TONES[r.status]}>{LEAVE_STATUS_LABELS[r.status]}</Badge>
+                    <LeaveStatusBadge status={r.status} />
                   </Link>
                 </li>
               ))}

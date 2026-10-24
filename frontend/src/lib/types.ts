@@ -480,7 +480,25 @@ export interface DashboardSummary {
 
 // ---- Fase 4: izin dan cuti ----
 
-export type LeaveStatus = 'MENUNGGU' | 'DISETUJUI' | 'DITOLAK' | 'DIBATALKAN'
+export type LeaveStatus = 'DRAFT' | 'PERLU_TINJAU_HR' | 'PERLU_TINJAU_OWNER' | 'DISETUJUI' | 'DITOLAK' | 'DIBATALKAN'
+export type LetterTemplate = 'UMUM' | 'IZIN' | 'CUTI' | 'SAKIT'
+export type DecisionMethod = 'WEB' | 'WHATSAPP' | 'LISAN' | 'TERTULIS'
+export type ApprovalStage = 'HR' | 'OWNER'
+
+/** Satu tahap persetujuan. Keputusan Owner yang dicatat HR punya decidedBy "OWNER" dan recordedBy HR. */
+export interface LeaveApproval {
+  stage: ApprovalStage
+  approved: boolean
+  decidedBy: string
+  decidedByName: string
+  decidedAt: string
+  method: DecisionMethod
+  recordedBy: string
+  recordedByName: string
+  recordedAt: string
+  note: string | null
+  hasEvidence: boolean
+}
 
 /** paid null = belum ditentukan (dipakai di Fase 5). */
 export interface LeaveType {
@@ -490,6 +508,8 @@ export interface LeaveType {
   paid: boolean | null
   description: string | null
   active: boolean
+  requiresOwnerApproval: boolean
+  letterTemplate: LetterTemplate
 }
 
 export interface LeaveAttachment {
@@ -513,14 +533,15 @@ export interface LeaveRequest {
   leaveTypeId: number
   leaveTypeName: string
   requiresDocument: boolean
-  startDate: string
-  endDate: string
+  startDate: string | null
+  endDate: string | null
   calendarDays: number
   workingDays: number | null
   reason: string
   status: LeaveStatus
-  submittedBy: string
-  submittedAt: string
+  /** Null selama masih draft. */
+  submittedBy: string | null
+  submittedAt: string | null
   decidedBy: string | null
   decidedAt: string | null
   decisionNote: string | null
@@ -528,6 +549,28 @@ export interface LeaveRequest {
   cancelledAt: string | null
   cancelReason: string | null
   attachments: LeaveAttachment[]
+  contactPhone: string | null
+  leaveAddress: string | null
+  delegateTo: string | null
+  healthFacility: string | null
+  letterTemplate: LetterTemplate
+  requiresOwnerApproval: boolean
+  createdAt: string
+  approvals: LeaveApproval[]
+  /** Tahap yang harus memutus; null bila tidak sedang menunggu. */
+  nextStage: ApprovalStage | null
+}
+
+/** Jawaban verifikasi publik surat (tanpa login); sengaja minimal. */
+export interface PublicLetter {
+  letterNumber: string
+  employeeName: string
+  branchName: string
+  leaveTypeName: string
+  startDate: string | null
+  endDate: string | null
+  status: LeaveStatus
+  approvals: { stage: ApprovalStage; approved: boolean; decidedByName: string; decidedAt: string; method: DecisionMethod }[]
 }
 
 export interface LeaveUsage {
@@ -547,7 +590,8 @@ export interface PendingLeaveSummary {
     leaveTypeName: string
     startDate: string
     endDate: string
-    submittedAt: string
+    submittedAt: string | null
+    status: LeaveStatus
   }[]
 }
 

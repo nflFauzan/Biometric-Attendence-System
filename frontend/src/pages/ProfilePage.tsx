@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { ErrorAlert, SkeletonLines } from '@/components/feedback'
+import { SignatureCard } from '@/components/signature/SignatureCard'
 import { api } from '@/lib/api'
 import { formatDate, initials } from '@/lib/format'
 import type { Employee } from '@/lib/types'
@@ -53,9 +54,7 @@ export function ProfilePage() {
           </dl>
         )}
       </section>
-      <p className="rounded-lg border bg-info-bg px-4 py-3 text-sm text-info">
-        Pengajuan izin/cuti dan riwayat absensi menyusul di fase berikutnya.
-      </p>
+      <SignatureCard />
     </div>
   )
 }

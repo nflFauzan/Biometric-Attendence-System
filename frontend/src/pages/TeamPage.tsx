@@ -92,7 +92,7 @@ export function TeamPage() {
         </div>
         <div className="flex min-w-56 flex-1 flex-col gap-1.5">
           <Label htmlFor="cari" className="font-semibold">
-            Cari
+            Cari nama
           </Label>
           <Input id="cari" className={fieldClass} placeholder="Nama atau No. karyawan" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
@@ -137,7 +137,7 @@ export function TeamPage() {
               </Table>
             </div>
 
-            <ul className="divide-y md:hidden">
+            <ul aria-label="Daftar rekan kerja" className="divide-y md:hidden">
               {rows.map((row) => (
                 <li key={row.employeeId} className="flex flex-col gap-2 p-4">
                   <div className="flex items-start justify-between gap-3">

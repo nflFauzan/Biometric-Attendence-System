@@ -1,4 +1,5 @@
 import type { AttendanceStatus, CalculationFlag, DayRecord, ReviewStatus, Scan, ScanFlag } from '@/lib/types'
+import { isPendingStatus } from '@/lib/leave'
 
 export const STATUS_LABELS: Record<AttendanceStatus, string> = {
   LENGKAP: 'Lengkap',
@@ -64,7 +65,7 @@ export function reviewNotes(day: DayRecord): string[] {
   day.result?.flags
     .filter((flag) => flag !== 'ISTIRAHAT_BELUM_DIATUR')
     .forEach((flag) => notes.push(CALCULATION_FLAG_LABELS[flag]))
-  if (!day.result && day.leave?.status === 'MENUNGGU') {
+  if (!day.result && day.leave && isPendingStatus(day.leave.status)) {
     notes.push(CALCULATION_FLAG_LABELS.IZIN_MENUNGGU)
   }
   return notes
