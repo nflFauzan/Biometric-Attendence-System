@@ -70,7 +70,21 @@ Prinsip urutan:
 - Ekspor Excel/PDF, dengan setiap ekspor tercatat di audit log.
 - Format laporan mengikuti dokumen AS-IS client ([dokumen-as-is.md](dokumen-as-is.md), K-105). Laporan yang hanya butuh data absensi (detail absensi dan kisi kehadiran) boleh dikerjakan sebelum Fase 5.
 
+## Revisi meeting client 2026-10-23 — Persetujuan ganda izin (diimplementasikan 2026-10-24)
+
+- Penanda "butuh persetujuan Owner" di master Jenis Izin, dengan alur HR/Finance lalu Owner (K-109, TC-19). Pekerjaan ini mengubah schema, API, dan UI izin, sehingga rinciannya ditulis sebagai rencana tersendiri sebelum dikerjakan.
+- Test otomatis TC-18 (masuk 09.00 = 7 jam, K-110). Mesin perhitungan tidak berubah.
+
+**Diimplementasikan 2026-10-24** (K-113 sampai K-118, [spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)):
+
+- Status bertahap dan persetujuan ganda HR lalu Owner (migration V12, V13), TC-19 diuji di `LeaveApprovalTests.doubleApprovalNeedsHrThenOwner`.
+- Surat PDF dari server dengan QR dan spesimen tanda tangan (V14), halaman verifikasi publik `/verifikasi/:token`, serta pencatatan keputusan Owner oleh HR dengan bukti.
+- Area karyawan mobile-first: Beranda, navigasi bawah, alur pengajuan 4 langkah, dan Rekan Kerja berupa kartu di HP.
+- Menunggu uji manual di HP 375 px (terang dan gelap) dan templat surat dari client (D-05) bila ada.
+
 ## Fase 7 — Integrasi mesin asli dan rilis
+
+**Pembaruan 2026-10-23 (K-112):** alat rakitan (sensor R307, K-107) dipasang di satu cabang dulu. Dua cabang lain belum memakai sistem (Q-045).
 
 - Menyesuaikan kontrak dengan prototipe mesin rakitan (adapter baru atau meniru ZK-Push, Q-030), lalu uji end-to-end di satu cabang sebelum ketiganya. Skenario uji X-01 sampai X-08 dari mesin X401 dipakai ulang.
 - Deployment, TLS, backup terjadwal, dan uji restore. Fase ini menunggu keputusan hosting.

@@ -158,7 +158,7 @@ Breakpoint mengikuti Tailwind: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
 | Role | Item |
 | --- | --- |
 | Owner, HR/Finance | Dashboard · Absensi · Izin · Penggajian · Lainnya |
-| Karyawan | Beranda · Riwayat · Izin · Profil |
+| Karyawan | Beranda · Izin · Rekan · Profil (4 item, tanpa menu "Lainnya"; halaman awal `/beranda`, K-118) |
 
 ## 6. Komponen
 
@@ -266,9 +266,11 @@ Bentuk pill, latar lembut + teks gelap + ikon, Poppins 11 / 600. Istilah mengiku
 | Upah harian | Diusulkan | netral | — |
 | | Disetujui | success | `CheckCircle2` |
 | | Tidak disetujui | danger | `XCircle` |
-| Izin/cuti | Menunggu | warning | `Clock` |
+| Izin/cuti | Draft | netral | `FilePen` |
+| | Perlu ditinjau HR / Owner | warning | `Clock` |
 | | Disetujui | success | `CheckCircle2` |
 | | Ditolak | danger | `XCircle` |
+| | Dibatalkan | netral, teks dicoret | `Ban` |
 | Periode gaji | Draf | netral | — |
 | | Final | solid `steel-800`, teks putih | `Lock` |
 | Mesin | Online | titik hijau + "Online · 2 menit lalu" | `Wifi` |
@@ -298,6 +300,23 @@ Strip hazard hanya dipakai untuk hal yang menunggu tindakan pengguna, agar tidak
 - Menu dikelompokkan: **Operasional** (Dashboard, Absensi, Izin & cuti), **Keuangan** (Penggajian, Laporan), **Master data** (Karyawan, Cabang, Kategori, Mesin, Akun), **Sistem** (Pengaturan Aturan, Audit log). Menu yang tidak boleh diakses role tidak ditampilkan.
 - **Header:** putih, garis bawah 1px. Kiri: judul halaman + breadcrumb. Kanan: nama, role, menu akun (Ganti password, Keluar). Garis emas 2px di bagian paling atas aplikasi.
 - **Bottom navigation (HP):** putih, ikon 24px + label 11px, item aktif `steel-600` dengan titik emas di atas ikon.
+
+### 6.9a Garis waktu status izin dan langkah form
+
+**Garis waktu** (`ApprovalTimeline`, K-113): daftar vertikal Diajukan, Ditinjau HR, Ditinjau Owner (hanya untuk jenis persetujuan ganda), lalu hasil akhir. Setiap langkah punya penanda bulat 32px berisi ikon, sehingga status tidak hanya mengandalkan warna.
+
+| Keadaan langkah | Penanda |
+| --- | --- |
+| Selesai | success, `Check`; detail "Disetujui oleh ... · waktu · cara (web/WhatsApp/lisan/tertulis)", plus "dicatat oleh ..." bila keputusan Owner dicatat HR |
+| Ditolak | danger, `X` |
+| Sedang ditinjau | warning, `Clock`, teks "Sedang ditinjau" |
+| Akan datang | netral, `Circle`, teks redup |
+| Dilewati (rantai berhenti karena ditolak atau dibatalkan) | netral, `Minus`, teks redup "Dilewati" |
+| Dibatalkan | netral, `Ban`, alasan di bawahnya |
+
+**Langkah form** (wizard pengajuan `/izin-saya/baru`, 4 langkah): indikator berupa bilah tipis dan nomor bulat per langkah, langkah aktif ditandai `aria-current="step"`. Di HP hanya label langkah aktif yang tampil. Langkah: Jenis, Tanggal & isian, Lampiran & tanda tangan, Pratinjau. Transisi antar langkah 200 ms (geser + pudar), statis saat `prefers-reduced-motion`. Draft tersimpan setiap Lanjut/Kembali; bila simpan gagal, Kembali tetap berpindah langkah dan galat tampil di langkah sebelumnya. Draft tanpa tanggal menampilkan "Tanggal belum diisi", bukan "0 hari".
+
+**Halaman publik** (`/verifikasi/:token`): tanpa sidebar atau navigasi bawah; hanya wordmark, tombol tema, judul "Verifikasi Surat", dan satu kartu kaca berisi nomor, lencana status besar, identitas, dan daftar persetujuan. Mendukung mode terang dan gelap.
 
 ### 6.10 KPI tile (dashboard)
 
@@ -348,7 +367,7 @@ Zona waktu mengikuti konfigurasi server, bukan zona perangkat pengguna.
 | Master data | Corporate Clean, `CrudPage` | Tabel nyaman + dialog form |
 | Pengaturan Aturan | Corporate Clean | Riwayat versi aturan (timeline "berlaku mulai") di kiri, form versi baru di kanan. Versi yang dipakai periode final diberi ikon `Lock` |
 | Audit log | Enterprise, tabel padat | Filter pengguna/aksi/tanggal, kolom "Sebelum → Sesudah" dengan perbedaan disorot |
-| Area karyawan (HP) | Corporate Clean, ukuran besar | Beranda: status hari ini (masuk/pulang) dalam kartu besar, tombol "Ajukan izin". Riwayat: daftar kartu per hari |
+| Area karyawan (HP) | Corporate Clean, ukuran besar | Beranda `/beranda`: sapaan, kartu Hari ini, pengajuan berjalan (maks. 3), tombol "Ajukan izin", ringkasan bulan ini. Izin: tab Berjalan/Draft/Selesai. Rekan: kartu ringkas + "Cari nama" di bawah `md` |
 | Layar pantau mesin | Blueprint | Grid per cabang, selalu gelap, tanpa sidebar |
 
 ## 8. Motif brand

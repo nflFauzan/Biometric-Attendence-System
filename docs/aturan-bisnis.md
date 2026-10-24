@@ -41,7 +41,7 @@ Prinsip utama: aturan kerja dan perhitungan gaji harus dikelola melalui sistem k
 |---|---|---|
 | Jam masuk | 08.00 | Acuan awal |
 | Jam pulang normal | 17.00 | Acuan awal |
-| Jam istirahat | Belum ditetapkan secara final | Perlu konfirmasi |
+| Jam istirahat | 12.00–13.00, mengurangi jam kerja normal (8 jam efektif) | Disepakati client 2026-10-23 (K-110) |
 | Hari kerja | Senin–Sabtu | Usulan, perlu konfirmasi |
 | Toleransi keterlambatan | Dapat dikonfigurasi | Nilai awal 0 menit |
 | Target jam kerja harian | 8 jam | Acuan awal |
@@ -66,6 +66,8 @@ Perubahan jadwal harus memiliki tanggal mulai berlaku. Jadwal yang berlaku pada 
 Untuk perhitungan awal, jam kerja normal dimulai pada pukul 08.00 dan berakhir pada pukul 17.00.
 
 Scan sebelum jam masuk tidak otomatis menambah jam kerja normal. Waktu kerja normal dihitung berdasarkan rentang jadwal yang berlaku dan aturan istirahat perusahaan.
+
+**Disepakati client 2026-10-23 (K-110):** rentang 08.00–17.00 adalah 9 jam, dan istirahat 12.00–13.00 tidak dihitung, sehingga jam kerja normal 8 jam. Karyawan yang masuk 09.00 dan pulang 17.00 terhitung 7 jam (TC-18). Nilai ini diisi Owner di Pengaturan Aturan dan tidak ditanam di kode.
 
 Pengurangan waktu istirahat harus mengikuti konfigurasi yang sudah disetujui. Sistem tidak boleh mengasumsikan durasi atau pengurangan istirahat yang belum dikonfirmasi.
 
@@ -165,7 +167,7 @@ Kewenangan koreksi dan kebutuhan persetujuan tambahan harus mengikuti matriks ak
 | Beberapa koreksi pada tanggal sama | Yang terbaru berlaku; yang lama tetap tersimpan sebagai riwayat. | K-066 |
 | Satu scan + koreksi sisi lainnya | Scan itu dipakai sebagai sisi yang tidak dikoreksi (mis. scan 08.00 + koreksi pulang 17.00 = lengkap). | §10.2, TC-08 |
 
-### 4.8 Izin dan Cuti (Disepakati, 2026-10-13, Fase 4)
+### 4.8 Izin dan Cuti (Disepakati, 2026-10-13, Fase 4; diperluas 2026-10-24)
 
 Jenis, kuota, dan dampak ke gaji belum diketahui (Q-013), sehingga yang ditetapkan di sini hanya alur dan efeknya ke rekap; tidak ada jenis atau kuota yang ditanam di kode.
 
@@ -174,14 +176,17 @@ Jenis, kuota, dan dampak ke gaji belum diketahui (Q-013), sehingga yang ditetapk
 | Jenis izin/cuti | Diatur Owner (nama, wajib surat, dibayar/belum ditentukan, aktif). Contoh awal: Sakit, Cuti, Izin. | K-070 |
 | Satuan | Rentang tanggal hari penuh. Izin per jam belum didukung. | K-071 |
 | Kuota | Belum ada; pemakaian per jenis per tahun hanya ditampilkan. | K-072 |
-| Pengaju dan penyetuju | Karyawan mengajukan sendiri, atau Owner/HR mencatat atas nama karyawan. Disetujui/ditolak oleh Owner atau HR/Finance, tetapi tidak untuk pengajuan miliknya sendiri. | K-073, K-079 |
-| Status | Menunggu → Disetujui / Ditolak (alasan wajib). Pengaju membatalkan selama Menunggu; Owner/HR membatalkan yang Menunggu atau Disetujui dengan alasan. | K-074 |
-| Tumpang tindih | Satu karyawan tidak boleh punya dua pengajuan Menunggu/Disetujui yang tanggalnya beririsan. | K-075 |
-| Efek ke rekap | Hanya hari kerja. Disetujui + tanpa scan → status **Izin**. Disetujui + ada scan → rekap dari scan, ditandai "hadir saat izin". Menunggu → status tidak berubah, hanya ditandai (LEAVE-006). | K-076 |
+| Pengaju dan penyetuju | Karyawan mengajukan sendiri dengan akun individualnya, atau Owner/HR mencatat atas nama karyawan. Disetujui/ditolak oleh Owner atau HR/Finance, tetapi tidak untuk pengajuan miliknya sendiri. | K-073, K-079, K-108 |
+| Persetujuan ganda | Jenis yang ditandai Owner (menurut meeting: Cuti dan Sakit) disetujui HR/Finance dulu, lalu Owner. Penolakan oleh salah satunya langsung Ditolak. Penanda ini data master yang dibekukan di pengajuan saat dikirim. Bila pemohon satu-satunya HR aktif, Owner boleh mengerjakan tahap HR, dan tahap Owner tetap dilakukan terpisah. Diimplementasikan 2026-10-24. | K-109, K-113 |
+| Status | Draft → Perlu ditinjau HR → (Perlu ditinjau Owner, untuk jenis persetujuan ganda) → Disetujui / Ditolak (alasan wajib). Draft belum sah dan tidak memengaruhi rekap. Pengaju menarik pengajuan selama Perlu ditinjau; Owner/HR membatalkan yang Perlu ditinjau atau Disetujui dengan alasan. Draft bisa dihapus permanen oleh pemiliknya. | K-074, K-113 |
+| Tumpang tindih | Satu karyawan tidak boleh punya dua pengajuan aktif (Perlu ditinjau HR/Owner atau Disetujui) yang tanggalnya beririsan. Draft tidak dicek saat disimpan, tetapi dicek saat dikirim. | K-075 |
+| Efek ke rekap | Hanya hari kerja. Disetujui + tanpa scan → status **Izin**. Disetujui + ada scan → rekap dari scan, ditandai "hadir saat izin". Perlu ditinjau (HR atau Owner) → status tidak berubah, hanya ditandai (LEAVE-006). | K-076 |
 | Surat pendukung | PDF/JPG/PNG maks. 5 MB, maks. 5 file. Jenis wajib surat baru bisa disetujui setelah surat diunggah. | K-077, K-078 |
 | Tanggal lampau | Boleh; batas waktunya menunggu Q-033. Rentang maks. 366 hari. | K-080 |
 | Notifikasi | Owner/HR mendapat notifikasi langsung di aplikasi saat ada pengajuan baru. | K-081 |
-| Surat pengajuan | Bisa dicetak atau disimpan sebagai PDF dari halaman pengajuan. | K-082 |
+| Templat surat | Diatur per jenis oleh Owner: `UMUM`, `IZIN`, `CUTI`, `SAKIT`. Kewajiban isian (mis. alamat selama cuti, nomor HP) divalidasi server saat dikirim menurut templat yang dibekukan; draft boleh belum lengkap. | K-113 |
+| Keputusan Owner di luar web | HR/Finance (bukan pemohon) boleh mencatat keputusan Owner di tahap Owner dengan cara (WhatsApp/lisan/tertulis), waktu (tidak di masa depan, tidak sebelum tahap HR, ketelitian menit), catatan wajib, dan bukti (wajib untuk WhatsApp dan tertulis). Spesimen Owner tidak ditempel di surat. | K-117 |
+| Surat PDF | PDF dibuat server, bisa diunduh pemilik, Owner, dan HR kapan saja; surat belum final bercap status. Memuat QR verifikasi publik dan spesimen tanda tangan yang dibekukan pada tahap yang disetujui di web. | K-114, K-115, K-116 |
 
 ---
 
@@ -506,6 +511,8 @@ Skenario berikut menjadi contoh awal pengujian. Skenario yang bergantung pada at
 | TC-15 | Perangkat mengirim scan yang sama berulang kali | Sistem mencegah kejadian yang sama dihitung ganda berdasarkan identitas kejadian |
 | TC-16 | Pengguna tanpa izin mencoba mengubah payroll | Backend menolak tindakan dan mencatat kejadian sesuai kebijakan audit |
 | TC-17 | Jeda minimum 5 menit; scan 08.00.00, 08.00.04, 08.00.08; tidak ada scan lain | Satu kejadian scan, status Tidak Lengkap, ketiga scan asli tetap tersimpan (K-092) |
+| TC-18 | Jadwal 08.00–17.00, istirahat 12.00–13.00; scan 08.00 dan 17.00, lalu scan 09.00 dan 17.00 | Jam kerja normal 8 jam, lalu 7 jam (K-110) |
+| TC-19 | Pengajuan Cuti (jenis butuh persetujuan ganda) disetujui HR | Belum Disetujui sampai Owner menyetujui; Owner tidak bisa menyetujui sebelum HR; ditolak HR langsung Ditolak (K-109). Diuji otomatis di `LeaveApprovalTests.doubleApprovalNeedsHrThenOwner` |
 
 Pengujian nominal payroll harus menggunakan data uji yang telah disepakati, termasuk formulir payroll aktual dan hasil perhitungan yang telah diverifikasi klien.
 
@@ -516,7 +523,7 @@ Pengujian nominal payroll harus menggunakan data uji yang telah disepakati, term
 Hal-hal berikut tidak boleh ditetapkan hanya berdasarkan asumsi developer:
 
 1. Hari kerja resmi dan perlakuan hari Minggu atau hari libur.
-2. Jam istirahat dan metode pengurangannya dari jam kerja.
+2. Perlakuan jam istirahat saat bekerja di hari libur (jam dan pengurangan di hari kerja sudah disepakati, K-110).
 3. Apakah target 200 jam per bulan benar-benar digunakan.
 4. Dampak keterlambatan, pulang cepat, dan ketidakhadiran terhadap gaji.
 5. Penanganan scan tidak lengkap, scan lintas tengah malam, dan pembulatan durasi.

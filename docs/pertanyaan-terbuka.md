@@ -23,6 +23,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 
 ### Q-002. Jam istirahat
 
+**Sebagian dijawab client 2026-10-23 (K-110):** istirahat 12.00–13.00 dan dikurangkan dari jam kerja, sehingga 08.00–17.00 menjadi 8 jam. Masuk 09.00 terhitung 7 jam. **Masih terbuka:** perlakuan istirahat saat bekerja di hari libur.
+
 - Jam berapa waktu istirahat dimulai dan berakhir?
 - Apakah waktu istirahat selalu sama atau dapat berubah?
 - Apakah durasi istirahat dikurangi dari durasi kerja dan perhitungan lembur?
@@ -169,6 +171,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Bagaimana masing-masing jenis ketidakhadiran memengaruhi upah harian dan gaji pokok?
 - Apakah terdapat kebijakan khusus untuk izin mendadak atau ketidakhadiran tanpa pemberitahuan?
 
+**Penyetuju dijawab client 2026-10-23 (K-109) dan diimplementasikan 2026-10-24 (K-113 sampai K-117):** jenis yang ditandai Owner (Cuti dan Sakit) butuh persetujuan HR/Finance lalu Owner; jenis lain satu persetujuan. Pertanyaan "Siapa yang berhak menyetujui pengajuan?" dan "Apakah diperlukan dokumen pendukung?" (diatur per jenis, K-077) sudah terjawab. Bentuk surat dirancang Claude dan diganti bila client mengirim templat.
+
 **Indikasi dokumen AS-IS (2026-10-22, belum dikonfirmasi):** Ketidakhadiran hanya ditandai sel merah, tanpa pembeda izin, sakit, atau alpa. Lihat [dokumen-as-is.md](dokumen-as-is.md).
 
 **Dampak:** status kehadiran dan komponen penggajian.
@@ -181,6 +185,8 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Apakah pembukaan kembali memerlukan alasan wajib?
 - Apakah diperlukan persetujuan Owner sebelum periode dibuka?
 - Setelah koreksi dilakukan, siapa yang berwenang memfinalisasi ulang?
+
+**Sebagian dijawab client 2026-10-23 (K-111):** hanya Owner yang mengubah, memfinalkan, dan membuka kembali payroll; HR/Finance hanya melihat dan mereview. Alasan wajib dan persetujuan tambahan masih terbuka.
 
 **Catatan:** pembukaan kembali payroll sudah disepakati sebagai fitur yang diperbolehkan. Tarif historis dan snapshot perhitungan harus tetap terjaga.
 
@@ -234,7 +240,7 @@ Dokumen ini berisi pertanyaan yang masih membutuhkan konfirmasi sebelum kebutuha
 - Bagaimana perangkat mengidentifikasi karyawan yang berhasil melakukan pemindaian?
 
 **Dijawab sebagian 2026-10-18:**
-- Alat rakitan memakai ESP32 DevKit, sensor R503, TFT 2,4" non-touch, RTC DS3231, microSD, dan buzzer (spec pendaftaran sidik jari §1).
+- Alat rakitan memakai ESP32 DevKit, sensor R307 (menggantikan R503, K-107, meeting 2026-10-23), TFT 2,4" non-touch, RTC DS3231, microSD, dan buzzer (spec pendaftaran sidik jari §1).
 - Protokolnya `/device/v1`, dengan mesin yang menghubungi server (K-087, [`protokol-alat-rakitan.md`](./protokol-alat-rakitan.md)).
 - Karyawan dikenali lewat satu PIN per karyawan (K-056).
 - Masih terbuka: siapa yang menulis dan menyimpan firmware (Q-034).
@@ -403,9 +409,9 @@ Saat ini pengajuan untuk tanggal lampau diizinkan tanpa batas hari (K-080), kare
 
 Siapa yang menulis firmware ESP32, dan apakah disimpan di repo ini (misalnya `firmware/`) atau repo terpisah? Sementara ini repo ini hanya menyediakan kontrak protokol dan simulator.
 
-### Q-035. Hasil uji kelayakan R503
+### Q-035. Hasil uji kelayakan R307
 
-Apakah sensor bisa mengirim dan menerima template, berapa kapasitas varian yang dibeli, apakah pencarian 1:N dan password modul berfungsi? Menentukan apakah penyalinan template (K-089) dijalankan atau diganti dengan pendaftaran ulang per mesin.
+Sensor diganti dari R503 ke R307 (K-107, 2026-10-23). Apakah sensor bisa mengirim dan menerima template, berapa kapasitas varian yang dibeli, apakah pencarian 1:N dan password modul berfungsi? Menentukan apakah penyalinan template (K-089) dijalankan atau diganti dengan pendaftaran ulang per mesin.
 
 ### Q-036. Hasil uji kelayakan OTA
 
@@ -463,6 +469,14 @@ Beberapa baris di lembar gaji staf tampak memiliki Wages 140.000–180.000 per h
 
 **Dampak:** kategori penggajian (aturan-bisnis §6.1).
 
+## 7d. Meeting client (ditemukan 2026-10-23)
+
+### Q-045. Pemasangan alat di satu cabang dulu
+
+Alat rakitan dipasang di satu cabang dulu, dan dua cabang lain belum memakai sistem (K-112). Cabang mana yang dipasang lebih dulu? Apakah karyawan di dua cabang lain sudah dibuatkan akun dan boleh mengajukan izin lewat web sebelum alatnya terpasang? Bagaimana rekap mereka ditandai agar tidak terbaca "Tidak hadir"?
+
+**Dampak:** data awal karyawan, rekap dan laporan per cabang, serta urutan uji Fase 7.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
@@ -472,7 +486,7 @@ Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan k
 | P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033, Q-038, Q-039, Q-040, Q-043, Q-044 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
 | P0 — Sebelum Fase 3 (uji X401) | Q-029 (sebagian terjawab 2026-10-12), Q-031, Q-032 | Menentukan format adapter ZK-Push dan pemetaan PIN karyawan. |
 | P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030, Q-034, Q-035, Q-036, Q-037 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
-| P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028, Q-041, Q-042 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
+| P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028, Q-041, Q-042, Q-045 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
 | P1 — Sebelum rilis produksi | Q-023 | Menentukan tata kelola data biometrik dan kontrol aksesnya. |
 | P2 — Sebelum UI final | Q-024, Q-025 | Menyelesaikan identitas visual dan nama aplikasi. |
 

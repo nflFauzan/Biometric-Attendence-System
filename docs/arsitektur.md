@@ -494,6 +494,7 @@ Rincian siapa yang boleh membuka ulang, siapa yang menyetujui, serta prosedur ko
 - File `.env` berisi secret tidak boleh masuk Git.
 - Sediakan file contoh seperti `.env.example` tanpa nilai rahasia.
 - Pisahkan konfigurasi development, testing, dan production.
+- `PUBLIC_BASE_URL` (properti `app.public-base-url`): alamat dasar server yang dimuat di QR dan link surat izin (`<base>/verifikasi/<token>`), misalnya `https://absensi.contoh.co.id`. Wajib diisi di production agar QR menunjuk alamat yang dapat dijangkau penerima surat; kosong berarti memakai origin pengunduh. Batas laju verifikasi publik: `app.public-letters.rate-per-minute` (bawaan 30 per menit per IP).
 
 ### 10.5 Data biometrik
 

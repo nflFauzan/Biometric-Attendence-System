@@ -232,30 +232,36 @@ flowchart TD
 
 ### 8.1 Alur Pengajuan
 
+Status dan transisi (K-113). Hanya jenis izin yang ditandai Owner melewati `PERLU_TINJAU_OWNER`; jenis lain langsung `DISETUJUI` setelah tahap HR.
+
 ```mermaid
-flowchart TD
-    A["Karyawan membuka fitur izin/cuti"] --> B["Mengisi jenis, tanggal, dan alasan"]
-    B --> C["Mengunggah dokumen pendukung jika diwajibkan"]
-    C --> D["Mengirim pengajuan"]
-    D --> E["Status menunggu"]
-    E --> F["HR/Finance atau approver memeriksa"]
-    F --> G{"Disetujui?"}
-    G -- "Tidak" --> H["Status ditolak dan alasan dicatat"]
-    G -- "Ya" --> I["Status disetujui"]
-    I --> J["Rekap absensi memproses status izin/cuti"]
-    J --> K["Payroll menggunakan aturan yang berlaku"]
+stateDiagram-v2
+    [*] --> DRAFT: karyawan simpan
+    DRAFT --> PERLU_TINJAU_HR: kirim
+    DRAFT --> [*]: hapus draft
+    PERLU_TINJAU_HR --> DISETUJUI: HR setuju (jenis satu persetujuan)
+    PERLU_TINJAU_HR --> PERLU_TINJAU_OWNER: HR setuju (jenis persetujuan ganda)
+    PERLU_TINJAU_HR --> DITOLAK: HR tolak
+    PERLU_TINJAU_OWNER --> DISETUJUI: Owner setuju / HR catat persetujuan Owner
+    PERLU_TINJAU_OWNER --> DITOLAK: Owner tolak / HR catat penolakan Owner
+    PERLU_TINJAU_HR --> DIBATALKAN: karyawan tarik / HR-Owner batalkan
+    PERLU_TINJAU_OWNER --> DIBATALKAN: karyawan tarik / HR-Owner batalkan
+    DISETUJUI --> DIBATALKAN: HR-Owner batalkan (alasan wajib)
 ```
 
 ### 8.2 Ketentuan
 
 - Pengajuan memiliki identitas karyawan, jenis, tanggal atau rentang tanggal, alasan, dan status.
 - Dokumen pendukung dapat diwajibkan sesuai jenis pengajuan.
-- Pengajuan yang belum disetujui tidak boleh otomatis diperlakukan sebagai izin yang sah.
+- Pengajuan yang belum disetujui tidak boleh otomatis diperlakukan sebagai izin yang sah. Draft tidak memengaruhi rekap maupun pengecekan tumpang tindih.
+- Tidak ada yang memutus pengajuannya sendiri di tahap mana pun (K-079). Bila pemohon satu-satunya HR aktif, Owner boleh mengerjakan tahap HR.
+- HR boleh mencatat keputusan Owner yang diberikan di luar web (WhatsApp, lisan, tertulis) beserta waktu, catatan, dan bukti (K-117).
+- Surat berupa PDF dari server, memuat QR ke halaman verifikasi publik `/verifikasi/<token>` (K-114, K-116).
 - Persetujuan atau penolakan harus tercatat.
 - Pengajuan yang disetujui dapat memengaruhi status rekap absensi.
 - Dampak izin, sakit, dan cuti terhadap upah atau gaji mengikuti kebijakan perusahaan.
 
-**[KONFIRMASI]** Jenis izin/cuti, approver, kuota cuti, kebutuhan dokumen, dan konsekuensi payroll belum ditetapkan secara final.
+**[KONFIRMASI]** Jenis izin/cuti, kuota cuti, kebutuhan dokumen, dan konsekuensi payroll belum ditetapkan secara final.
 
 Jika fitur pengajuan mandiri karyawan belum masuk ke tahap implementasi pertama, alur ini dapat dimulai melalui pencatatan oleh HR/Finance.
 
@@ -519,7 +525,7 @@ Status berikut merupakan rancangan awal dan perlu diselaraskan dengan kebutuhan 
 | Perangkat | Aktif, tidak terhubung, gangguan |
 | Rekap absensi | Normal, terlambat, tidak lengkap, perlu pemeriksaan, izin/cuti, tidak ada scan |
 | Koreksi absensi | Diajukan, diproses, diterapkan, ditolak |
-| Izin/cuti | Menunggu, disetujui, ditolak, dibatalkan |
+| Izin/cuti | Draft, perlu ditinjau HR, perlu ditinjau Owner, disetujui, ditolak, dibatalkan |
 | Verifikasi lembur | Perlu pemeriksaan, disetujui, dikoreksi |
 | Payroll | Draf, dalam peninjauan, final, dibuka kembali, difinalisasi ulang |
 | Kasbon | Tercatat, sebagian dilunasi, lunas |

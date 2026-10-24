@@ -68,7 +68,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-045 | 2026-10-11 | Dokumentasi API memakai springdoc/OpenAPI, mati secara default dan hanya untuk Owner/HR-Finance | Disepakati |
 | K-046 | 2026-10-12 | Prioritas aturan per kolom: Karyawan > Kategori > Global | Disepakati, memperjelas K-028 |
 | K-047 | 2026-10-12 | Tidak ada nilai aturan bawaan; perhitungan ditolak sampai aturan wajib diatur | Disepakati |
-| K-048 | 2026-10-12 | Jam istirahat opsional; bila kosong tidak ada pengurangan dan rekap diberi penanda | Disepakati, sementara menunggu Q-002 |
+| K-048 | 2026-10-12 | Jam istirahat opsional; bila kosong tidak ada pengurangan dan rekap diberi penanda | Disepakati. Nilai istirahat dijawab client di K-110 |
 | K-049 | 2026-10-12 | Aturan kerja dan tarif hanya diubah Owner; kalender libur dikelola Owner dan HR/Finance | Disepakati |
 | K-050 | 2026-10-12 | Versi aturan tidak boleh berlaku surut dan terkunci setelah tanggal berlakunya tiba | Disepakati |
 | K-051 | 2026-10-12 | Kalender libur berlaku untuk semua cabang | Disepakati, sementara |
@@ -93,7 +93,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-070 | 2026-10-13 | Jenis izin/cuti adalah master data yang diatur Owner (wajib surat, dibayar/belum ditentukan, aktif) | Disepakati |
 | K-071 | 2026-10-13 | Pengajuan izin berupa rentang tanggal hari penuh; izin per jam ditunda | Disepakati |
 | K-072 | 2026-10-13 | Tanpa kuota cuti dulu; pemakaian per jenis per tahun ditampilkan saat menyetujui | Disepakati, menunggu Q-013 |
-| K-073 | 2026-10-13 | Karyawan mengajukan sendiri; Owner/HR bisa mencatat atas nama karyawan; Owner/HR yang menyetujui | Disepakati |
+| K-073 | 2026-10-13 | Karyawan mengajukan sendiri; Owner/HR bisa mencatat atas nama karyawan; Owner/HR yang menyetujui | Disepakati. Penyetuju untuk jenis yang butuh persetujuan ganda diganti K-109 |
 | K-074 | 2026-10-13 | Status Menunggu → Disetujui/Ditolak, dan Dibatalkan; tolak dan batal (oleh Owner/HR) wajib alasan | Disepakati |
 | K-075 | 2026-10-13 | Pengajuan aktif satu karyawan tidak boleh tumpang tindih (exclusion constraint) | Disepakati |
 | K-076 | 2026-10-13 | Izin disetujui → status rekap IZIN di hari kerja tanpa scan; ada scan → penanda HADIR_SAAT_IZIN; menunggu tidak berpengaruh | Disepakati |
@@ -102,7 +102,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-079 | 2026-10-13 | Owner/HR tidak bisa memutus pengajuan miliknya sendiri | Disepakati |
 | K-080 | 2026-10-13 | Pengajuan boleh untuk tanggal lampau; rentang maks. 366 hari (batas teknis) | Disepakati, batas lampau menunggu Q-033 |
 | K-081 | 2026-10-13 | Notifikasi langsung di dalam aplikasi untuk Owner/HR (pop-up SSE + lonceng); tanpa email/WA | Disepakati |
-| K-082 | 2026-10-13 | Surat pengajuan siap cetak / simpan PDF lewat fitur cetak browser | Disepakati |
+| K-082 | 2026-10-13 | Surat pengajuan siap cetak / simpan PDF lewat fitur cetak browser | Disepakati. Pembuatan PDF di server menggantikan sebagian (K-114); halaman cetak browser dihapus |
 | K-083 | 2026-10-14 | Semua karyawan boleh melihat absensi semua karyawan aktif dengan kolom terbatas, tanpa data sensitif | Disepakati |
 | K-084 | 2026-10-14 | Status rekan kerja disederhanakan; izin tampil tanpa jenis, koreksi tidak terlihat | Disepakati |
 | K-085 | 2026-10-14 | Tema kaca (glassmorphism) penuh, terang/gelap dengan tombol tema, responsif HP/tablet/desktop | Disepakati |
@@ -120,6 +120,18 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-104 | 2026-10-20 | Rincian Rencana 6: paket pengaturan ringan berversi, `APPLY_NETWORK` (Wi-Fi + alamat server, password terenkripsi), `ROTATE_KEY` dua tahap, konfirmasi ulang password untuk tindakan berisiko (merinci K-089, K-096, K-098) | Keputusan Claude, menunggu tinjauan pengguna |
 | K-105 | 2026-10-22 | Ekspor Excel/PDF mengikuti format laporan AS-IS client (dokumen-as-is.md); laporan absensi boleh sebelum Fase 5 | Disepakati (permintaan client) |
 | K-106 | 2026-10-22 | Rincian cabang absen per karyawan (K-103): cabang tambahan, penanda `CABANG_TIDAK_DIIZINKAN`, peninjauan scan tertahan dengan alasan wajib, pencabutan cabang menghapus sidik jari. Mengganti arti `CABANG_BERBEDA` di K-065 | Keputusan Claude, disetujui pengguna 2026-10-22 |
+| K-107 | 2026-10-23 | Sensor sidik jari alat rakitan adalah R307, menggantikan R503 | Disepakati (meeting client) |
+| K-108 | 2026-10-23 | Setiap karyawan memiliki akun individual (Opsi A dokumen requirement v0.4); tidak ada akun/akses bersama | Disepakati (meeting client) |
+| K-109 | 2026-10-23 | Persetujuan ganda HR/Finance lalu Owner untuk jenis izin yang ditandai Owner; jenis lain tetap satu persetujuan (K-073) | Disepakati (meeting client); rincian teknis di K-113 sampai K-118 (diimplementasikan 2026-10-24) |
+| K-110 | 2026-10-23 | Jam kerja 08.00–17.00 dengan istirahat 12.00–13.00, sehingga 8 jam efektif; masuk 09.00 terhitung 7 jam. Nilai diisi lewat Pengaturan Aturan. Menjawab sebagian Q-002 | Disepakati (meeting client) |
+| K-111 | 2026-10-23 | Hanya Owner yang mengubah penggajian (tarif, menjalankan, memfinalkan, membuka kembali); HR/Finance hanya melihat dan mereview | Disepakati (meeting client) |
+| K-112 | 2026-10-23 | Alat rakitan dipasang di satu cabang dulu; dua cabang lain belum memakai sistem | Disepakati (meeting client) |
+| K-113 | 2026-10-24 | Status pengajuan izin bertahap: Draft, Perlu ditinjau HR, Perlu ditinjau Owner, Disetujui, Ditolak, Dibatalkan; jenis dan templat dibekukan saat kirim | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
+| K-114 | 2026-10-24 | Surat izin berupa PDF yang dibuat server (OpenPDF + ZXing), menggantikan sebagian K-082 | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
+| K-115 | 2026-10-24 | Spesimen tanda tangan per akun; disalin (dibekukan) ke rekaman tahap saat disetujui di web | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
+| K-116 | 2026-10-24 | Verifikasi surat publik lewat token acak 128-bit di QR, dengan data minimal dan batas laju per IP | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
+| K-117 | 2026-10-24 | HR boleh mencatat keputusan Owner yang diberikan di luar web (WhatsApp, lisan, tertulis) dengan waktu, catatan, dan bukti | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
+| K-118 | 2026-10-24 | Area karyawan mobile-first: Beranda `/beranda`, navigasi bawah Beranda/Izin/Rekan/Profil, alur pengajuan 4 langkah | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
 
 ---
 
@@ -664,6 +676,65 @@ Rincian di [rencana-tema-kaca.md](rencana-tema-kaca.md). Dipilih pengguna 2026-1
 Dipilih pengguna 2026-10-16, agar uji dengan mesin X401 yang dibawa dan dicolok kabel langsung ke laptop tetap jalan saat backend dijalankan lewat `start-dev.bat` (lihat [panduan-mesin-x401.md](panduan-mesin-x401.md)).
 
 - **K-086 Port kedua opsional.** Bila `app.device.extra-port` (`DEVICE_EXTRA_PORT`) diisi, backend membuka konektor Tomcat kedua di port itu yang melayani aplikasi yang sama (`config/DevicePortConfig`). `start-dev.bat` mengisinya dengan `DEVICE_PORT` (bawaan `8888`), sehingga mesin tidak perlu diatur ulang antara mode Docker (`8888:8080`, K-060) dan mode development. Kosong = tidak ada port tambahan; Docker dan produksi tidak memakainya. Alternatif `netsh portproxy` ditolak karena butuh hak Administrator dan bentrok dengan port 8888 milik Docker.
+
+### Hasil meeting client 2026-10-23 (K-107–K-112)
+
+Meeting dengan client membahas dokumen requirement HLX-TKS-ATT-REQ-001 v0.4 (21 Oktober 2026). Revisi yang disepakati dicatat di sini. Rincian K-109 sampai K-112 dipilih pengguna pada 2026-10-24.
+
+- **K-107 Sensor R307.** Alat rakitan memakai sensor R307, bukan R503. Kontrak `/device/v1` tidak bergantung pada jenis sensor, jadi server tidak berubah. Kemampuan R307 (kapasitas, unggah/unduh template, pencarian 1:N, password modul) harus dibuktikan lewat uji prototipe (Q-035) sebelum penyalinan template (K-089) diputuskan. Sebutan R503 di K-100 dan spec lama dibaca sebagai "sensor alat rakitan".
+- **K-108 Akun individual untuk setiap karyawan.** Client memilih Opsi A di dokumen requirement (Bagian 5.4): setiap karyawan login dengan akunnya sendiri dan mengajukan izin lewat web. Opsi akses bersama (Opsi C) dan aturan terkaitnya (BR-015, BR-019, FR-USR-006, FR-AUD-002) tidak dipakai. Kode sudah mendukung akun yang terhubung ke data karyawan (K-073). K-083 (daftar rekan kerja tanpa data sensitif) tetap berlaku.
+- **K-109 Persetujuan ganda per jenis izin.**
+  - Owner menandai di master Jenis Izin (K-070) jenis yang butuh persetujuan Owner. Penanda ini data, bukan aturan di kode. Menurut meeting, Cuti dan Sakit butuh persetujuan ganda.
+  - Urutannya HR/Finance dulu (verifikasi dan review), lalu Owner memberi persetujuan akhir. Penolakan oleh HR atau Owner langsung membuat pengajuan Ditolak.
+  - Jenis tanpa penanda tetap mengikuti K-073: cukup satu persetujuan Owner atau HR/Finance.
+  - Rincian teknis (status antara, pengajuan milik HR sendiri menurut K-079, pembatalan, notifikasi, migration) diputuskan di rencana implementasi.
+- **K-110 Jam kerja efektif.**
+  - Jadwal 08.00–17.00 dengan istirahat 12.00–13.00 menghasilkan 8 jam kerja efektif.
+  - Karyawan yang masuk 09.00 dan pulang 17.00 terhitung 7 jam.
+  - Mesin perhitungan sudah memotong irisan jam istirahat dan tidak menghitung waktu sebelum jam masuk (K-048, aturan-bisnis §3.3), jadi tidak perlu kode baru. Owner mengisi nilainya di Pengaturan Aturan, dan nilai ini tidak ditanam di kode (K-047).
+  - Skenario ini menjadi TC-18.
+- **K-111 Penggajian hanya diubah Owner.** Owner satu-satunya yang mengubah tarif, menjalankan perhitungan, memfinalkan, dan membuka kembali payroll. HR/Finance hanya melihat dan mereview input serta hasil, sesuai FR-PAY-002 dan BR-021. Keputusan ini memperluas K-049 ke modul payroll Fase 5 dan menjawab "siapa" di Q-014. Alasan wajib dan prosedur koreksi tetap terbuka.
+- **K-112 Satu cabang dulu.** Alat rakitan dipasang di satu cabang dulu. Dua cabang lain belum memakai sistem dan tetap memakai cara lama sampai alatnya dipasang. Cabang mana yang dipilih dan perlakuan karyawan di dua cabang lainnya dicatat sebagai Q-045.
+
+**Alternatif yang dipertimbangkan (K-109):** persetujuan ganda hanya untuk Cuti dan Sakit yang ditanam di kode (ditolak karena aturan bisnis tidak boleh di-hardcode, dan jenis izin sudah berupa master data), serta urutan bebas (ditolak karena proses minimum di dokumen requirement menempatkan review HR sebelum Owner).
+
+
+### Persetujuan ganda dan surat izin (K-113–K-118)
+
+Rincian teknis K-109, disepakati pengguna pada 2026-10-24 dan diimplementasikan pada tanggal yang sama. Rancangan lengkap ada di [spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md); alur status di [alur.md](alur.md) bagian 8. Migration: V12 (status dan kolom baru), V13 (`leave_approvals`), V14 (`user_signatures` dan `leave_requests.applicant_signature_key`).
+
+- **K-113 Status dan persetujuan bertahap.**
+  - Status: `DRAFT`, `PERLU_TINJAU_HR`, `PERLU_TINJAU_OWNER`, `DISETUJUI`, `DITOLAK`, `DIBATALKAN`. Status lama `MENUNGGU` dimigrasi ke `PERLU_TINJAU_HR`; `DISETUJUI` lama tetap dengan riwayat satu tahap dari `decided_by`/`decided_at`.
+  - Draft tidak berpengaruh ke rekap dan pengecekan tumpang tindih. Status aktif (K-075, K-076) adalah `PERLU_TINJAU_HR`, `PERLU_TINJAU_OWNER`, dan `DISETUJUI`.
+  - Kebutuhan persetujuan Owner dan templat surat (`UMUM`, `IZIN`, `CUTI`, `SAKIT`) adalah kolom master Jenis Izin yang diatur Owner, lalu **dibekukan di pengajuan saat dikirim**. Mengubah jenis belakangan tidak mengubah rantai yang sedang berjalan.
+  - Jenis satu persetujuan: HR/Finance atau Owner memutus di tahap HR (K-073). Jenis persetujuan ganda: HR/Finance dulu, lalu Owner; penolakan di tahap mana pun langsung Ditolak.
+  - K-079 berlaku di setiap tahap: akun yang terhubung ke karyawan pemohon tidak memutus, mencatat keputusan Owner, atau menyetujui pengajuannya sendiri. Bila pemohon adalah satu-satunya HR aktif (`HrReviewerCounter`), Owner boleh mengerjakan tahap HR; riwayat mencatatnya, dan tahap Owner tetap harus dilakukan terpisah.
+  - Karyawan menarik pengajuan selama `PERLU_TINJAU_*` (alasan opsional). Pembatalan oleh HR/Owner wajib beralasan (K-074). Hapus draft bersifat permanen dan dicatat di audit (`DELETE`) dengan isi sebelumnya.
+  - Audit baru: `SUBMIT`, `STAGE_APPROVE`, `OWNER_DECISION`, dan `VIEW` pada `LEAVE_LETTER` dan `LEAVE_EVIDENCE`.
+- **K-114 PDF dibuat server (menggantikan sebagian K-082).**
+  - PDF A4 dibuat dengan OpenPDF 2.4.0 dan QR dengan ZXing 3.5.4; font Poppins dan Open Sans (lisensi OFL) di-embed.
+  - Alasan: spesimen tanda tangan HR/Owner tidak boleh dikirim mentah ke browser karyawan, nomor dan QR harus konsisten, dan "Simpan sebagai PDF" di HP tidak andal untuk dikirim lewat WhatsApp.
+  - Surat belum final diberi cap diagonal (`DRAFT`, `MENUNGGU PERSETUJUAN`, `DITOLAK`, `DIBATALKAN`); surat Disetujui tanpa cap. Halaman cetak lama `LeaveLetterPage` dihapus, dan rute lamanya dialihkan ke detail pengajuan.
+  - Akses: pemilik lewat `/api/me`, Owner/HR lewat endpoint manajer, karyawan lain mendapat 404. Unduhan Owner/HR diaudit (`VIEW`).
+  - Tombol "Kirim ke WhatsApp" membuka `wa.me` tanpa nomor dengan link ke halaman persetujuan, dan "Bagikan PDF" memakai Web Share API. Tidak ada integrasi WhatsApp API dan tidak ada nomor WA tersimpan.
+- **K-115 Spesimen tanda tangan.**
+  - Satu spesimen per akun, digambar di kanvas atau diunggah (PNG/JPG, maks. 1 MB, jenis dicek dari isi file), dinormalkan menjadi PNG transparan maksimal 600x200.
+  - Tidak ada endpoint untuk melihat spesimen akun lain; pemilik hanya melihat miliknya. Perubahan diaudit tanpa isi gambar.
+  - **Dibekukan sebagai salinan** saat pengajuan dikirim (pemohon) dan pada setiap persetujuan di web (penyetuju). Mengganti spesimen belakangan tidak mengubah surat lama. Tanpa spesimen, kotak berisi nama dan "disetujui secara elektronik". Ini bukan tanda tangan elektronik tersertifikasi.
+- **K-116 Verifikasi publik bertoken.**
+  - `GET /api/public/letters/{token}` tanpa login; token acak 128-bit dibuat saat kirim dan dimuat di QR (`<base>/verifikasi/<token>`).
+  - Data minimal: nomor, nama, cabang, jenis, rentang, status, dan daftar persetujuan. Nama hanya `fullName` karyawan yang terhubung, atau "HR/Finance" dan "Owner"; username tidak pernah tampil. Alasan, isian rinci, dan lampiran tidak tampil.
+  - Batas laju 30 permintaan per menit per IP, di memori (`app.public-letters.rate-per-minute`). Terlampaui menghasilkan 429. Alamat dasar link dari `app.public-base-url` (env `PUBLIC_BASE_URL`); kosong berarti origin pengunduh.
+- **K-117 Keputusan Owner dicatat HR.**
+  - Hanya di `PERLU_TINJAU_OWNER`, oleh HR/Finance yang bukan pemohon. Isian: setuju/tolak, cara (`WHATSAPP`, `LISAN`, `TERTULIS`), waktu keputusan, catatan wajib, dan bukti.
+  - Bukti wajib untuk WhatsApp dan Tertulis, opsional untuk Lisan. Waktu keputusan tidak boleh di masa depan dan tidak boleh sebelum tahap HR; pembandingan pada ketelitian menit.
+  - Riwayat mencatat Owner sebagai pemberi keputusan dan HR sebagai pencatat. Owner mendapat notifikasi di aplikasi. Spesimen Owner **tidak** ditempel; surat menulis "Disetujui melalui WhatsApp pada ..., dicatat oleh ...". Bukti hanya bisa dibuka HR/Owner dan setiap pembukaan diaudit.
+- **K-118 Beranda dan navigasi karyawan.**
+  - Halaman awal role Karyawan menjadi `/beranda` (menggantikan `/profil` di `homePathFor`): sapaan, kartu Hari ini, pengajuan berjalan (maks. 3), tombol Ajukan izin, ringkasan bulan ini dari data K-083. Tidak ada data gaji.
+  - Navigasi bawah di HP berisi 4 item: Beranda, Izin, Rekan, Profil. Desktop tetap sidebar. Pengajuan lewat alur 4 langkah (Jenis, Tanggal & isian, Lampiran & tanda tangan, Pratinjau) dengan draft tersimpan setiap berpindah langkah.
+  - Rekan Kerja di HP menampilkan kartu ringkas dan pencarian "Cari nama"; kolom dan batasan data tetap K-083/K-084. Karyawan tidak mendapat notifikasi langsung (K-081 tetap untuk Owner/HR).
+
+**Alternatif yang dipertimbangkan:** cetak lewat browser tetap dipakai (ditolak: tanda tangan harus berasal dari server dan HP sulit menyimpan PDF yang andal); menempel spesimen Owner untuk keputusan yang dicatat HR (ditolak: sama dengan memalsukan tanda tangan); verifikasi hanya untuk pengguna login (ditolak: penerima PDF lewat WhatsApp belum tentu punya akun).
 
 ---
 
