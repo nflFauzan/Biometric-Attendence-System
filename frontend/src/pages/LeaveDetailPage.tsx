@@ -3,7 +3,6 @@ import { ArrowLeft, Check, Download, FileCheck2, Paperclip, Upload, UserCheck, X
 import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 
-import { useAuth } from '@/auth/AuthContext'
 import { ApprovalTimeline } from '@/components/leave/ApprovalTimeline'
 import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
 import { LetterDownloadButton } from '@/components/leave/LetterDownloadButton'
@@ -54,7 +53,6 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
     queryKey: [base, 'detail', id],
     queryFn: () => api<LeaveRequest>(`${base}/${id}`),
   })
-  const { me } = useAuth()
   const [decision, setDecision] = useState<Decision | null>(null)
   const [ownerDialog, setOwnerDialog] = useState(false)
 
@@ -65,14 +63,9 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
   }
 
   const pending = data ? isPendingStatus(data.status) : false
-  const isOwner = me?.role === 'OWNER'
-  const isHr = me?.role === 'HR_FINANCE'
-  // Server tetap penentu (K-079, HR tunggal); tombol hanya ditampilkan bila tahapnya cocok dengan peran.
-  const canDecide =
-    mode === 'manager' &&
-    !!data &&
-    ((isHr && data.nextStage === 'HR') || (isOwner && (data.nextStage === 'OWNER' || (data.nextStage === 'HR' && !data.requiresOwnerApproval))))
-  const canRecordOwner = mode === 'manager' && isHr && data?.status === 'PERLU_TINJAU_OWNER'
+  // Hak memutus dihitung server dengan aturan yang sama dengan endpoint aksi (K-079 dan tahap berjalan).
+  const canDecide = mode === 'manager' && !!data?.canDecide
+  const canRecordOwner = mode === 'manager' && !!data?.canRecordOwnerDecision
   const canCancel = mode === 'manager' && !!data && (pending || data.status === 'DISETUJUI')
 
   return (
@@ -144,6 +137,13 @@ export function LeaveDetailPage({ mode }: { mode: LeaveMode }) {
                 <Item label="Tanggal">{formatLeaveRange(data)}</Item>
                 <Item label="Jumlah hari">{formatLeaveDays(data)}</Item>
                 <Item label="Nomor surat">{letterNumber(data.id)}</Item>
+                {data.resubmittedFromId != null && (
+                  <Item label="Pengajuan ulang dari">
+                    <Link to={`${leavePageBase(mode)}/${data.resubmittedFromId}`} className="font-semibold text-primary hover:underline">
+                      {letterNumber(data.resubmittedFromId)}
+                    </Link>
+                  </Item>
+                )}
                 <Item label="Diajukan">
                   {data.submittedAt ? `${formatDateTime(data.submittedAt)} oleh ${data.submittedBy ?? '-'}` : 'Belum dikirim'}
                 </Item>

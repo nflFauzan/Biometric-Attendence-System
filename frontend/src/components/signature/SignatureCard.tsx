@@ -92,7 +92,7 @@ export function SignatureCard() {
         <h2 id="tanda-tangan" className="font-heading text-lg font-bold text-steel-800 dark:text-foreground">
           Tanda tangan
         </h2>
-        <p className="text-sm text-muted-foreground">Dicantumkan pada surat izin yang Anda ajukan.</p>
+        <p className="text-sm text-muted-foreground">Dicantumkan pada surat izin yang Anda ajukan atau setujui.</p>
       </div>
 
       {error && <ErrorAlert message={error} />}

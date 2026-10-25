@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { MessageCircle, Pencil, Send, Share2, Trash2, Undo2 } from 'lucide-react'
+import { MessageCircle, Pencil, RotateCcw, Send, Share2, Trash2, Undo2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 
@@ -19,7 +19,7 @@ const BASE = '/api/me/leave-requests'
 export function MyLeaveActions({ request, onWithdraw }: { request: LeaveRequest; onWithdraw: () => void }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [busy, setBusy] = useState<'submit' | 'delete' | 'share' | null>(null)
+  const [busy, setBusy] = useState<'submit' | 'delete' | 'share' | 'resubmit' | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -52,6 +52,21 @@ export function MyLeaveActions({ request, onWithdraw }: { request: LeaveRequest;
     } catch (e) {
       failed(e)
       setConfirmDelete(false)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  // Ajukan ulang (K-126): server membuat draft baru dari pengajuan yang ditolak, lalu wizard dibuka untuk dicek.
+  const resubmit = async () => {
+    setBusy('resubmit')
+    setError(null)
+    try {
+      const created = await api<LeaveRequest>(`${BASE}/${request.id}/resubmit`, { method: 'POST' })
+      void queryClient.invalidateQueries({ queryKey: [BASE] })
+      navigate(`/izin-saya/${created.id}/ubah`)
+    } catch (e) {
+      failed(e)
     } finally {
       setBusy(null)
     }
@@ -112,6 +127,12 @@ export function MyLeaveActions({ request, onWithdraw }: { request: LeaveRequest;
               Tarik pengajuan
             </Button>
           </>
+        )}
+        {request.status === 'DITOLAK' && (
+          <Button className="min-h-11" disabled={busy != null} onClick={() => void resubmit()}>
+            <RotateCcw />
+            {busy === 'resubmit' ? 'Menyiapkan…' : 'Ajukan ulang'}
+          </Button>
         )}
         <LetterDownloadButton mode="mine" request={request} />
       </div>

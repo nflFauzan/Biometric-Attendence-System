@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bell, X } from 'lucide-react'
 import { Popover } from 'radix-ui'
 import { useCallback, useEffect, useState } from 'react'
@@ -10,11 +10,40 @@ import { LeaveStatusBadge } from '@/components/leave/LeaveStatusBadge'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
 import { formatDateTime } from '@/lib/format'
-import { formatLeaveRange } from '@/lib/leave'
-import type { PendingLeaveSummary } from '@/lib/types'
+import { DECISION_METHOD_LABELS, formatLeaveRange } from '@/lib/leave'
+import type { PendingLeaveSummary, RecordedDecision } from '@/lib/types'
 import { useDashboardStream, type StreamEvent } from '@/lib/useDashboardStream'
 
 const TOAST_MS = 10_000
+const SEEN_KEY_PREFIX = 'absensi.recordedSeen'
+const SEEN_MAX = 200
+
+// Per pengguna: penanda dari akun lain di browser yang sama tidak boleh menyembunyikan notifikasi akun ini.
+function seenKey(username: string | undefined): string {
+  return `${SEEN_KEY_PREFIX}.${username ?? ''}`
+}
+
+function readSeen(key: string): Set<number> {
+  try {
+    const raw = window.localStorage.getItem(key)
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(parsed) ? parsed.filter((v): v is number => typeof v === 'number') : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function writeSeen(key: string, seen: Set<number>) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify([...seen].slice(-SEEN_MAX)))
+  } catch {
+    // penyimpanan tidak tersedia: item dianggap belum dilihat pada kunjungan berikutnya
+  }
+}
+
+function recordedText(item: RecordedDecision): string {
+  return `${item.recorderName} mencatat ${item.approved ? 'persetujuan' : 'penolakan'} Anda (${DECISION_METHOD_LABELS[item.method]})`
+}
 
 interface Toast {
   key: number
@@ -31,6 +60,9 @@ export function LeaveNotifications() {
   const isOwner = me?.role === 'OWNER'
   const [open, setOpen] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const storageKey = seenKey(me?.username)
+  const [seen, setSeen] = useState<Set<number>>(() => readSeen(storageKey))
+  const queryClient = useQueryClient()
   const { data } = useQuery({
     queryKey: ['/api/leave-requests', 'pending'],
     queryFn: () => api<PendingLeaveSummary>('/api/leave-requests/pending'),
@@ -40,6 +72,9 @@ export function LeaveNotifications() {
     (event: StreamEvent) => {
       if (event.type !== 'LEAVE' || !event.requestId) {
         return
+      }
+      if (event.action === 'OWNER_DECISION_RECORDED') {
+        void queryClient.invalidateQueries({ queryKey: ['/api/leave-requests', 'pending'] })
       }
       const who = event.employeeName ?? 'Karyawan'
       const what = event.leaveType ?? 'izin'
@@ -57,27 +92,44 @@ export function LeaveNotifications() {
         setToasts((current) => [...current.slice(-2), toast])
       }
     },
-    [isOwner],
+    [isOwner, queryClient],
   )
   useDashboardStream(onEvent)
 
   const dismiss = useCallback((key: number) => setToasts((current) => current.filter((t) => t.key !== key)), [])
   const count = data?.count ?? 0
+  const recorded = data?.recordedForOwner ?? []
+  const unseen = recorded.filter((item) => !seen.has(item.approvalId)).length
+  const badge = count + unseen
+
+  // Item dianggap sudah dilihat saat popover dibuka (dan ditutup, bila ada yang masuk selagi terbuka).
+  const changeOpen = (next: boolean) => {
+    setOpen(next)
+    if (recorded.length === 0) {
+      return
+    }
+    const merged = new Set(seen)
+    recorded.forEach((item) => merged.add(item.approvalId))
+    setSeen(merged)
+    writeSeen(storageKey, merged)
+  }
 
   return (
     <>
-      <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Root open={open} onOpenChange={changeOpen}>
         <Popover.Trigger asChild>
           <Button
             variant="ghost"
             size="icon"
             className="relative"
-            aria-label={count > 0 ? `${count} pengajuan izin menunggu persetujuan` : 'Notifikasi izin'}
+            aria-label={
+              unseen > 0 ? `${badge} notifikasi izin` : count > 0 ? `${count} pengajuan izin menunggu persetujuan` : 'Notifikasi izin'
+            }
           >
             <Bell />
-            {count > 0 && (
+            {badge > 0 && (
               <span className="absolute -top-0.5 -right-0.5 grid min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] leading-5 font-bold text-white tabular-nums">
-                {count > 99 ? '99+' : count}
+                {badge > 99 ? '99+' : badge}
               </span>
             )}
           </Button>
@@ -115,6 +167,31 @@ export function LeaveNotifications() {
                 </li>
               ))}
             </ul>
+            {recorded.length > 0 && (
+              <>
+                <p className="border-t border-b px-4 py-2 text-sm font-semibold">Keputusan Anda yang dicatat HR</p>
+                <ul className="max-h-60 divide-y overflow-y-auto">
+                  {recorded.map((item) => (
+                    <li key={item.approvalId}>
+                      <Link
+                        to={`/izin/${item.requestId}`}
+                        onClick={() => setOpen(false)}
+                        className="flex flex-col gap-0.5 px-4 py-3 hover:bg-accent/60"
+                      >
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="text-sm font-semibold">{recordedText(item)}</span>
+                          <LeaveStatusBadge status={item.status} />
+                        </span>
+                        <span className="text-sm">
+                          {item.employeeName} · {item.leaveTypeName ?? 'Izin'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{formatDateTime(item.recordedAt)}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             <Link
               to="/izin"
               onClick={() => setOpen(false)}

@@ -26,6 +26,11 @@ function stageStep(request: LeaveRequest, stage: ApprovalStage, label: string): 
   if (approval) {
     return { key: stage, label, state: approval.approved ? 'done' : 'rejected', detail: approvalDetail(approval), note: approval.note }
   }
+  const owner = request.approvals.find((a) => a.stage === 'OWNER')
+  if (stage === 'HR' && owner) {
+    // Owner memutus langsung tanpa tahap HR (K-125).
+    return { key: stage, label, state: 'skipped', detail: `${owner.approved ? 'Disetujui' : 'Ditolak'} langsung oleh Owner` }
+  }
   if (request.status === 'DITOLAK' || request.status === 'DIBATALKAN') {
     // Rantai berhenti sebelum tahap ini: tidak akan pernah ditinjau.
     return { key: stage, label, state: 'skipped', detail: 'Dilewati' }

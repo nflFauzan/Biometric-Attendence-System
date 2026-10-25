@@ -559,6 +559,12 @@ export interface LeaveRequest {
   approvals: LeaveApproval[]
   /** Tahap yang harus memutus; null bila tidak sedang menunggu. */
   nextStage: ApprovalStage | null
+  /** Apakah penampil saat ini boleh menyetujui/menolak sekarang; dihitung server (endpoint karyawan selalu false). */
+  canDecide: boolean
+  /** Apakah penampil saat ini boleh mencatat keputusan Owner di luar web. */
+  canRecordOwnerDecision: boolean
+  /** Pengajuan ditolak yang menjadi asal draft ini (K-126). */
+  resubmittedFromId: number | null
 }
 
 /** Jawaban verifikasi publik surat (tanpa login); sengaja minimal. */
@@ -593,9 +599,23 @@ export interface PendingLeaveSummary {
     submittedAt: string | null
     status: LeaveStatus
   }[]
+  /** Keputusan Owner yang dicatat HR dalam 7 hari terakhir; selalu kosong untuk non-Owner. */
+  recordedForOwner: RecordedDecision[]
 }
 
-/** Daftar rekan kerja (docs/rencana-rekan-kerja.md, K-083): hanya kolom yang diizinkan. */
+export interface RecordedDecision {
+  approvalId: number
+  requestId: number
+  employeeName: string
+  leaveTypeName: string | null
+  approved: boolean
+  method: DecisionMethod
+  recorderName: string
+  recordedAt: string
+  status: LeaveStatus
+}
+
+/** Absensi Saya (K-127; bentuk dari daftar rekan kerja K-083/K-084): hanya kolom yang diizinkan. */
 export type TeamStatus = 'HADIR' | 'TIDAK_LENGKAP' | 'TIDAK_HADIR' | 'IZIN' | 'LIBUR' | 'BELUM_DIATUR'
 
 export interface TeamDay {
@@ -605,23 +625,6 @@ export interface TeamDay {
   checkOut: string | null
   lateSeconds: number | null
   overtimeSeconds: number | null
-}
-
-export interface TeamRow {
-  employeeId: number
-  employeeNumber: string
-  fullName: string
-  branchId: number
-  branchName: string
-  position: string | null
-  day: TeamDay
-}
-
-export interface TeamDaily {
-  date: string
-  branchId: number | null
-  branches: { id: number; name: string }[]
-  rows: TeamRow[]
 }
 
 export interface TeamMember {
