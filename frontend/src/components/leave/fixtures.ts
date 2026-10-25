@@ -36,6 +36,9 @@ export const sampleRequest = (overrides: Partial<LeaveRequest> = {}): LeaveReque
   createdAt: '2026-10-24T00:50:00Z',
   approvals: [],
   nextStage: 'OWNER',
+  canDecide: false,
+  canRecordOwnerDecision: false,
+  resubmittedFromId: null,
   ...overrides,
 })
 

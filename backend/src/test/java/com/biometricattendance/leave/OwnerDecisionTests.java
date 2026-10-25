@@ -186,6 +186,89 @@ class OwnerDecisionTests extends AttendanceFixtures {
 				Long.class)).isGreaterThanOrEqualTo(1L);
 	}
 
+	@Test
+	void ownerPendingShowsRecentDecisionsRecordedByHrNewestFirst() throws Exception {
+		long first = atOwnerStage();
+		long second = atOwnerStage();
+		mockMvc.perform(record(first, true, "WHATSAPP", now(), "WA", file()).with(HR)).andExpect(status().isOk());
+		mockMvc.perform(record(second, false, "LISAN", now(), "Lisan", null).with(HR)).andExpect(status().isOk());
+		jdbc.update("update leave_approvals set recorded_at = recorded_at - interval '1 hour' where leave_request_id = ?",
+				first);
+
+		String json = mockMvc.perform(get("/api/leave-requests/pending").with(OWNER))
+			.andExpect(status().isOk())
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		List<Integer> order = com.jayway.jsonpath.JsonPath.read(json, "$.recordedForOwner[*].requestId");
+		assertThat(order.indexOf((int) second)).isLessThan(order.indexOf((int) first));
+		assertThat(order.indexOf((int) first)).isNotNegative();
+		List<String> methods = com.jayway.jsonpath.JsonPath.read(json,
+				"$.recordedForOwner[?(@.requestId==" + first + ")].method");
+		assertThat(methods).containsExactly("WHATSAPP");
+		List<Boolean> approved = com.jayway.jsonpath.JsonPath.read(json,
+				"$.recordedForOwner[?(@.requestId==" + second + ")].approved");
+		assertThat(approved).containsExactly(false);
+		List<String> recorder = com.jayway.jsonpath.JsonPath.read(json,
+				"$.recordedForOwner[?(@.requestId==" + first + ")].recorderName");
+		assertThat(recorder).containsExactly("HR/Finance");
+		List<String> status = com.jayway.jsonpath.JsonPath.read(json,
+				"$.recordedForOwner[?(@.requestId==" + first + ")].status");
+		assertThat(status).containsExactly("DISETUJUI");
+	}
+
+	@Test
+	void recordedNoticeExcludesWebDecisionsOldItemsAndNonOwners() throws Exception {
+		long viaWeb = atOwnerStage();
+		mockMvc.perform(post("/api/leave-requests/" + viaWeb + "/approve").with(OWNER)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{}")).andExpect(status().isOk());
+		long old = atOwnerStage();
+		mockMvc.perform(record(old, true, "TERTULIS", now(), "Surat", file()).with(HR)).andExpect(status().isOk());
+		jdbc.update("update leave_approvals set recorded_at = now() - interval '8 days' where leave_request_id = ?",
+				old);
+		long fresh = atOwnerStage();
+		mockMvc.perform(record(fresh, true, "LISAN", now(), "Lisan", null).with(HR)).andExpect(status().isOk());
+		jdbc.update("update leave_approvals set recorded_at = now() - interval '6 days' where leave_request_id = ?",
+				fresh);
+
+		String owner = mockMvc.perform(get("/api/leave-requests/pending").with(OWNER))
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		List<Integer> ids = com.jayway.jsonpath.JsonPath.read(owner, "$.recordedForOwner[*].requestId");
+		assertThat(ids).contains((int) fresh).doesNotContain((int) viaWeb, (int) old);
+
+		mockMvc.perform(get("/api/leave-requests/pending").with(HR))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.recordedForOwner.length()").value(0));
+	}
+
+	@Test
+	void recordedNoticeUsesLinkedEmployeeNameOfRecorder() throws Exception {
+		long hrEmployee = createEmployee(createBranch(), null);
+		String hrName = jdbc.queryForObject("select full_name from employees where id = ?", String.class, hrEmployee);
+		String username = unique("hr-tertaut-");
+		mockMvc.perform(post("/api/users").with(OWNER)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"username\":\"" + username + "\",\"password\":\"rahasia-uji-123\",\"role\":\"HR_FINANCE\","
+					+ "\"employeeId\":" + hrEmployee + "}"))
+			.andExpect(status().isCreated());
+		long id = atOwnerStage();
+		mockMvc.perform(record(id, true, "WHATSAPP", now(), "WA", file()).with(user(username).roles("HR_FINANCE")))
+			.andExpect(status().isOk());
+
+		String json = mockMvc.perform(get("/api/leave-requests/pending").with(OWNER))
+			.andReturn()
+			.getResponse()
+			.getContentAsString();
+		List<String> recorder = com.jayway.jsonpath.JsonPath.read(json,
+				"$.recordedForOwner[?(@.requestId==" + id + ")].recorderName");
+		assertThat(recorder).containsExactly(hrName);
+	}
+
 	// ---- Helper ----
 
 	private long atOwnerStage() throws Exception {

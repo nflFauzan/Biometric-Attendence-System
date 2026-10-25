@@ -43,6 +43,20 @@ describe('ApprovalTimeline', () => {
     expect(screen.getByText('Ditinjau HR').closest('li')).toHaveTextContent('Sedang ditinjau')
   })
 
+  it('menandai tahap HR sebagai diputus langsung oleh Owner', () => {
+    const owner = { ...hrApproval, stage: 'OWNER' as const, decidedBy: 'OWNER', decidedByName: 'Owner' }
+    render(<ApprovalTimeline request={sampleRequest({ status: 'DISETUJUI', nextStage: null, approvals: [owner] })} />)
+    const hr = screen.getByText('Ditinjau HR').closest('li')!
+    expect(hr).toHaveTextContent('Disetujui langsung oleh Owner')
+    expect(hr).not.toHaveTextContent('Dilewati')
+  })
+
+  it('menandai tahap HR sebagai ditolak langsung oleh Owner', () => {
+    const owner = { ...hrApproval, stage: 'OWNER' as const, approved: false, decidedBy: 'OWNER', decidedByName: 'Owner' }
+    render(<ApprovalTimeline request={sampleRequest({ status: 'DITOLAK', nextStage: null, approvals: [owner] })} />)
+    expect(screen.getByText('Ditinjau HR').closest('li')).toHaveTextContent('Ditolak langsung oleh Owner')
+  })
+
   it('marks the Owner step as skipped after rejection at the HR stage', () => {
     const rejected = { ...hrApproval, approved: false }
     render(<ApprovalTimeline request={sampleRequest({ status: 'DITOLAK', nextStage: null, approvals: [rejected] })} />)

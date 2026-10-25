@@ -62,6 +62,9 @@ const request = (overrides: Partial<LeaveRequest> = {}): LeaveRequest => ({
   createdAt: '2026-10-05T00:59:00Z',
   approvals: [],
   nextStage: 'HR',
+  canDecide: true,
+  canRecordOwnerDecision: false,
+  resubmittedFromId: null,
   ...overrides,
 })
 
@@ -152,7 +155,7 @@ describe('Halaman izin dan cuti Fase 4', () => {
       'GET /api/leave-requests/7': () => ({ status: 200, body: current }),
       'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: usage }),
       'POST /api/leave-requests/7/approve': () => {
-        current = request({ status: 'DISETUJUI', nextStage: null, decidedBy: 'hr', decidedAt: '2026-10-05T02:00:00Z', decisionNote: 'Cepat sembuh' })
+        current = request({ status: 'DISETUJUI', nextStage: null, canDecide: false, decidedBy: 'hr', decidedAt: '2026-10-05T02:00:00Z', decisionNote: 'Cepat sembuh' })
         return { status: 200, body: current }
       },
     })
@@ -187,7 +190,7 @@ describe('Halaman izin dan cuti Fase 4', () => {
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
       'GET /api/leave-requests/7': () => ({
         status: 200,
-        body: request({ status: 'PERLU_TINJAU_OWNER', nextStage: 'OWNER', requiresOwnerApproval: true }),
+        body: request({ status: 'PERLU_TINJAU_OWNER', nextStage: 'OWNER', requiresOwnerApproval: true, canDecide: false, canRecordOwnerDecision: true }),
       }),
       'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: { employeeId: 12, year: 2026, types: [], pendingRequests: 0 } }),
     })
@@ -220,7 +223,30 @@ describe('Halaman izin dan cuti Fase 4', () => {
     expect(await screen.findByRole('button', { name: 'Setujui' })).toBeInTheDocument()
   })
 
-  it('form Jenis Izin selalu mengirim requiresOwnerApproval dan letterTemplate saat mengubah', async () => {
+it('tombol keputusan mengikuti flag server, bukan peran: Owner melihat Setujui di tahap HR bila HR tunggal', async () => {
+  const usage = { 'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: { employeeId: 12, year: 2026, types: [], pendingRequests: 0 } }) }
+  mockFetch({
+    'GET /api/auth/me': () => ({ status: 200, body: owner }),
+    'GET /api/leave-requests/7': () => ({ status: 200, body: request({ requiresOwnerApproval: true, canDecide: true }) }),
+    ...usage,
+  })
+  renderAt('/izin/7')
+  expect(await screen.findByRole('button', { name: 'Setujui' })).toBeInTheDocument()
+})
+
+it('Owner tidak melihat Setujui di tahap HR bila server menyatakan canDecide false', async () => {
+  mockFetch({
+    'GET /api/auth/me': () => ({ status: 200, body: owner }),
+    'GET /api/leave-requests/7': () => ({ status: 200, body: request({ requiresOwnerApproval: true, canDecide: false }) }),
+    'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: { employeeId: 12, year: 2026, types: [], pendingRequests: 0 } }),
+  })
+  renderAt('/izin/7')
+  expect(await screen.findByText('Sakit · Budi Santoso')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Setujui' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Catat keputusan Owner' })).not.toBeInTheDocument()
+})
+
+it('form Jenis Izin selalu mengirim requiresOwnerApproval dan letterTemplate saat mengubah', async () => {
     const fetch = mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: owner }),
       'GET /api/leave-types': () => ({ status: 200, body: [sakit] }),
@@ -247,6 +273,7 @@ describe('Halaman izin dan cuti Fase 4', () => {
         { id: 7, employeeId: 12, employeeName: 'Budi Santoso', branchName: 'Pusat', leaveTypeName: 'Sakit', startDate: '2026-10-05', endDate: '2026-10-05', submittedAt: '2026-10-05T01:00:00Z', status: 'PERLU_TINJAU_HR' },
         { id: 8, employeeId: 13, employeeName: 'Siti Aminah', branchName: 'Pusat', leaveTypeName: 'Cuti', startDate: '2026-10-07', endDate: '2026-10-09', submittedAt: '2026-10-05T02:00:00Z', status: 'PERLU_TINJAU_OWNER' },
       ],
+      recordedForOwner: [],
     }
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
@@ -260,6 +287,41 @@ describe('Halaman izin dan cuti Fase 4', () => {
     fireEvent.click(bell)
     expect(await screen.findByText('Siti Aminah')).toBeInTheDocument()
     expect(screen.getByText('Siti Aminah').closest('a')).toHaveAttribute('href', '/izin/8')
+  })
+
+  it('lonceng Owner menampilkan keputusan yang dicatat HR dan badge hanya menghitung yang belum dilihat', async () => {
+    window.localStorage.removeItem('absensi.recordedSeen.owner')
+    const pending: PendingLeaveSummary = {
+      count: 1,
+      items: [
+        { id: 8, employeeId: 13, employeeName: 'Siti Aminah', branchName: 'Pusat', leaveTypeName: 'Cuti', startDate: '2026-10-07', endDate: '2026-10-09', submittedAt: '2026-10-05T02:00:00Z', status: 'PERLU_TINJAU_OWNER' },
+      ],
+      recordedForOwner: [
+        { approvalId: 31, requestId: 7, employeeName: 'Budi Santoso', leaveTypeName: 'Sakit', approved: true, method: 'WHATSAPP', recorderName: 'Sari', recordedAt: '2026-10-05T03:00:00Z', status: 'DISETUJUI' },
+        { approvalId: 32, requestId: 9, employeeName: 'Dewi', leaveTypeName: 'Cuti', approved: false, method: 'LISAN', recorderName: 'Sari', recordedAt: '2026-10-05T04:00:00Z', status: 'DITOLAK' },
+      ],
+    }
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: owner }),
+      'GET /api/branches': () => ({ status: 200, body: [] }),
+      'GET /api/leave-requests/pending': () => ({ status: 200, body: pending }),
+      'GET /api/leave-requests?': () => ({ status: 200, body: [] }),
+    })
+    renderAt('/izin')
+
+    fireEvent.click(await screen.findByRole('button', { name: '3 notifikasi izin' }))
+    expect(await screen.findByText('Keputusan Anda yang dicatat HR')).toBeInTheDocument()
+    expect(screen.getByText('Sari mencatat persetujuan Anda (WhatsApp)').closest('a')).toHaveAttribute('href', '/izin/7')
+    expect(screen.getByText('Sari mencatat penolakan Anda (Lisan)').closest('a')).toHaveAttribute('href', '/izin/9')
+    const recordedLink = screen.getByText('Sari mencatat persetujuan Anda (WhatsApp)').closest('a')!
+    expect(within(recordedLink).getByText('Disetujui')).toBeInTheDocument()
+    const rejectedLink = screen.getByText('Sari mencatat penolakan Anda (Lisan)').closest('a')!
+    expect(within(rejectedLink).getByText('Ditolak')).toBeInTheDocument()
+    expect(JSON.parse(window.localStorage.getItem('absensi.recordedSeen.owner') ?? '[]')).toEqual([31, 32])
+
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+    expect(await screen.findByRole('button', { name: '1 pengajuan izin menunggu persetujuan' })).toBeInTheDocument()
+    window.localStorage.removeItem('absensi.recordedSeen.owner')
   })
 
   it('unduh bukti keputusan memakai ekstensi dari tipe berkas', async () => {
@@ -289,7 +351,7 @@ describe('Halaman izin dan cuti Fase 4', () => {
     const fetch = mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: owner }),
       'GET /api/branches': () => ({ status: 200, body: [] }),
-      'GET /api/leave-requests/pending': () => ({ status: 200, body: { count: 0, items: [] } }),
+      'GET /api/leave-requests/pending': () => ({ status: 200, body: { count: 0, items: [], recordedForOwner: [] } }),
       'GET /api/leave-requests?': () => ({
         status: 200,
         body: [

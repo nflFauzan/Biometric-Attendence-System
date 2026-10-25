@@ -62,6 +62,11 @@ class LeaveTests extends AttendanceFixtures {
 			.andExpect(jsonPath("$.items[0].id").value((int) id))
 			.andExpect(jsonPath("$.items[0].employeeId").value((int) employee));
 
+		// Endpoint karyawan tidak pernah menawarkan aksi keputusan.
+		mockMvc.perform(get("/api/me/leave-requests/" + id).with(me))
+			.andExpect(jsonPath("$.canDecide").value(false))
+			.andExpect(jsonPath("$.canRecordOwnerDecision").value(false));
+
 		mockMvc.perform(decide(id, "approve", "Silakan").with(HR))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.status").value("DISETUJUI"))

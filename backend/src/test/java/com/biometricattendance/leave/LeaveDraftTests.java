@@ -240,7 +240,118 @@ class LeaveDraftTests extends AttendanceFixtures {
 		assertThat(stream.getResponse().getContentAsString()).doesNotContain("ATTACHMENT_ADDED");
 	}
 
+	// ---- Ajukan ulang (K-126) ----
+
+	@Test
+	void resubmitCopiesRejectedRequestIntoNewDraft() throws Exception {
+		RequestPostProcessor me = employeeAccount(createEmployee(createBranch(), null));
+		long type = createType("UMUM", false);
+		long old = rejectedRequest(me, type, "2026-10-05");
+
+		long draft = idOf(mockMvc.perform(post(ME + "/" + old + "/resubmit").with(csrf()).with(me))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.status").value("DRAFT"))
+			.andExpect(jsonPath("$.resubmittedFromId").value(old))
+			.andExpect(jsonPath("$.leaveTypeId").value(type))
+			.andExpect(jsonPath("$.startDate").value("2026-10-05"))
+			.andExpect(jsonPath("$.endDate").value("2026-10-06"))
+			.andExpect(jsonPath("$.reason").value("Urusan keluarga"))
+			.andExpect(jsonPath("$.contactPhone").value("0812000000"))
+			.andExpect(jsonPath("$.attachments.length()").value(0)));
+
+		mockMvc.perform(get(ME + "/" + old).with(me))
+			.andExpect(jsonPath("$.status").value("DITOLAK"))
+			.andExpect(jsonPath("$.resubmittedFromId").doesNotExist())
+			.andExpect(jsonPath("$.attachments.length()").value(1));
+		assertThat(auditActions(draft)).containsExactly("RESUBMIT");
+
+		mockMvc.perform(post(ME + "/" + draft + "/submit").with(csrf()).with(me))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("PERLU_TINJAU_HR"));
+	}
+
+	@Test
+	void onlyRejectedRequestsCanBeResubmitted() throws Exception {
+		RequestPostProcessor me = employeeAccount(createEmployee(createBranch(), null));
+		long type = createType("UMUM", false);
+		long pending = idOf(mockMvc.perform(json(post(ME), body(type, "2026-10-05", "2026-10-05", "Uji")).with(me))
+			.andExpect(status().isCreated()));
+
+		mockMvc.perform(post(ME + "/" + pending + "/resubmit").with(csrf()).with(me))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.detail").value("Hanya pengajuan yang ditolak yang bisa diajukan ulang"));
+		mockMvc.perform(post("/api/leave-requests/" + pending + "/approve").with(csrf()).with(HR)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{}")).andExpect(status().isOk());
+		mockMvc.perform(post(ME + "/" + pending + "/resubmit").with(csrf()).with(me))
+			.andExpect(status().isConflict());
+	}
+
+	@Test
+	void rejectedRequestCanBeResubmittedOnce() throws Exception {
+		RequestPostProcessor me = employeeAccount(createEmployee(createBranch(), null));
+		long old = rejectedRequest(me, createType("UMUM", false), "2026-10-05");
+
+		mockMvc.perform(post(ME + "/" + old + "/resubmit").with(csrf()).with(me)).andExpect(status().isCreated());
+		mockMvc.perform(post(ME + "/" + old + "/resubmit").with(csrf()).with(me))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.detail").value("Pengajuan ini sudah diajukan ulang"));
+	}
+
+	@Test
+	void cannotResubmitSomeoneElsesRequest() throws Exception {
+		RequestPostProcessor me = employeeAccount(createEmployee(createBranch(), null));
+		RequestPostProcessor other = employeeAccount(createEmployee(createBranch(), null));
+		long old = rejectedRequest(me, createType("UMUM", false), "2026-10-05");
+
+		mockMvc.perform(post(ME + "/" + old + "/resubmit").with(csrf()).with(other)).andExpect(status().isNotFound());
+	}
+
+	@Test
+	void resubmitWithInactiveLeaveTypeIsRejected() throws Exception {
+		RequestPostProcessor me = employeeAccount(createEmployee(createBranch(), null));
+		long type = createType("UMUM", false);
+		long old = rejectedRequest(me, type, "2026-10-05");
+		mockMvc.perform(json(put("/api/leave-types/" + type), "{\"name\":\"" + unique("Jenis ")
+				+ "\",\"requiresDocument\":false,\"active\":false,\"requiresOwnerApproval\":false,\"letterTemplate\":\"UMUM\"}")
+			.with(OWNER)).andExpect(status().isOk());
+
+		mockMvc.perform(post(ME + "/" + old + "/resubmit").with(csrf()).with(me))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.detail").value("Jenis izin ini sudah tidak aktif"));
+		assertThat(jdbc.queryForObject("select count(*) from leave_requests where resubmitted_from_id = ?", Long.class,
+				old)).isZero();
+	}
+
+	@Test
+	void deletingResubmittedDraftAllowsResubmittingAgain() throws Exception {
+		RequestPostProcessor me = employeeAccount(createEmployee(createBranch(), null));
+		long old = rejectedRequest(me, createType("UMUM", false), "2026-10-05");
+		long draft = idOf(mockMvc.perform(post(ME + "/" + old + "/resubmit").with(csrf()).with(me))
+			.andExpect(status().isCreated()));
+
+		mockMvc.perform(delete(ME + "/" + draft).with(csrf()).with(me)).andExpect(status().isNoContent());
+		mockMvc.perform(post(ME + "/" + old + "/resubmit").with(csrf()).with(me)).andExpect(status().isCreated());
+	}
+
 	// ---- Helper ----
+
+	/** Pengajuan milik akun ini (2 hari, dengan satu lampiran) yang ditolak HR. */
+	private long rejectedRequest(RequestPostProcessor me, long type, String start) throws Exception {
+		String end = java.time.LocalDate.parse(start).plusDays(1).toString();
+		long id = idOf(mockMvc.perform(json(post(ME), "{\"draft\":true,\"leaveTypeId\":" + type + ",\"startDate\":\""
+				+ start + "\",\"endDate\":\"" + end + "\",\"reason\":\"Urusan keluarga\",\"contactPhone\":\"0812000000\"}")
+			.with(me)).andExpect(status().isCreated()));
+		mockMvc.perform(multipart(ME + "/" + id + "/attachments")
+			.file(new MockMultipartFile("file", "surat.pdf", "application/octet-stream", PDF))
+			.with(csrf())
+			.with(me)).andExpect(status().isCreated());
+		mockMvc.perform(post(ME + "/" + id + "/submit").with(csrf()).with(me)).andExpect(status().isOk());
+		mockMvc.perform(post("/api/leave-requests/" + id + "/reject").with(csrf()).with(HR)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"note\":\"Bentrok jadwal\"}")).andExpect(status().isOk());
+		return id;
+	}
 
 	private long createType(String template, boolean ownerApproval) throws Exception {
 		return idOf(mockMvc.perform(json(post("/api/leave-types"), "{\"name\":\"" + unique("Jenis ")

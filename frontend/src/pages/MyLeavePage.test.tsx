@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,11 +11,11 @@ import { mockFetch } from '@/test/fetchMock'
 
 const employee: Me = { username: 'budi', role: 'EMPLOYEE', employeeId: 12, employeeName: 'Budi Santoso', mustChangePassword: false }
 
-function renderList() {
+function renderList(path = '/izin-saya') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/izin-saya']}>
+      <MemoryRouter initialEntries={[path]}>
         <AuthProvider>
           <App />
         </AuthProvider>
@@ -76,5 +76,47 @@ describe('MyLeavePage', () => {
     renderList()
     expect(await screen.findByText('Belum ada pengajuan berjalan')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Ajukan izin' })).toHaveAttribute('href', '/izin-saya/baru')
+  })
+
+  describe('Ajukan ulang (K-126)', () => {
+    const rejected = sampleRequest({ id: 7, status: 'DITOLAK', leaveTypeName: 'Izin', nextStage: null })
+    const resubmitted = sampleRequest({ id: 9, status: 'DRAFT', submittedAt: null, nextStage: null, resubmittedFromId: 7 })
+
+    it('pengajuan ditolak bisa diajukan ulang lalu membuka wizard draft baru', async () => {
+      const fetch = mockFetch({
+        'GET /api/auth/me': () => ({ status: 200, body: employee }),
+        'GET /api/me/leave-requests/7': () => ({ status: 200, body: rejected }),
+        'POST /api/me/leave-requests/7/resubmit': () => ({ status: 201, body: resubmitted }),
+        'GET /api/me/leave-requests/9': () => ({ status: 200, body: resubmitted }),
+        'GET /api/leave-types': () => ({ status: 200, body: [] }),
+      })
+      renderList('/izin-saya/7')
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Ajukan ulang' }))
+
+      await waitFor(() =>
+        expect(fetch.mock.calls.some(([url, init]) => url === '/api/me/leave-requests/7/resubmit' && init?.method === 'POST')).toBe(true),
+      )
+      await waitFor(() => expect(fetch.mock.calls.some(([url]) => url === '/api/me/leave-requests/9')).toBe(true))
+    })
+
+    it('status selain Ditolak tidak menampilkan tombol Ajukan ulang', async () => {
+      mockFetch({
+        'GET /api/auth/me': () => ({ status: 200, body: employee }),
+        'GET /api/me/leave-requests/3': () => ({ status: 200, body: done }),
+      })
+      renderList('/izin-saya/3')
+      await screen.findByText('Rincian pengajuan')
+      expect(screen.queryByRole('button', { name: 'Ajukan ulang' })).not.toBeInTheDocument()
+    })
+
+    it('draft hasil ajukan ulang menautkan pengajuan sebelumnya', async () => {
+      mockFetch({
+        'GET /api/auth/me': () => ({ status: 200, body: employee }),
+        'GET /api/me/leave-requests/9': () => ({ status: 200, body: resubmitted }),
+      })
+      renderList('/izin-saya/9')
+      expect(await screen.findByRole('link', { name: 'IZ-000007' })).toHaveAttribute('href', '/izin-saya/7')
+    })
   })
 })

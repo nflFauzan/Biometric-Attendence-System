@@ -95,6 +95,19 @@ class LeaveLetterTests extends AttendanceFixtures {
 		assertThat(text).contains("/verifikasi/" + token);
 	}
 
+	/** K-125: tahap HR yang dilewati karena Owner memutus langsung ditulis sebagai teks, tanpa nama dan gambar. */
+	@Test
+	void ownerDirectDecisionIsWrittenInHrBox() throws Exception {
+		Person p = person(false);
+		long approved = submitMine(p, createType("UMUM", true), "2026-10-05");
+		mockMvc.perform(decide(approved, "approve").with(OWNER)).andExpect(status().isOk());
+		assertThat(text(download(ME, approved, p.as()))).contains("Disetujui langsung oleh Owner");
+
+		long rejected = submitMine(p, createType("UMUM", true), "2026-10-12");
+		mockMvc.perform(decide(rejected, "reject", "Tidak ada pengganti").with(OWNER)).andExpect(status().isOk());
+		assertThat(text(download(ME, rejected, p.as()))).contains("Ditolak langsung oleh Owner");
+	}
+
 	@Test
 	void pendingAndRejectedLettersCarryStatusStamp() throws Exception {
 		Person p = person(false);
@@ -129,6 +142,38 @@ class LeaveLetterTests extends AttendanceFixtures {
 		// Username login tidak boleh muncul di surat (akun HR uji tidak terhubung ke karyawan).
 		assertThat(text).doesNotContain("hr-absensi");
 		assertThat(text).doesNotContain("MENUNGGU PERSETUJUAN");
+	}
+
+	@Test
+	void recordedDecisionNamesRecorderEmployeeWhenAccountIsLinked() throws Exception {
+		Person p = person(false);
+		long hrEmployee = createEmployee(createBranch(), null);
+		String hrName = jdbc.queryForObject("select full_name from employees where id = ?", String.class, hrEmployee);
+		String hrUser = unique("hr-tertaut-");
+		mockMvc.perform(json(post("/api/users"), "{\"username\":\"" + hrUser
+				+ "\",\"password\":\"rahasia-uji-123\",\"role\":\"HR_FINANCE\",\"employeeId\":" + hrEmployee + "}")
+			.with(OWNER)).andExpect(status().isCreated());
+		RequestPostProcessor linkedHr = user(hrUser).roles("HR_FINANCE");
+
+		long id = submitMine(p, createType("UMUM", true), "2026-10-05");
+		// Tahap HR diputus akun lain, supaya pencatat hanya muncul sebagai recordedBy.
+		mockMvc.perform(decide(id, "approve").with(HR)).andExpect(status().isOk());
+		String json = "{\"approved\":true,\"method\":\"WHATSAPP\",\"decidedAt\":\"" + LocalDateTime.now(ZONE)
+				+ "\",\"note\":\"Owner setuju lewat WA\"}";
+		mockMvc.perform(multipart("/api/leave-requests/" + id + "/owner-decision")
+			.file(new MockMultipartFile("decision", "", "application/json", json.getBytes(StandardCharsets.UTF_8)))
+			.file(new MockMultipartFile("evidence", "bukti.pdf", "application/pdf", PDF_EVIDENCE))
+			.with(csrf())
+			.with(linkedHr)).andExpect(status().isOk());
+
+		String text = text(download("/api/leave-requests", id, HR));
+		assertThat(text).contains("dicatat oleh " + hrName).doesNotContain(hrUser);
+
+		// Halaman publik tidak pernah memuat username maupun pencatat.
+		String token = jdbc.queryForObject("select verification_token from leave_requests where id = ?", String.class, id);
+		String body = mockMvc.perform(get("/api/public/letters/" + token)).andExpect(status().isOk())
+			.andReturn().getResponse().getContentAsString();
+		assertThat(body).doesNotContain(hrUser);
 	}
 
 	@Test

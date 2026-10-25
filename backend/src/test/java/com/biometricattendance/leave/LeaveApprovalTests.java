@@ -79,18 +79,78 @@ class LeaveApprovalTests extends AttendanceFixtures {
 		assertThat(auditActions(id)).containsExactly("CREATE", "STAGE_APPROVE", "APPROVE");
 	}
 
+	/** K-125: Owner boleh memutus langsung tanpa tahap HR; dicatat sebagai satu baris tahap Owner. */
 	@Test
-	void ownerCannotSkipHrStageForDoubleApprovalType() throws Exception {
-		long employee = createEmployee(createBranch(), null);
-		long id = idOf(mockMvc.perform(submitFor(employee, createType(true), "2026-10-05", "2026-10-05").with(HR)));
+	void ownerApprovesDoubleApprovalTypeDirectlyAtHrStage() throws Exception {
+		long id = idOf(mockMvc
+			.perform(submitFor(createEmployee(createBranch(), null), createType(true), "2026-10-05", "2026-10-05").with(HR)));
 
-		mockMvc.perform(decide(id, "approve", null).with(OWNER)).andExpect(status().isForbidden());
-		mockMvc.perform(decide(id, "reject", "Tidak").with(OWNER)).andExpect(status().isForbidden());
+		mockMvc.perform(decide(id, "approve", "Langsung").with(OWNER))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("DISETUJUI"))
+			.andExpect(jsonPath("$.approvals.length()").value(1))
+			.andExpect(jsonPath("$.approvals[0].stage").value("OWNER"))
+			.andExpect(jsonPath("$.approvals[0].approved").value(true))
+			.andExpect(jsonPath("$.approvals[0].method").value("WEB"))
+			.andExpect(jsonPath("$.decidedBy").value("owner-absensi"));
+		assertThat(auditActions(id)).containsExactly("CREATE", "APPROVE");
+	}
 
+	@Test
+	void ownerRejectsDoubleApprovalTypeDirectlyAtHrStage() throws Exception {
+		long id = idOf(mockMvc
+			.perform(submitFor(createEmployee(createBranch(), null), createType(true), "2026-10-05", "2026-10-05").with(HR)));
+
+		mockMvc.perform(decide(id, "reject", "Tidak ada pengganti").with(OWNER))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("DITOLAK"))
+			.andExpect(jsonPath("$.approvals.length()").value(1))
+			.andExpect(jsonPath("$.approvals[0].stage").value("OWNER"))
+			.andExpect(jsonPath("$.approvals[0].approved").value(false))
+			.andExpect(jsonPath("$.decisionNote").value("Tidak ada pengganti"));
+	}
+
+	@Test
+	void ownerDirectApprovalStillRequiresSupportingDocument() throws Exception {
+		long id = idOf(mockMvc.perform(
+				submitFor(createEmployee(createBranch(), null), createType(true, true), "2026-10-05", "2026-10-05")
+					.with(HR)));
+
+		mockMvc.perform(decide(id, "approve", null).with(OWNER))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("wajib surat pendukung")));
 		mockMvc.perform(get("/api/leave-requests/" + id).with(HR))
 			.andExpect(jsonPath("$.status").value("PERLU_TINJAU_HR"))
-			.andExpect(jsonPath("$.nextStage").value("HR"))
 			.andExpect(jsonPath("$.approvals.length()").value(0));
+	}
+
+	/** Tahap HR dan keputusan langsung Owner menulis baris tahap berbeda; @Version yang menahan keduanya. */
+	@Test
+	void hrAndOwnerDecidingAtTheSameTimeLetOnlyOneWin() throws Exception {
+		long employee = createEmployee(createBranch(), null);
+		long id = idOf(mockMvc.perform(submitFor(employee, createType(true), "2026-11-09", "2026-11-09").with(HR)));
+
+		RequestPostProcessor[] deciders = { HR, OWNER };
+		java.util.concurrent.atomic.AtomicInteger next = new java.util.concurrent.atomic.AtomicInteger();
+		List<Integer> statuses = concurrently(2, () -> mockMvc
+			.perform(decide(id, "approve", null).with(deciders[next.getAndIncrement()]))
+			.andReturn()
+			.getResponse()
+			.getStatus());
+
+		// Bila HR selesai lebih dulu, Owner sah memutus tahap Owner (dua 200, baris HR lalu OWNER). Selain itu yang
+		// kalah mendapat 409. Tidak boleh ada error lain, dan jumlah baris sama dengan jumlah keputusan yang sukses.
+		assertThat(statuses).allMatch(s -> s == 200 || s == 409).contains(200);
+		long ok = statuses.stream().filter(s -> s == 200).count();
+		List<String> stages = jdbc.queryForList(
+				"select stage from leave_approvals where leave_request_id = ? order by id", String.class, id);
+		assertThat(stages).hasSize((int) ok);
+		if (ok == 2) {
+			assertThat(stages).containsExactly("HR", "OWNER");
+		}
+		mockMvc.perform(get("/api/leave-requests/" + id).with(HR))
+			.andExpect(jsonPath("$.status").value(ok == 2 || stages.equals(List.of("OWNER")) ? "DISETUJUI"
+					: "PERLU_TINJAU_OWNER"));
 	}
 
 	@Test
@@ -156,24 +216,6 @@ class LeaveApprovalTests extends AttendanceFixtures {
 			.andExpect(jsonPath("$.decisionNote").value("Tidak disetujui"));
 	}
 
-	@Test
-	void ownerMayDoHrStageWhenRequesterIsTheOnlyHr() throws Exception {
-		when(hrCounter.countOtherActiveHr(org.mockito.ArgumentMatchers.any())).thenReturn(0L);
-		long employee = createEmployee(createBranch(), null);
-		long id = idOf(mockMvc.perform(submitFor(employee, createType(true), "2026-10-05", "2026-10-05").with(HR)));
-
-		mockMvc.perform(decide(id, "approve", null).with(OWNER))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.status").value("PERLU_TINJAU_OWNER"))
-			.andExpect(jsonPath("$.approvals[0].stage").value("HR"))
-			.andExpect(jsonPath("$.approvals[0].decidedBy").value("owner-absensi"));
-		mockMvc.perform(decide(id, "approve", null).with(OWNER))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.status").value("DISETUJUI"))
-			.andExpect(jsonPath("$.approvals.length()").value(2))
-			.andExpect(jsonPath("$.approvals[1].stage").value("OWNER"));
-	}
-
 	/** K-079 berlaku di setiap tahap: pemohon yang juga HR tidak bisa memutus pengajuannya sendiri. */
 	@Test
 	void requesterCannotDecideAnyStageOfOwnRequest() throws Exception {
@@ -193,6 +235,61 @@ class LeaveApprovalTests extends AttendanceFixtures {
 		mockMvc.perform(decide(id, "approve", null).with(self)).andExpect(status().isForbidden());
 		mockMvc.perform(get("/api/leave-requests/" + id).with(HR))
 			.andExpect(jsonPath("$.status").value("PERLU_TINJAU_OWNER"));
+	}
+
+	/** Flag keputusan dihitung server dengan aturan yang sama dengan approve/reject (K-079). */
+	@Test
+	void ownerSeesCanDecideAtHrStageOfDoubleApprovalType() throws Exception {
+		long employee = createEmployee(createBranch(), null);
+		long id = idOf(mockMvc.perform(submitFor(employee, createType(true), "2026-10-05", "2026-10-05").with(HR)));
+		String url = "/api/leave-requests/" + id;
+
+		mockMvc.perform(get(url).with(HR_2)).andExpect(jsonPath("$.canDecide").value(true));
+		mockMvc.perform(get(url).with(OWNER))
+			.andExpect(jsonPath("$.canDecide").value(true))
+			.andExpect(jsonPath("$.canRecordOwnerDecision").value(false));
+	}
+
+	@Test
+	void requesterHrSeesNoDecisionFlagsOnOwnRequest() throws Exception {
+		long hrEmployee = createEmployee(createBranch(), null);
+		String username = unique("akun-");
+		mockMvc.perform(post("/api/users").with(OWNER)
+			.with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"username\":\"" + username + "\",\"password\":\"rahasia-uji-123\",\"role\":\"HR_FINANCE\","
+					+ "\"employeeId\":" + hrEmployee + "}"))
+			.andExpect(status().isCreated());
+		RequestPostProcessor self = user(username).roles("HR_FINANCE");
+		long id = idOf(mockMvc.perform(submitFor(hrEmployee, createType(true), "2026-10-05", "2026-10-05").with(HR)));
+		String url = "/api/leave-requests/" + id;
+
+		mockMvc.perform(get(url).with(self))
+			.andExpect(jsonPath("$.canDecide").value(false))
+			.andExpect(jsonPath("$.canRecordOwnerDecision").value(false));
+		mockMvc.perform(decide(id, "approve", null).with(HR_2)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(self))
+			.andExpect(jsonPath("$.canDecide").value(false))
+			.andExpect(jsonPath("$.canRecordOwnerDecision").value(false));
+	}
+
+	@Test
+	void flagsAtOwnerStageFollowWhoMayDecideOrRecord() throws Exception {
+		long employee = createEmployee(createBranch(), null);
+		long id = idOf(mockMvc.perform(submitFor(employee, createType(true), "2026-10-05", "2026-10-05").with(HR)));
+		mockMvc.perform(decide(id, "approve", null).with(HR)).andExpect(status().isOk());
+		String url = "/api/leave-requests/" + id;
+
+		mockMvc.perform(get(url).with(HR_2))
+			.andExpect(jsonPath("$.canDecide").value(false))
+			.andExpect(jsonPath("$.canRecordOwnerDecision").value(true));
+		mockMvc.perform(get(url).with(OWNER))
+			.andExpect(jsonPath("$.canDecide").value(true))
+			.andExpect(jsonPath("$.canRecordOwnerDecision").value(false));
+		mockMvc.perform(decide(id, "approve", null).with(OWNER)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(OWNER))
+			.andExpect(jsonPath("$.canDecide").value(false))
+			.andExpect(jsonPath("$.canRecordOwnerDecision").value(false));
 	}
 
 	@Test
@@ -292,10 +389,15 @@ class LeaveApprovalTests extends AttendanceFixtures {
 	}
 
 	private long createType(boolean ownerApproval) throws Exception {
+		return createType(ownerApproval, false);
+	}
+
+	private long createType(boolean ownerApproval, boolean requiresDocument) throws Exception {
 		return idOf(mockMvc.perform(post("/api/leave-types").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
-			.content("{\"name\":\"" + unique("Jenis ") + "\",\"requiresDocument\":false,\"active\":true,"
+			.content("{\"name\":\"" + unique("Jenis ") + "\",\"requiresDocument\":" + requiresDocument
+					+ ",\"active\":true,"
 					+ "\"requiresOwnerApproval\":" + ownerApproval + ",\"letterTemplate\":\"UMUM\"}"))
 			.andExpect(status().isCreated()));
 	}
