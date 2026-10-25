@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Long> {
 
+	boolean existsByResubmittedFromId(Long resubmittedFromId);
+
 	@Query("""
 			select r from LeaveRequest r join fetch r.employee e join fetch e.branch left join fetch r.leaveType
 			where r.id = :id

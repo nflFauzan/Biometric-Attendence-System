@@ -79,10 +79,11 @@ public final class LeaveDtos {
 			Instant decidedAt, String decisionNote, String cancelledBy, Instant cancelledAt, String cancelReason,
 			List<AttachmentResponse> attachments, String contactPhone, String leaveAddress, String delegateTo,
 			String healthFacility, LetterTemplate letterTemplate, boolean requiresOwnerApproval,
-			Instant createdAt, List<ApprovalResponse> approvals, ApprovalStage nextStage) {
+			Instant createdAt, List<ApprovalResponse> approvals, ApprovalStage nextStage, boolean canDecide,
+			boolean canRecordOwnerDecision, Long resubmittedFromId) {
 
 		static LeaveRequestResponse from(LeaveRequest r, Integer workingDays, List<AttachmentResponse> attachments,
-				List<ApprovalResponse> approvals) {
+				List<ApprovalResponse> approvals, boolean canDecide, boolean canRecordOwnerDecision) {
 			var e = r.getEmployee();
 			var t = r.getLeaveType();
 			// Draft belum membekukan jenis: tampilkan pengaturan jenis saat ini agar form tahu isian apa yang perlu.
@@ -96,7 +97,8 @@ public final class LeaveDtos {
 					r.getReason(), r.getStatus(), r.getSubmittedBy(), r.getSubmittedAt(), r.getDecidedBy(),
 					r.getDecidedAt(), r.getDecisionNote(), r.getCancelledBy(), r.getCancelledAt(), r.getCancelReason(),
 					attachments, r.getContactPhone(), r.getLeaveAddress(), r.getDelegateTo(), r.getHealthFacility(),
-					letterTemplate, requiresOwner, r.getCreatedAt(), approvals, awaitingStage(r.getStatus()));
+					letterTemplate, requiresOwner, r.getCreatedAt(), approvals, awaitingStage(r.getStatus()), canDecide,
+					canRecordOwnerDecision, r.getResubmittedFromId());
 		}
 
 	}
@@ -153,7 +155,12 @@ public final class LeaveDtos {
 
 	}
 
-	public record PendingSummary(long count, List<PendingItem> items) {
+	/** Keputusan Owner yang dicatat HR (bukan lewat web), untuk bagian notifikasi permanen Owner. */
+	public record RecordedDecisionItem(Long approvalId, Long requestId, String employeeName, String leaveTypeName,
+			boolean approved, DecisionMethod method, String recorderName, Instant recordedAt, LeaveStatus status) {
+	}
+
+	public record PendingSummary(long count, List<PendingItem> items, List<RecordedDecisionItem> recordedForOwner) {
 	}
 
 }

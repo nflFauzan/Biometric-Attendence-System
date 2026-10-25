@@ -73,6 +73,13 @@ public class MyLeaveController {
 		return service.submitMyDraft(id);
 	}
 
+	/** Draft baru dari pengajuan yang ditolak (K-126). */
+	@PostMapping("/{id}/resubmit")
+	@ResponseStatus(HttpStatus.CREATED)
+	LeaveRequestResponse resubmit(@PathVariable Long id) {
+		return service.resubmitMine(id);
+	}
+
 	@PostMapping("/{id}/cancel")
 	LeaveRequestResponse cancel(@PathVariable Long id, @Valid @RequestBody(required = false) DecisionRequest body) {
 		return service.cancelMine(id, body == null ? null : body.note());

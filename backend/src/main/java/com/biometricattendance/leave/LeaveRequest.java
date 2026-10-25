@@ -67,6 +67,9 @@ public class LeaveRequest {
 
 	private String healthFacility;
 
+	/** Pengajuan yang ditolak yang menjadi asal draft ini (K-126); null bila bukan pengajuan ulang. */
+	private Long resubmittedFromId;
+
 	@Column(unique = true)
 	private String verificationToken;
 
@@ -194,6 +197,10 @@ public class LeaveRequest {
 		this.healthFacility = v;
 	}
 
+	public void setResubmittedFromId(Long v) {
+		this.resubmittedFromId = v;
+	}
+
 	public void setVerificationToken(String v) {
 		this.verificationToken = v;
 	}
@@ -220,6 +227,10 @@ public class LeaveRequest {
 
 	public String getHealthFacility() {
 		return healthFacility;
+	}
+
+	public Long getResubmittedFromId() {
+		return resubmittedFromId;
 	}
 
 	public String getVerificationToken() {

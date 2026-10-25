@@ -113,7 +113,7 @@ public class LeaveLetterService {
 	/** Nama karyawan yang terhubung ke akun pemberi keputusan; akun tanpa karyawan tidak ada di peta ini. */
 	private Map<String, String> linkedEmployeeNames(List<LeaveApproval> history) {
 		Set<String> usernames = history.stream()
-			.map(LeaveApproval::getDecidedBy)
+			.flatMap(a -> java.util.stream.Stream.of(a.getDecidedBy(), a.getRecordedBy()))
 			.filter(u -> u != null && !LeaveApproval.OWNER_ACTOR.equals(u))
 			.collect(Collectors.toSet());
 		Map<String, String> names = new HashMap<>();
@@ -226,8 +226,11 @@ public class LeaveLetterService {
 		boxes.add(new SignatureBox("Pemohon", imageOrNull(r.getApplicantSignatureKey()), r.getEmployee().getFullName(),
 				null));
 		if (Boolean.TRUE.equals(r.getRequiresOwnerApproval())) {
-			boxes.add(approvalBox("HR/Finance", stageOf(history, ApprovalStage.HR), names));
-			boxes.add(approvalBox("Owner", stageOf(history, ApprovalStage.OWNER), names));
+			LeaveApproval hr = stageOf(history, ApprovalStage.HR);
+			LeaveApproval owner = stageOf(history, ApprovalStage.OWNER);
+			boxes.add(hr == null && owner != null ? directByOwnerBox(owner)
+					: approvalBox("HR/Finance", hr, names));
+			boxes.add(approvalBox("Owner", owner, names));
 		}
 		else {
 			boxes.add(approvalBox("Disetujui oleh", history.isEmpty() ? null : history.get(history.size() - 1), names));
@@ -237,6 +240,13 @@ public class LeaveLetterService {
 
 	private static LeaveApproval stageOf(List<LeaveApproval> history, ApprovalStage stage) {
 		return history.stream().filter(a -> a.getStage() == stage).findFirst().orElse(null);
+	}
+
+	/** Tahap HR tidak dijalani karena Owner memutus langsung (K-125): teks saja, tanpa nama dan gambar. */
+	private SignatureBox directByOwnerBox(LeaveApproval owner) {
+		String verdict = owner.isApproved() ? "Disetujui" : "Ditolak";
+		return new SignatureBox("HR/Finance", null, null, verdict + " langsung oleh Owner\n"
+				+ DATE_TIME.format(owner.getDecidedAt().atZone(companyZone)));
 	}
 
 	/** Tahap yang belum diputus dibiarkan kosong (hanya judul). */
@@ -256,7 +266,7 @@ public class LeaveLetterService {
 		}
 		// Keputusan di luar web dicatat HR: ditulis sebagai teks, bukan gambar tanda tangan.
 		String verdict = a.isApproved() ? "Disetujui" : "Ditolak";
-		String recorder = a.getRecordedBy() == null ? "" : ", dicatat oleh " + names.getOrDefault(a.getRecordedBy(), "HR/Finance");
+		String recorder = a.getRecordedBy() == null ? "" : ", dicatat oleh " + names.getOrDefault(a.getRecordedBy(), "HR/Finance"); // tidak pernah username
 		return new SignatureBox(title, null, name,
 				verdict + " " + methodWords(a.getMethod()) + " pada " + when + recorder);
 	}
