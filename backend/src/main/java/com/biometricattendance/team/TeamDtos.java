@@ -13,7 +13,7 @@ import com.biometricattendance.calculation.DailyResult.TimeValue;
 import com.biometricattendance.leave.LeaveStatus;
 
 /**
- * Respons daftar rekan kerja (K-083). Sengaja berisi kolom yang diizinkan saja, sehingga data sensitif tidak bisa
+ * Respons Absensi Saya (K-127; semula daftar rekan kerja K-083). Sengaja berisi kolom yang diizinkan saja, sehingga data sensitif tidak bisa
  * ikut terkirim walaupun entity atau DTO pengelola bertambah kolom.
  */
 public final class TeamDtos {
@@ -21,7 +21,7 @@ public final class TeamDtos {
 	private TeamDtos() {
 	}
 
-	/** Status sederhana untuk rekan kerja (K-084): izin tanpa jenis, tanpa flag peninjauan. */
+	/** Status sederhana (K-084): izin tanpa jenis, tanpa flag peninjauan. */
 	public enum TeamStatus {
 		HADIR, TIDAK_LENGKAP, TIDAK_HADIR, IZIN, LIBUR, BELUM_DIATUR
 	}
@@ -71,16 +71,6 @@ public final class TeamDtos {
 			return seconds == null ? null : seconds - seconds % 60;
 		}
 
-	}
-
-	public record BranchOption(Long id, String name) {
-	}
-
-	public record TeamRow(Long employeeId, String employeeNumber, String fullName, Long branchId, String branchName,
-			String position, TeamDay day) {
-	}
-
-	public record TeamDailyResponse(LocalDate date, Long branchId, List<BranchOption> branches, List<TeamRow> rows) {
 	}
 
 	public record TeamEmployeeResponse(Long employeeId, String employeeNumber, String fullName, String branchName,

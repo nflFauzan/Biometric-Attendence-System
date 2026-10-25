@@ -44,8 +44,6 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 				.requestMatchers("/api/auth/**", "/api/me/**").authenticated()
-				// Daftar rekan kerja: semua role yang login; kolomnya dibatasi TeamDtos (K-083).
-				.requestMatchers(HttpMethod.GET, "/api/team/**").authenticated()
 				.requestMatchers("/api/audit-logs/**").hasRole(OWNER)
 				// Dokumentasi API hanya ada jika OPENAPI_ENABLED=true, dan tetap butuh login pengelola.
 				.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
@@ -54,6 +52,9 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.POST, "/api/devices/*/key").hasRole(OWNER)
 				// Rencana 6: jaringan dan ganti kunci alat rakitan hanya Owner (spec §18.8).
 				.requestMatchers("/api/devices/*/network", "/api/devices/*/rotate-key").hasRole(OWNER)
+				// Data karyawan dan cabang absen hanya diubah Owner (K-128); sidik jari tetap untuk HR (v0.6 catatan 7).
+				.requestMatchers(HttpMethod.POST, "/api/employees").hasRole(OWNER)
+				.requestMatchers(HttpMethod.PUT, "/api/employees/*", "/api/employees/*/branches").hasRole(OWNER)
 				.requestMatchers("/api/branches/**", "/api/employee-categories/**", "/api/employees/**",
 						"/api/devices/**", "/api/device-commands/**", "/api/device-settings/**", "/api/users/**")
 				.hasAnyRole(OWNER, HR_FINANCE)
