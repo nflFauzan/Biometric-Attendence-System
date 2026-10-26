@@ -299,6 +299,10 @@ Strip hazard hanya dipakai untuk hal yang menunggu tindakan pengguna, agar tidak
   - `DateTimePicker`: dua langkah (kalender → "Lanjut · Pilih jam" → roda jam), indikator titik Tanggal–Jam, tombol kembali kotak bergaris dan "Konfirmasi". `withSeconds` menambah roda detik ("Terima scan sejak").
   - Batas `min`/`max` menonaktifkan tanggal, bulan, dan tahun di luar rentang. Filter Dari–Sampai saling membatasi. Field opsional mendapat tombol "Kosongkan".
   - `FormDialog` otomatis memakai pemilih ini untuk field `date`, `time`, dan `datetime-local`. Nilai yang dikirim ke API tetap sama dengan input bawaan.
+- **Form panjang bergaya sheet** (`EmployeeFormDialog`, K-136) memakai bahasa visual yang sama: pegangan di HP, judul + konteks, chip navy (No. karyawan), dan tombol aksi `primaryButton`/`outlineButton` dari `DatePickers`.
+  - Isian dikelompokkan dalam bagian berjudul ikon + teks (bukan label kapital), dua kolom di desktop.
+  - Nilai yang terisi otomatis ditampilkan sebagai kartu ringkasan (`rounded-xl`, latar `secondary`) dengan tombol "Ubah". Isian opsional dilipat di balik tombol bagian dengan chevron.
+  - Pilihan 2–3 opsi memakai tombol berjejer (radio asli; terpilih = `steel-800`), bukan dropdown.
 
 ### 6.9 Navigasi
 

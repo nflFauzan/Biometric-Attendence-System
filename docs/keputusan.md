@@ -143,6 +143,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-133 | 2026-10-26 | Tambah karyawan sekaligus akun login, lalu pesan kredensial siap kirim (Salin / Kirim WA); reset password dan buat akun memakai pesan yang sama | Disepakati pengguna 2026-10-26; menggantikan K-130 |
 | K-134 | 2026-10-26 | Tanggal masuk otomatis hari ini menurut zona cabang penempatan; form tambah tanpa tanggal masuk/keluar | Disepakati pengguna 2026-10-26 |
 | K-135 | 2026-10-26 | Finance & Accounting kembali boleh menambah/mengubah data karyawan dan cabang absen; Aturan Kerja tetap hanya Owner | Disepakati pengguna 2026-10-26; membatalkan sebagian K-128 |
+| K-136 | 2026-10-26 | Form karyawan dibagi per bagian: PIN mesin dan akun tampil sebagai ringkasan, data pribadi dilipat, pilihan sedikit berupa tombol berjejer | Disetujui pengguna 2026-10-26 ("langsung kerjakan"); hanya tampilan, kontrak API tetap |
 
 ---
 
@@ -795,7 +796,7 @@ Jawaban pengguna pada 2026-10-25 atas tabel "Ketidaksesuaian dokumen dan kode" d
   - Master Kategori dan Cabang tetap bisa diubah HR/Finance (dikonfirmasi pengguna 2026-10-25).
   - Frontend: daftar karyawan tanpa tombol Tambah/Ubah dan kartu Cabang absen dalam mode hanya baca untuk selain Owner ("Hanya Owner yang dapat mengubah cabang absen.").
 
-### Data karyawan dari client (K-129–K-135)
+### Data karyawan dari client (K-129–K-136)
 
 Client mengirim template "Data Karyawan" berisi 28 karyawan (Takka 1: 4, Takka 2: 18, Takka Cilong: 6) pada 2026-10-26. File aslinya berisi data pribadi, sehingga diabaikan git dan tidak disalin ke repo. Rencana awal: [2026-10-26-profil-dan-impor-karyawan.md](superpowers/plans/2026-10-26-profil-dan-impor-karyawan.md). Impor Excel kemudian dibatalkan dan diganti input lewat form dengan akun dan pesan WA: [spec](superpowers/specs/2026-10-26-akun-karyawan-pesan-wa-design.md), [rencana](superpowers/plans/2026-10-26-akun-karyawan-pesan-wa.md).
 
@@ -820,6 +821,13 @@ Client mengirim template "Data Karyawan" berisi 28 karyawan (Takka 1: 4, Takka 2
   - Detail karyawan punya tombol **Buat akun** dan **Reset password**; menu Akun juga memakai usulan dan pesan yang sama. Nama aplikasi di pesan sementara "Sistem Absensi Takka Steel" (Q-025).
 - **K-134 Tanggal masuk otomatis.** `joinDate` di `EmployeeRequest` opsional: saat tambah diisi tanggal hari ini menurut zona waktu cabang penempatan; saat ubah nilai lama dipertahankan. Form tambah tidak menampilkan tanggal masuk dan keluar; form ubah tetap punya Tanggal keluar dan Aktif.
 - **K-135 Hak tulis Finance & Accounting.** `POST /api/employees`, `PUT /api/employees/{id}`, dan `PUT /api/employees/{id}/branches` kembali untuk Owner dan Finance & Accounting. Finance & Accounting tetap tidak bisa membuat/mereset akun Owner atau Finance & Accounting (403) dan tidak bisa mengubah Aturan Kerja (K-049). Celah yang diterima pengguna: Finance & Accounting memilih kategori karyawan, sehingga secara tidak langsung menentukan aturan kerja kategori mana yang berlaku.
+- **K-136 Form karyawan ringkas** (`components/EmployeeFormDialog.tsx`, bergaya sheet pemilih tanggal).
+  - Yang selalu tampil hanya **Identitas** (No. karyawan, Nama lengkap, No. HP, Jabatan) dan **Penempatan** (Cabang, Kategori), dua kolom di desktop.
+  - **PIN mesin** dan **akun login** (username + password sementara) tampil sebagai kartu ringkasan berisi nilai usulan, dengan tombol **Ubah** untuk membuka field aslinya. Role akun (khusus Owner) dan jenis kelamin berupa tombol pilihan berjejer.
+  - **Data pribadi** (jenis kelamin, tanggal lahir, email, alamat, catatan) dilipat saat tambah dan terbuka saat ubah; alamat dan catatan berupa textarea.
+  - Jabatan menyarankan jabatan yang sudah pernah dipakai, tetapi tetap bisa diketik baru. Cabang/kategori langsung terpilih bila hanya ada satu yang aktif.
+  - Bila server menolak field yang sedang tersembunyi, bagiannya terbuka sendiri agar pesan error terlihat.
+  - Tidak dipilih: kategori otomatis dari jabatan, karena aturan pemetaannya belum dikonfirmasi client.
 - **K-132 Label "Finance & Accounting".** Semua teks yang dilihat pengguna (menu, pesan error, notifikasi, label tahap izin, dan surat PDF) memakai "Finance & Accounting" menggantikan "HR/Finance" dan "HR". Kode role `HR_FINANCE` dan tahap `HR` di API tidak berubah, sehingga data lama tetap valid.
 
 ---
