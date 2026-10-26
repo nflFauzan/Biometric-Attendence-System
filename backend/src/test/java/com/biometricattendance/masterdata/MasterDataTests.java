@@ -3,6 +3,7 @@ package com.biometricattendance.masterdata;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -101,6 +102,41 @@ class MasterDataTests extends IntegrationTest {
 				String.format("{\"code\":\"%s\",\"name\":\"K\",\"active\":true}", unique("K"))));
 		postEmployee(employeeJson(unique("EMP"), branchId, categoryId, "2026-03-01", "\"2026-02-01\""))
 			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void employeeProfileFieldsRoundTripAndAreAudited() throws Exception {
+		long branchId = idOf(createBranch(unique("C"), "Asia/Jakarta"));
+		long categoryId = idOf(postJson("/api/employee-categories",
+				String.format("{\"code\":\"%s\",\"name\":\"K\",\"active\":true}", unique("K"))));
+		String body = String.format("{\"employeeNumber\":\"%s\",\"fullName\":\"Sari Uji\",\"branchId\":%d,"
+				+ "\"categoryId\":%d,\"joinDate\":\"2026-01-05\",\"active\":true,\"email\":\"a@contoh.id\","
+				+ "\"gender\":\"PEREMPUAN\",\"birthDate\":\"1990-05-01\",\"address\":\"Jl. Contoh 1\","
+				+ "\"notes\":\"catatan\"}", unique("EMP"), branchId, categoryId);
+		long id = idOf(postEmployee(body));
+
+		mockMvc.perform(get("/api/employees/" + id).with(HR))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.email").value("a@contoh.id"))
+			.andExpect(jsonPath("$.gender").value("PEREMPUAN"))
+			.andExpect(jsonPath("$.birthDate").value("1990-05-01"))
+			.andExpect(jsonPath("$.address").value("Jl. Contoh 1"))
+			.andExpect(jsonPath("$.notes").value("catatan"));
+
+		List<AuditLog> logs = auditLogs.findByEntityTypeAndEntityIdOrderByIdAsc("EMPLOYEE", String.valueOf(id));
+		assertThat(logs.get(0).getAfterData()).contains("Jl. Contoh 1");
+	}
+
+	@Test
+	void employeeEmailMustBeValid() throws Exception {
+		long branchId = idOf(createBranch(unique("C"), "Asia/Jakarta"));
+		long categoryId = idOf(postJson("/api/employee-categories",
+				String.format("{\"code\":\"%s\",\"name\":\"K\",\"active\":true}", unique("K"))));
+		String body = String.format("{\"employeeNumber\":\"%s\",\"fullName\":\"Sari Uji\",\"branchId\":%d,"
+				+ "\"categoryId\":%d,\"joinDate\":\"2026-01-05\",\"active\":true,\"email\":\"bukan-email\"}",
+				unique("EMP"), branchId, categoryId);
+		postEmployee(body).andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errors.email").value("Format email tidak valid"));
 	}
 
 	@Test

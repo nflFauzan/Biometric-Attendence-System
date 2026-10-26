@@ -40,6 +40,11 @@ const employee = (overrides: Partial<Employee> = {}): Employee => ({
   endDate: null,
   active: true,
   devicePin: null,
+  email: null,
+  gender: null,
+  birthDate: null,
+  address: null,
+  notes: null,
   ...overrides,
 })
 
@@ -71,6 +76,23 @@ describe('EmployeeDetailPage', () => {
     expect(screen.getByText('Cabang Pusat')).toBeInTheDocument()
     expect(await screen.findByText('budi')).toBeInTheDocument()
     expect(screen.getByText('Wajib ganti password saat login')).toBeInTheDocument()
+  })
+
+  it('menampilkan profil lengkap karyawan (K-129)', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/employees/12': () => ({
+        status: 200,
+        body: employee({ gender: 'PEREMPUAN', birthDate: '1990-05-01', address: 'Jl. Contoh 1', email: 'budi@contoh.id' }),
+      }),
+      'GET /api/users': () => ({ status: 200, body: [account()] }),
+    })
+    renderAt('/karyawan/12')
+
+    expect(await screen.findByText('Perempuan', {}, LOAD)).toBeInTheDocument()
+    expect(screen.getByText('Jl. Contoh 1')).toBeInTheDocument()
+    expect(screen.getByText('budi@contoh.id')).toBeInTheDocument()
+    expect(screen.getByText('1 Mei 1990')).toBeInTheDocument()
   })
 
   it('menampilkan ajakan membuat akun jika karyawan belum punya akun', async () => {

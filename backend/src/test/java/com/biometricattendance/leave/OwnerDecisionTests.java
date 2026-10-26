@@ -98,7 +98,7 @@ class OwnerDecisionTests extends AttendanceFixtures {
 
 		mockMvc.perform(record(id, true, "LISAN", LocalDateTime.now(ZONE).plusHours(2), "Masa depan", null).with(HR))
 			.andExpect(status().isBadRequest());
-		mockMvc.perform(record(id, true, "LISAN", LocalDateTime.now(ZONE).minusDays(1), "Sebelum tahap HR", null)
+		mockMvc.perform(record(id, true, "LISAN", LocalDateTime.now(ZONE).minusDays(1), "Sebelum tahap Finance & Accounting", null)
 			.with(HR)).andExpect(status().isBadRequest());
 		mockMvc.perform(get("/api/leave-requests/" + id).with(HR))
 			.andExpect(jsonPath("$.status").value("PERLU_TINJAU_OWNER"));
@@ -211,7 +211,7 @@ class OwnerDecisionTests extends AttendanceFixtures {
 		assertThat(approved).containsExactly(false);
 		List<String> recorder = com.jayway.jsonpath.JsonPath.read(json,
 				"$.recordedForOwner[?(@.requestId==" + first + ")].recorderName");
-		assertThat(recorder).containsExactly("HR/Finance");
+		assertThat(recorder).containsExactly("Finance & Accounting");
 		List<String> status = com.jayway.jsonpath.JsonPath.read(json,
 				"$.recordedForOwner[?(@.requestId==" + first + ")].status");
 		assertThat(status).containsExactly("DISETUJUI");

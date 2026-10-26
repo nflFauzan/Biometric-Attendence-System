@@ -73,6 +73,13 @@ class UserAccountTests extends IntegrationTest {
 	}
 
 	@Test
+	void usernameMayContainAt() throws Exception {
+		String username = unique("budi") + "@takka.id";
+		createUser(OWNER, username, "HR_FINANCE", null).andExpect(status().isCreated())
+			.andExpect(jsonPath("$.username").value(username));
+	}
+
+	@Test
 	void hrFinanceOnlySeesEmployeeAccounts() throws Exception {
 		createUser(OWNER, unique("hr"), "HR_FINANCE", null).andExpect(status().isCreated());
 		mockMvc.perform(get("/api/users").with(HR))

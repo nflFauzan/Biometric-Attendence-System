@@ -26,6 +26,11 @@ const employee: Employee = {
   endDate: null,
   active: true,
   devicePin: '12',
+  email: null,
+  gender: null,
+  birthDate: null,
+  address: null,
+  notes: null,
 }
 
 const branch = (id: number, name: string, active = true): Branch => ({

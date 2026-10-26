@@ -111,7 +111,10 @@ class AccessControlTests extends IntegrationTest {
 	static Stream<Arguments> ownerOnlyEmployeeWrites() {
 		return Stream.of(Arguments.of(HttpMethod.POST, "/api/employees", EMPLOYEE_BODY),
 				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING, EMPLOYEE_BODY),
-				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING + "/branches", "{\"extraBranchIds\":[]}"));
+				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING + "/branches", "{\"extraBranchIds\":[]}"),
+				// Impor karyawan dari template client (K-130).
+				Arguments.of(HttpMethod.POST, "/api/employee-imports/preview", null),
+				Arguments.of(HttpMethod.POST, "/api/employee-imports", "{}"));
 	}
 
 	@ParameterizedTest(name = "{0} {1}")

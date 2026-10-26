@@ -87,7 +87,7 @@ class LeaveLetterTests extends AttendanceFixtures {
 		mockMvc.perform(decide(id, "approve").with(OWNER)).andExpect(status().isOk());
 
 		String text = text(download(ME, id, p.as()));
-		assertThat(text).contains("HR/Finance").contains("Owner").contains("/verifikasi/");
+		assertThat(text).contains("Finance & Accounting").contains("Owner").contains("/verifikasi/");
 		assertThat(text).contains("SURAT PERMOHONAN IZIN / CUTI").contains(String.format("IZ-%06d", id));
 		assertThat(text).contains("disetujui secara elektronik");
 		assertThat(text).doesNotContain("MENUNGGU PERSETUJUAN").doesNotContain("DRAFT");
@@ -138,7 +138,7 @@ class LeaveLetterTests extends AttendanceFixtures {
 		mockMvc.perform(request).andExpect(status().isOk());
 
 		String text = text(download("/api/leave-requests", id, HR));
-		assertThat(text).contains("Disetujui melalui WhatsApp").contains("dicatat oleh HR/Finance");
+		assertThat(text).contains("Disetujui melalui WhatsApp").contains("dicatat oleh Finance & Accounting");
 		// Username login tidak boleh muncul di surat (akun HR uji tidak terhubung ke karyawan).
 		assertThat(text).doesNotContain("hr-absensi");
 		assertThat(text).doesNotContain("MENUNGGU PERSETUJUAN");
@@ -272,7 +272,7 @@ class LeaveLetterTests extends AttendanceFixtures {
 			.andExpect(jsonPath("$.approvals.length()").value(1))
 			.andExpect(jsonPath("$.approvals[0].stage").value("HR"))
 			.andExpect(jsonPath("$.approvals[0].approved").value(true))
-			.andExpect(jsonPath("$.approvals[0].decidedByName").value("HR/Finance"))
+			.andExpect(jsonPath("$.approvals[0].decidedByName").value("Finance & Accounting"))
 			.andExpect(jsonPath("$.approvals[0].method").value("WEB"))
 			.andExpect(jsonPath("$.reason").doesNotExist())
 			.andExpect(jsonPath("$.leaveAddress").doesNotExist())

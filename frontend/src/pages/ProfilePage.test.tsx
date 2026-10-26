@@ -26,7 +26,7 @@ const hr: Me = { username: 'sari', role: 'HR_FINANCE', employeeId: 3, employeeNa
 
 const sari = {
   id: 3, employeeNumber: 'K-003', fullName: 'Sari Wulandari', branchName: 'Pusat', categoryName: 'Staf',
-  position: 'HR/Finance', phone: null, joinDate: '2024-01-02',
+  position: 'Finance & Accounting', phone: null, joinDate: '2024-01-02',
 }
 
 const noSignature = () => ({ status: 200, body: { exists: false, updatedAt: null } })

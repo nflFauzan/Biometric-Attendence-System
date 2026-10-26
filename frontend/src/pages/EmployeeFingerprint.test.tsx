@@ -43,6 +43,11 @@ const employee = (overrides: Partial<Employee> = {}): Employee => ({
   endDate: null,
   active: true,
   devicePin: '12',
+  email: null,
+  gender: null,
+  birthDate: null,
+  address: null,
+  notes: null,
   ...overrides,
 })
 

@@ -64,6 +64,11 @@ const employee: Employee = {
   endDate: null,
   active: true,
   devicePin: null,
+  email: null,
+  gender: null,
+  birthDate: null,
+  address: null,
+  notes: null,
 }
 
 const baseRoutes = (role: Me['role'], rules: WorkRule[]) => ({
@@ -76,7 +81,7 @@ const baseRoutes = (role: Me['role'], rules: WorkRule[]) => ({
 describe('WorkRulesPage', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('HR/Finance hanya melihat aturan tanpa tombol ubah', async () => {
+  it('Finance & Accounting hanya melihat aturan tanpa tombol ubah', async () => {
     mockFetch(baseRoutes('HR_FINANCE', [rule({ locked: false, effectiveFrom: '2099-01-01' })]))
     renderAt('/aturan-kerja')
 

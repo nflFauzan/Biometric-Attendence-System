@@ -40,6 +40,11 @@ const employee: Employee = {
   endDate: null,
   active: true,
   devicePin: null,
+  email: null,
+  gender: null,
+  birthDate: null,
+  address: null,
+  notes: null,
 }
 
 const preview: DailyPreview = {

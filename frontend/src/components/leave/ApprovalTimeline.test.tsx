@@ -17,7 +17,7 @@ describe('ApprovalTimeline', () => {
     expect(screen.getByText(/lewat web/)).toBeInTheDocument()
     const owner = screen.getByText('Ditinjau Owner').closest('li')!
     expect(owner).toHaveTextContent('Sedang ditinjau')
-    expect(screen.getByText('Ditinjau HR').closest('li')).not.toHaveTextContent('Sedang ditinjau')
+    expect(screen.getByText('Ditinjau Finance & Accounting').closest('li')).not.toHaveTextContent('Sedang ditinjau')
   })
 
   it('shows recorded owner decision', () => {
@@ -40,21 +40,21 @@ describe('ApprovalTimeline', () => {
   it('omits the Owner step for single approval types', () => {
     render(<ApprovalTimeline request={sampleRequest({ requiresOwnerApproval: false, status: 'PERLU_TINJAU_HR', nextStage: 'HR' })} />)
     expect(screen.queryByText('Ditinjau Owner')).not.toBeInTheDocument()
-    expect(screen.getByText('Ditinjau HR').closest('li')).toHaveTextContent('Sedang ditinjau')
+    expect(screen.getByText('Ditinjau Finance & Accounting').closest('li')).toHaveTextContent('Sedang ditinjau')
   })
 
-  it('menandai tahap HR sebagai diputus langsung oleh Owner', () => {
+  it('menandai tahap Finance & Accounting sebagai diputus langsung oleh Owner', () => {
     const owner = { ...hrApproval, stage: 'OWNER' as const, decidedBy: 'OWNER', decidedByName: 'Owner' }
     render(<ApprovalTimeline request={sampleRequest({ status: 'DISETUJUI', nextStage: null, approvals: [owner] })} />)
-    const hr = screen.getByText('Ditinjau HR').closest('li')!
+    const hr = screen.getByText('Ditinjau Finance & Accounting').closest('li')!
     expect(hr).toHaveTextContent('Disetujui langsung oleh Owner')
     expect(hr).not.toHaveTextContent('Dilewati')
   })
 
-  it('menandai tahap HR sebagai ditolak langsung oleh Owner', () => {
+  it('menandai tahap Finance & Accounting sebagai ditolak langsung oleh Owner', () => {
     const owner = { ...hrApproval, stage: 'OWNER' as const, approved: false, decidedBy: 'OWNER', decidedByName: 'Owner' }
     render(<ApprovalTimeline request={sampleRequest({ status: 'DITOLAK', nextStage: null, approvals: [owner] })} />)
-    expect(screen.getByText('Ditinjau HR').closest('li')).toHaveTextContent('Ditolak langsung oleh Owner')
+    expect(screen.getByText('Ditinjau Finance & Accounting').closest('li')).toHaveTextContent('Ditolak langsung oleh Owner')
   })
 
   it('marks the Owner step as skipped after rejection at the HR stage', () => {

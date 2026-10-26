@@ -213,7 +213,7 @@ describe('Halaman izin dan cuti Fase 4', () => {
     expect(screen.queryByRole('button', { name: 'Catat keputusan Owner' })).not.toBeInTheDocument()
   })
 
-  it('HR tidak melihat Setujui pada tahap Owner dan Owner melihatnya pada jenis satu persetujuan di tahap HR', async () => {
+  it('HR tidak melihat Setujui pada tahap Owner dan Owner melihatnya pada jenis satu persetujuan di tahap Finance & Accounting', async () => {
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: owner }),
       'GET /api/leave-requests/7': () => ({ status: 200, body: request() }),
@@ -223,7 +223,7 @@ describe('Halaman izin dan cuti Fase 4', () => {
     expect(await screen.findByRole('button', { name: 'Setujui' })).toBeInTheDocument()
   })
 
-it('tombol keputusan mengikuti flag server, bukan peran: Owner melihat Setujui di tahap HR bila HR tunggal', async () => {
+it('tombol keputusan mengikuti flag server, bukan peran: Owner melihat Setujui di tahap Finance & Accounting bila HR tunggal', async () => {
   const usage = { 'GET /api/leave-requests/usage?employeeId=12&year=2026': () => ({ status: 200, body: { employeeId: 12, year: 2026, types: [], pendingRequests: 0 } }) }
   mockFetch({
     'GET /api/auth/me': () => ({ status: 200, body: owner }),
@@ -234,7 +234,7 @@ it('tombol keputusan mengikuti flag server, bukan peran: Owner melihat Setujui d
   expect(await screen.findByRole('button', { name: 'Setujui' })).toBeInTheDocument()
 })
 
-it('Owner tidak melihat Setujui di tahap HR bila server menyatakan canDecide false', async () => {
+it('Owner tidak melihat Setujui di tahap Finance & Accounting bila server menyatakan canDecide false', async () => {
   mockFetch({
     'GET /api/auth/me': () => ({ status: 200, body: owner }),
     'GET /api/leave-requests/7': () => ({ status: 200, body: request({ requiresOwnerApproval: true, canDecide: false }) }),
@@ -289,7 +289,7 @@ it('form Jenis Izin selalu mengirim requiresOwnerApproval dan letterTemplate saa
     expect(screen.getByText('Siti Aminah').closest('a')).toHaveAttribute('href', '/izin/8')
   })
 
-  it('lonceng Owner menampilkan keputusan yang dicatat HR dan badge hanya menghitung yang belum dilihat', async () => {
+  it('lonceng Owner menampilkan keputusan yang dicatat Finance & Accounting dan badge hanya menghitung yang belum dilihat', async () => {
     window.localStorage.removeItem('absensi.recordedSeen.owner')
     const pending: PendingLeaveSummary = {
       count: 1,
@@ -310,7 +310,7 @@ it('form Jenis Izin selalu mengirim requiresOwnerApproval dan letterTemplate saa
     renderAt('/izin')
 
     fireEvent.click(await screen.findByRole('button', { name: '3 notifikasi izin' }))
-    expect(await screen.findByText('Keputusan Anda yang dicatat HR')).toBeInTheDocument()
+    expect(await screen.findByText('Keputusan Anda yang dicatat Finance & Accounting')).toBeInTheDocument()
     expect(screen.getByText('Sari mencatat persetujuan Anda (WhatsApp)').closest('a')).toHaveAttribute('href', '/izin/7')
     expect(screen.getByText('Sari mencatat penolakan Anda (Lisan)').closest('a')).toHaveAttribute('href', '/izin/9')
     const recordedLink = screen.getByText('Sari mencatat persetujuan Anda (WhatsApp)').closest('a')!
@@ -347,7 +347,7 @@ it('form Jenis Izin selalu mengirim requiresOwnerApproval dan letterTemplate saa
     click.mockRestore()
   })
 
-  it('Owner secara bawaan melihat semua pengajuan yang menunggu, termasuk satu persetujuan di tahap HR', async () => {
+  it('Owner secara bawaan melihat semua pengajuan yang menunggu, termasuk satu persetujuan di tahap Finance & Accounting', async () => {
     const fetch = mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: owner }),
       'GET /api/branches': () => ({ status: 200, body: [] }),

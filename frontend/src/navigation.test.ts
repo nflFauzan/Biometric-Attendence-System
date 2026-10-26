@@ -13,7 +13,7 @@ describe('menu per role', () => {
     expect(labels('OWNER')).toEqual(expect.arrayContaining(['Izin & Cuti', 'Jenis Izin/Cuti']))
   })
 
-  it('HR/Finance sama seperti Owner kecuali audit log', () => {
+  it('Finance & Accounting sama seperti Owner kecuali audit log', () => {
     expect(labels('HR_FINANCE')).toContain('Karyawan')
     expect(labels('HR_FINANCE')).toContain('Akun')
     expect(labels('HR_FINANCE')).not.toContain('Audit Log')
