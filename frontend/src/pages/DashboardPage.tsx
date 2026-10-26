@@ -16,7 +16,7 @@ import {
   XCircle,
   type LucideIcon,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
@@ -126,6 +126,7 @@ const listCard = 'overflow-hidden rounded-2xl border glass'
 export function DashboardPage() {
   const { me } = useAuth()
   const live = useDashboardStream()
+  const [salutation] = useState(() => greeting(new Date().getHours()))
   const { data, error, isPending } = useQuery({
     queryKey: ['/api/dashboard/summary'],
     queryFn: () => api<DashboardSummary>('/api/dashboard/summary'),
@@ -151,7 +152,7 @@ export function DashboardPage() {
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">{data ? formatDayLabel(data.date) : 'Hari ini'}</p>
           <h1 className="mt-0.5 text-2xl leading-8 font-bold text-balance text-steel-800 dark:text-foreground">
-            {greeting(new Date().getHours())}
+            {salutation}
             {firstName && `, ${firstName}`}
           </h1>
         </div>

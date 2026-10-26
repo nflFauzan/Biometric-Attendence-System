@@ -330,9 +330,14 @@ Strip hazard hanya dipakai untuk hal yang menunggu tindakan pengguna, agar tidak
 
 ### 6.10 KPI tile (dashboard)
 
-- Label `label` (kapital), angka `display` tabular, dan perbandingan kecil di bawahnya ("2 lebih banyak dari kemarin").
-- Satu tile utama "Hadir hari ini" berukuran 2 kolom dengan latar `steel-600` dan angka `#FFFFFF`. Tile lain berlatar `card`.
-- Tile bisa diklik dan membuka daftar yang difilter, misalnya tile "Terlambat" membuka monitoring dengan filter terlambat.
+- Gaya aplikasi HP: di atas ada sapaan ("Selamat pagi, Owner") dan tanggal hari ini, lalu badge "Langsung" (titik berdenyut, mati bila `prefers-reduced-motion`).
+- Satu kartu utama "Hadir hari ini" berukuran 2 kolom, berlatar gradasi `steel-600` → `steel-900` dengan garis emas di atas, motif spandek samar, angka besar "hadir / total", dan cincin persentase emas. Di bagian bawahnya ada strip tiga angka: Izin/cuti, Belum hadir, Belum lengkap.
+- Kartu lain (Terlambat, Kandidat lembur) memakai kaca dengan ikon dalam lingkaran berwarna semantik, angka besar, label, dan keterangan.
+- Kartu dan daftar dashboard memakai radius 16px (`rounded-2xl`), chip dan badge memakai pill. Judul section ditulis di luar kartu.
+- "Perlu perhatian" hanya menampilkan butir yang nilainya lebih dari 0. Bila semuanya 0, yang tampil adalah "Semua beres".
+- Scan terbaru ditampilkan dengan avatar inisial (ikon sidik jari untuk PIN tak dikenal) dan jam dalam bentuk pill.
+- Kartu bisa diklik dan membuka daftar terkait.
+- Grid dashboard wajib memakai kolom `minmax(0, 1fr)` (`grid-cols-1`/`grid-cols-2`) dan `min-w-0` agar isi panjang tidak melebarkan halaman di HP.
 
 ### 6.11 Status mesin
 
@@ -366,7 +371,7 @@ Zona waktu mengikuti konfigurasi server, bukan zona perangkat pengguna.
 | --- | --- | --- |
 | Login | Steel Premium + kartu glass | Latar gradasi `steel-700` → `steel-950` dengan motif spandek dan garis emas. Kartu putih semi-transparan berisi logo, username, password, dan tombol pill. Di HP kartu memenuhi lebar layar |
 | Ganti password wajib | Corporate Clean | Kartu tunggal di tengah, alasan ditampilkan di atas form |
-| Dashboard | Bento + Corporate Clean | Baris 1: KPI (Hadir 2 kolom, Terlambat, Lembur berjalan, Tidak lengkap). Baris 2: monitoring scan terbaru (8 kolom) + status mesin (4 kolom). Baris 3: ringkasan per cabang. HP: 1 kolom dengan urutan yang sama |
+| Dashboard | Bento, gaya aplikasi HP | Sapaan + tanggal. Baris 1: kartu utama Hadir (2 kolom) + Terlambat + Kandidat lembur. Baris 2: scan terbaru (7 kolom) di kiri; Perlu perhatian, Status mesin, dan Per cabang (5 kolom) di kanan. HP: 1 kolom dengan Perlu perhatian sebelum Scan terbaru (§6.10) |
 | Monitoring absensi | Corporate Clean, tabel nyaman | Filter cabang + tanggal, tabel real-time, sorotan baris baru |
 | Rekap bulanan | Enterprise, tabel padat | Matriks karyawan × tanggal + legenda + total |
 | Koreksi scan | Corporate Clean, dialog | Kiri: scan asli dari mesin (hanya baca, latar `steel-50`). Kanan: nilai koreksi + alasan (wajib). Perbedaan disorot |
