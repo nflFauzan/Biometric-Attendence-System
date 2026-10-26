@@ -21,8 +21,9 @@ import { dialogSheetClass } from '@/lib/ui'
 /**
  * Kartu "Cabang absen" di Detail Karyawan (K-103): cabang penempatan selalu boleh, cabang lain dicentang sebagai
  * tambahan. Mencabut cabang yang mesinnya menyimpan sidik jari meminta konfirmasi, karena catatan jarinya dihapus.
+ * Hanya Owner yang mengubah (K-128); role lain melihatnya dalam mode hanya baca.
  */
-export function BranchAccessCard({ employee }: { employee: Employee }) {
+export function BranchAccessCard({ employee, readOnly = false }: { employee: Employee; readOnly?: boolean }) {
   const queryClient = useQueryClient()
   const access = useQuery({
     queryKey: branchAccessKey(employee.id),
@@ -124,7 +125,7 @@ export function BranchAccessCard({ employee }: { employee: Employee }) {
                   <Checkbox
                     id={id}
                     checked={isPlacement || selected.includes(branch.id)}
-                    disabled={isPlacement || save.isPending}
+                    disabled={isPlacement || readOnly || save.isPending}
                     onCheckedChange={(checked) => toggle(branch.id, checked === true)}
                   />
                   <label htmlFor={id} className="text-sm font-medium">
@@ -142,15 +143,19 @@ export function BranchAccessCard({ employee }: { employee: Employee }) {
               {notice}
             </p>
           )}
-          <div>
-            <Button
-              size="sm"
-              disabled={!dirty || !dataReady || save.isPending}
-              onClick={() => (needsConfirm ? setConfirming(true) : save.mutate())}
-            >
-              {save.isPending ? 'Menyimpan…' : 'Simpan'}
-            </Button>
-          </div>
+          {readOnly ? (
+            <p className="text-sm text-muted-foreground">Hanya Owner yang dapat mengubah cabang absen.</p>
+          ) : (
+            <div>
+              <Button
+                size="sm"
+                disabled={!dirty || !dataReady || save.isPending}
+                onClick={() => (needsConfirm ? setConfirming(true) : save.mutate())}
+              >
+                {save.isPending ? 'Menyimpan…' : 'Simpan'}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

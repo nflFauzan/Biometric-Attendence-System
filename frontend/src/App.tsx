@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
-import { Navigate, Route, Routes, useParams } from 'react-router'
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
 import { AppLayout } from '@/components/AppLayout'
+import { withNext } from '@/lib/safeNext'
 import type { Role } from '@/lib/types'
 import { homePathFor } from '@/navigation'
 import { AttendanceEmployeePage } from '@/pages/AttendanceEmployeePage'
@@ -22,11 +23,10 @@ import { LeaveRequestsPage } from '@/pages/LeaveRequestsPage'
 import { LeaveWizardPage } from '@/pages/LeaveWizardPage'
 import { LeaveTypesPage } from '@/pages/LeaveTypesPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { MyAttendancePage } from '@/pages/MyAttendancePage'
 import { MyLeavePage } from '@/pages/MyLeavePage'
 import { HomePage } from '@/pages/HomePage'
 import { ProfilePage } from '@/pages/ProfilePage'
-import { TeamMemberPage } from '@/pages/TeamMemberPage'
-import { TeamPage } from '@/pages/TeamPage'
 import { HeldScansPage } from '@/pages/HeldScansPage'
 import { UnmatchedScansPage } from '@/pages/UnmatchedScansPage'
 import { VerifyLetterPage } from '@/pages/VerifyLetterPage'
@@ -37,15 +37,18 @@ const MANAGERS: Role[] = ['OWNER', 'HR_FINANCE']
 
 /** Harus login; kalau wajib ganti password, arahkan ke halaman ganti password dulu. */
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { me, loading } = useAuth()
+  const { me, loading, loggedOut } = useAuth()
+  const location = useLocation()
   if (loading) {
     return <p className="p-6 text-sm">Memuat…</p>
   }
+  // Lokasi asal dibawa lewat ?next= (bertahan saat dimuat ulang) agar login/ganti password kembali ke sini.
   if (!me) {
-    return <Navigate to="/login" replace />
+    // Keluar eksplisit selalu ke /login polos; kalau tidak, pengguna berikutnya mewarisi halaman ini.
+    return <Navigate to={loggedOut ? '/login' : withNext('/login', location)} replace />
   }
   if (me.mustChangePassword) {
-    return <Navigate to="/ganti-password" replace />
+    return <Navigate to={withNext('/ganti-password', location)} replace />
   }
   return children
 }
@@ -103,9 +106,10 @@ function App() {
         <Route path="izin-saya/baru" element={<LeaveWizardPage />} />
         <Route path="izin-saya/:id/ubah" element={<LeaveWizardPage />} />
         <Route path="izin-saya/:id" element={<LeaveDetailPage mode="mine" />} />
-        {/* Rekan kerja: semua role yang login; kolom dibatasi backend (K-083). */}
-        <Route path="rekan-kerja" element={<TeamPage />} />
-        <Route path="rekan-kerja/:id" element={<TeamMemberPage />} />
+        {/* Absensi Saya: karyawan hanya melihat absensinya sendiri (K-127); alamat rekan kerja lama dialihkan. */}
+        <Route path="absensi-saya" element={<MyAttendancePage />} />
+        <Route path="rekan-kerja" element={<Navigate to="/absensi-saya" replace />} />
+        <Route path="rekan-kerja/:id" element={<Navigate to="/absensi-saya" replace />} />
         <Route path="karyawan" element={managers(<EmployeesPage />)} />
         <Route path="karyawan/:id" element={managers(<EmployeeDetailPage />)} />
         <Route path="cabang" element={managers(<BranchesPage />)} />
@@ -116,7 +120,8 @@ function App() {
         <Route path="kalender-libur" element={managers(<HolidaysPage />)} />
         <Route path="simulasi" element={managers(<CalculationPreviewPage />)} />
         <Route path="audit-log" element={<RequireRole roles={['OWNER']}><AuditLogPage /></RequireRole>} />
-        <Route path="profil" element={<RequireRole roles={['EMPLOYEE']}><ProfilePage /></RequireRole>} />
+        {/* Profil: semua role, agar Owner/HR juga bisa mengatur spesimen tanda tangan (K-115). */}
+        <Route path="profil" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

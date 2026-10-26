@@ -6,7 +6,6 @@ import {
   FileText,
   House,
   ClipboardCheck,
-  ContactRound,
   ScanSearch,
   ShieldAlert,
   Fingerprint,
@@ -59,8 +58,10 @@ export const MENU: MenuItem[] = [
   { path: '/audit-log', label: 'Audit Log', roles: ['OWNER'], icon: ScrollText, group: 'Sistem' },
   { path: '/beranda', label: 'Beranda', roles: ['EMPLOYEE'], icon: House, group: 'Saya', mobile: true },
   { path: '/izin-saya', label: 'Izin', roles: ['EMPLOYEE'], icon: CalendarCheck, group: 'Saya', mobile: true },
-  { path: '/rekan-kerja', label: 'Rekan', roles: ['EMPLOYEE'], icon: ContactRound, group: 'Saya', mobile: true },
+  { path: '/absensi-saya', label: 'Absensi', roles: ['EMPLOYEE'], icon: ClipboardCheck, group: 'Saya', mobile: true },
   { path: '/profil', label: 'Profil', roles: ['EMPLOYEE'], icon: UserRound, group: 'Saya', mobile: true },
+  // Owner/HR: di HP lewat menu "Lainnya", agar bottom navigation tidak penuh.
+  { path: '/profil', label: 'Profil', roles: MANAGERS, icon: UserRound, group: 'Saya' },
 ]
 
 export function menuFor(role: Role): MenuItem[] {

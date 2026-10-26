@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useSearchParams } from 'react-router'
 
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { PageHeader } from '@/components/PageHeader'
@@ -14,17 +14,16 @@ import type { TeamDay, TeamMember } from '@/lib/types'
 
 const HEADERS = ['Tanggal', 'Status', 'Masuk', 'Pulang', 'Terlambat', 'Lembur']
 
-/** Riwayat absensi satu rekan kerja per bulan (K-083). */
-export function TeamMemberPage() {
-  const { id } = useParams()
+/** Absensi Saya: riwayat absensi milik sendiri per bulan (K-127). */
+export function MyAttendancePage() {
   const [params, setParams] = useSearchParams()
   const today = localDateIso()
   const month = params.get('bulan') ?? monthOf(today)
   const { from, to } = monthRange(month, today)
   const isFuture = from > today
   const { data, error, isPending } = useQuery({
-    queryKey: ['/api/team/employees', id, from, to],
-    queryFn: () => api<TeamMember>(`/api/team/employees/${id}/attendance?from=${from}&to=${to}`),
+    queryKey: ['/api/me/attendance', from, to],
+    queryFn: () => api<TeamMember>(`/api/me/attendance?from=${from}&to=${to}`),
     enabled: !isFuture,
   })
   const setMonth = (value: string) => setParams({ bulan: value }, { replace: true })
@@ -42,12 +41,8 @@ export function TeamMemberPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Link to="/rekan-kerja" className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" />
-        Rekan Kerja
-      </Link>
       <PageHeader
-        title={data?.fullName ?? 'Riwayat absensi'}
+        title="Absensi Saya"
         description={data ? [data.employeeNumber, data.branchName, data.position].filter(Boolean).join(' · ') : undefined}
       />
 

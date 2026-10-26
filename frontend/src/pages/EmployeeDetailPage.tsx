@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, ArrowLeft, KeyRound, UserRound } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 
+import { useAuth } from '@/auth/AuthContext'
 import { ActiveBadge } from '@/components/CrudPage'
 import { BranchAccessCard } from '@/components/BranchAccessCard'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
@@ -19,6 +20,7 @@ import type { Employee, UserAccount } from '@/lib/types'
  */
 export function EmployeeDetailPage() {
   const { id } = useParams()
+  const { me } = useAuth()
   const employee = useQuery({
     queryKey: ['/api/employees', id],
     queryFn: () => api<Employee>(`/api/employees/${id}`),
@@ -136,7 +138,7 @@ export function EmployeeDetailPage() {
           )}
         </section>
 
-        {data && <BranchAccessCard employee={data} />}
+        {data && <BranchAccessCard employee={data} readOnly={me?.role !== 'OWNER'} />}
 
         {data && <FingerprintSection employee={data} />}
       </div>

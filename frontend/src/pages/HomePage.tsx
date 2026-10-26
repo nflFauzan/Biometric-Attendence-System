@@ -25,10 +25,10 @@ export function HomePage() {
   const today = localDateIso()
   const firstName = me?.employeeName?.trim().split(/\s+/)[0] ?? me?.username ?? ''
 
-  // Memakai endpoint rekan kerja untuk diri sendiri (K-083): satu hari untuk "Hari ini", satu bulan untuk "Bulan ini".
+  // Absensi Saya (K-127): satu hari untuk "Hari ini", satu bulan untuk "Bulan ini".
   const attendance = (from: string, to: string) => ({
-    queryKey: ['/api/team/employees', String(employeeId), from, to],
-    queryFn: () => api<TeamMember>(`/api/team/employees/${employeeId}/attendance?from=${from}&to=${to}`),
+    queryKey: ['/api/me/attendance', from, to],
+    queryFn: () => api<TeamMember>(`/api/me/attendance?from=${from}&to=${to}`),
     enabled: employeeId != null,
   })
   const todayQuery = useQuery(attendance(today, today))

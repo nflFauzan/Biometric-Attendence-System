@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 
+import { useAuth } from '@/auth/AuthContext'
 import { ActiveBadge, CrudPage } from '@/components/CrudPage'
 import { emptyToNull, toId } from '@/lib/form'
 import { formatDate } from '@/lib/format'
@@ -7,6 +8,7 @@ import type { Employee } from '@/lib/types'
 import { useBranchOptions, useCategoryOptions } from '@/pages/options'
 
 export function EmployeesPage() {
+  const { me } = useAuth()
   const branchOptions = useBranchOptions()
   const categoryOptions = useCategoryOptions()
   return (
@@ -14,6 +16,8 @@ export function EmployeesPage() {
       title="Karyawan"
       description="Data karyawan tidak dihapus. Untuk karyawan keluar, isi tanggal keluar lalu nonaktifkan."
       endpoint="/api/employees"
+      // Data karyawan hanya diubah Owner (K-128); HR/Finance tetap melihat daftar dan detail.
+      readOnly={me?.role !== 'OWNER'}
       columns={[
         {
           header: 'Nama',

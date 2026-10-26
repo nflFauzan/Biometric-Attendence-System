@@ -36,6 +36,8 @@ interface CrudPageProps<T extends { id: number }> {
   toolbar?: ReactNode
   /** Dipanggil dengan hasil PUT/POST setelah tersimpan, mis. untuk menampilkan data yang hanya ada sekali. */
   onSaved?: (saved: T, editing: T | null) => void
+  /** Hanya baca: tanpa tombol Tambah, aksi Ubah, dan dialog form; daftar tetap tampil. */
+  readOnly?: boolean
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {
@@ -83,10 +85,12 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
   const actions = (row: T) => (
     <>
       {props.rowActions?.(row)}
-      <Button variant="ghost" size="sm" onClick={() => setDialog({ editing: row })}>
-        <Pencil />
-        Ubah
-      </Button>
+      {!props.readOnly && (
+        <Button variant="ghost" size="sm" onClick={() => setDialog({ editing: row })}>
+          <Pencil />
+          Ubah
+        </Button>
+      )}
     </>
   )
 
@@ -96,13 +100,15 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
         title={props.title}
         description={props.description}
         actions={
-          <Button
-            onClick={openCreate}
-            className="max-md:fixed max-md:right-4 max-md:bottom-[calc(5rem+env(safe-area-inset-bottom))] max-md:z-20 max-md:shadow-lg"
-          >
-            <Plus />
-            Tambah
-          </Button>
+          !props.readOnly && (
+            <Button
+              onClick={openCreate}
+              className="max-md:fixed max-md:right-4 max-md:bottom-[calc(5rem+env(safe-area-inset-bottom))] max-md:z-20 max-md:shadow-lg"
+            >
+              <Plus />
+              Tambah
+            </Button>
+          )
         }
       />
 
@@ -119,10 +125,12 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
           <EmptyState
             message={`Belum ada data ${props.title.toLowerCase()}.`}
             action={
-              <Button variant="secondary" size="sm" onClick={openCreate}>
-                <Plus />
-                Tambah {props.title.toLowerCase()}
-              </Button>
+              !props.readOnly && (
+                <Button variant="secondary" size="sm" onClick={openCreate}>
+                  <Plus />
+                  Tambah {props.title.toLowerCase()}
+                </Button>
+              )
             }
           />
         )}
@@ -194,7 +202,7 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
         )}
       </section>
 
-      {dialog && (
+      {dialog && !props.readOnly && (
         <FormDialog
           open
           title={dialog.editing ? `Ubah ${props.title}` : `Tambah ${props.title}`}
