@@ -62,7 +62,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["Owner membuka menu Karyawan (K-128)"] --> B["Mengisi data karyawan"]
+    A["Owner / Finance & Accounting membuka menu Karyawan (K-135)"] --> B["Mengisi data karyawan dan akun login (K-133)"]
     B --> C["Menentukan cabang dan kategori payroll"]
     C --> D["Mengatur gaji dan komponen yang relevan"]
     D --> E["Menyimpan data karyawan"]
@@ -431,7 +431,7 @@ Perubahan konfigurasi tidak boleh langsung memperbarui hasil payroll final yang 
 
 ```mermaid
 flowchart TD
-    A["Owner membuka data karyawan (K-128)"] --> B["Mencatat tanggal dan status keluar"]
+    A["Owner / Finance & Accounting membuka data karyawan (K-135)"] --> B["Mencatat tanggal dan status keluar"]
     B --> C["Nonaktifkan akun web sesuai prosedur"]
     C --> D["Batasi penugasan dan akses baru"]
     D --> E["Proses penghapusan biometrik pada mesin [MESIN]"]

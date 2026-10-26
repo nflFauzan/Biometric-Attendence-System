@@ -293,6 +293,12 @@ Strip hazard hanya dipakai untuk hal yang menunggu tindakan pengguna, agar tidak
 - Desktop: dialog di tengah, lebar maksimal 520px (form panjang 720px), radius 16px.
 - HP: bottom sheet dengan pegangan (handle) di atas, tombol aksi lengket di bawah.
 - Aksi berisiko (hapus, tolak, finalisasi) wajib dikonfirmasi dengan menyebut akibatnya: "Finalisasi periode Oktober 2026? Setelah final, absensi dan gaji periode ini tidak bisa diubah."
+- **Pemilih tanggal & jam** (`components/DatePickers.tsx`, mengacu pada referensi booking sheet dari video @dailyflutterui). Semua input tanggal/jam memakai komponen ini, bukan input bawaan browser. Field berupa tombol (ikon + "Sab, 24 Okt 2026" / "14.05" + chevron) yang membuka sheet berisi judul, konteks (label field), dan chip ringkasan navy di kanan atas.
+  - `DatePicker`: kalender bulanan (Senin di awal, tanggal terpilih lingkaran `steel-800`) lalu tombol "Pilih". Judul bulan bisa diketuk untuk lompat ke tahun lalu bulan (tanggal lahir).
+  - `TimePicker`: roda jam dan menit format 24 jam dengan pita sorotan, lalu "Pilih".
+  - `DateTimePicker`: dua langkah (kalender → "Lanjut · Pilih jam" → roda jam), indikator titik Tanggal–Jam, tombol kembali kotak bergaris dan "Konfirmasi". `withSeconds` menambah roda detik ("Terima scan sejak").
+  - Batas `min`/`max` menonaktifkan tanggal, bulan, dan tahun di luar rentang. Filter Dari–Sampai saling membatasi. Field opsional mendapat tombol "Kosongkan".
+  - `FormDialog` otomatis memakai pemilih ini untuk field `date`, `time`, dan `datetime-local`. Nilai yang dikirim ke API tetap sama dengan input bawaan.
 
 ### 6.9 Navigasi
 

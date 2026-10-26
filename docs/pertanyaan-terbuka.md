@@ -453,7 +453,7 @@ K-103 menyebut 25 karyawan, tetapi dokumen AS-IS memuat sekitar 32 orang (18 sup
 
 **Dampak:** kapasitas sidik jari per mesin dan data awal.
 
-**Dijawab 2026-10-26:** data karyawan dari client berisi 28 orang (Takka 1: 4, Takka 2: 18, Takka Cilong: 6; 13 Office, 8 Supir, 7 Kenek), dan semuanya dibuatkan akun (K-130, K-131).
+**Dijawab 2026-10-26:** data karyawan dari client berisi 28 orang (Takka 1: 4, Takka 2: 18, Takka Cilong: 6; 13 Office, 8 Supir, 7 Kenek), dan semuanya dibuatkan akun (K-131, K-133; dimasukkan lewat form, impor K-130 dibatalkan).
 
 ### Q-042. Departemen dan nama panggilan
 
@@ -461,7 +461,7 @@ Laporan mesin lama mencatat Dept (OPS, PRC, FIN, MAR, SHIP), dan pengajuan dana 
 
 **Dampak:** schema karyawan dan kolom laporan.
 
-**Sebagian dijawab 2026-10-26:** template data client memakai Unit Office/Supir/Kenek, yang dipetakan ke kategori karyawan tanpa kolom departemen baru (K-130). Nama panggilan menjadi bagian depan username (`balqis@takka.id`, K-131). Kode departemen mesin lama (OPS, PRC, FIN, MAR, SHIP) di laporan masih terbuka.
+**Sebagian dijawab 2026-10-26:** template data client memakai Unit Office/Supir/Kenek, yang dipetakan ke kategori karyawan tanpa kolom departemen baru (dipilih di form karyawan). Nama panggilan menjadi bagian depan username (`balqis@takka.id`, K-131). Kode departemen mesin lama (OPS, PRC, FIN, MAR, SHIP) di laporan masih terbuka.
 
 ### Q-043. Metode bayar dan biaya transfer
 
@@ -483,7 +483,7 @@ Alat rakitan dipasang di satu cabang dulu, dan dua cabang lain belum memakai sis
 
 **Dampak:** data awal karyawan, rekap dan laporan per cabang, serta urutan uji Fase 7.
 
-**Sebagian dijawab 2026-10-26:** semua karyawan di ketiga cabang dibuatkan akun web (K-130). Cabang yang dipasang lebih dulu dan penanda rekap untuk cabang tanpa alat masih terbuka.
+**Sebagian dijawab 2026-10-26:** semua karyawan di ketiga cabang dibuatkan akun web (K-133). Cabang yang dipasang lebih dulu dan penanda rekap untuk cabang tanpa alat masih terbuka.
 
 ## 8. Prioritas Penyelesaian
 

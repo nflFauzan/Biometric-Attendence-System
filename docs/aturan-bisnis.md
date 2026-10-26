@@ -160,7 +160,7 @@ Kewenangan koreksi dan kebutuhan persetujuan tambahan harus mengikuti matriks ak
 | Scan ganda | Scan dengan mesin, PIN, dan waktu yang sama hanya disimpan sekali. | K-061 |
 | Riwayat lama | Scan sebelum "Terima scan sejak" mesin tidak disimpan, hanya dihitung. | K-057 |
 | PIN belum dipetakan | Scan tetap disimpan dengan penanda dan belum masuk rekap; terhubung otomatis saat PIN diisi. | K-065, K-068 |
-| Scan di mesin cabang lain | Cabang yang boleh dipakai = cabang penempatan ditambah cabang tambahan, diatur per karyawan oleh Owner (K-128; semula juga HR/Finance). Scan di cabang tambahan tetap masuk rekap dengan penanda informasi `CABANG_BERBEDA`. | K-065, K-103, K-106 |
+| Scan di mesin cabang lain | Cabang yang boleh dipakai = cabang penempatan ditambah cabang tambahan, diatur per karyawan oleh Owner dan Finance & Accounting (K-135; sempat hanya Owner menurut K-128). Scan di cabang tambahan tetap masuk rekap dengan penanda informasi `CABANG_BERBEDA`. | K-065, K-103, K-106 |
 | Scan dari cabang yang tidak diizinkan | Disimpan utuh dengan penanda `CABANG_TIDAK_DIIZINKAN`, tetapi **tertahan**: tidak dihitung di rekap sampai ditinjau. Peninjauan (Owner dan HR/Finance) memutuskan `DITERIMA` (masuk rekap) atau `DIABAIKAN`, alasan wajib; keputusan boleh diubah dan tercatat di audit log. Scan asli tidak pernah diubah. Tidak berlaku surut: mengubah daftar cabang tidak menilai ulang scan yang sudah tersimpan. | K-103, K-106 |
 | Waktu scan di masa depan | Tetap disimpan, diberi penanda (jam mesin mungkin salah). | K-065 |
 | Koreksi | Jam masuk dan/atau pulang; alasan wajib; Owner dan HR/Finance; hanya untuk tanggal yang sudah terjadi. | K-059 |
@@ -256,7 +256,7 @@ Terdapat dua kelompok penggajian utama:
 
 Penetapan kategori karyawan harus dapat dikonfigurasi. Kategori menentukan pengaturan awal, tetapi nominal dan ketentuan khusus dapat berbeda untuk setiap karyawan.
 
-**Data awal dari client (Disepakati, 2026-10-26, K-130):** Unit Office (termasuk staf Gudang) masuk kategori bulanan; Supir dan Kenek masuk kategori mingguan. Tanggal masuk karyawan hasil impor diisi tanggal mulai pemakaian sistem yang ditentukan client saat produksi, sehingga perhitungan dimulai dari bulan itu dan tidak memakai tanggal masuk kerja sebenarnya.
+**Data awal dari client (Disepakati, 2026-10-26, K-133, K-134):** Unit Office (termasuk staf Gudang) masuk kategori bulanan; Supir dan Kenek masuk kategori mingguan. Karyawan dimasukkan lewat form satu per satu (impor Excel K-130 dibatalkan). Tanggal masuk otomatis diisi tanggal karyawan ditambahkan, sehingga perhitungan dimulai dari pemakaian sistem dan tidak memakai tanggal masuk kerja sebenarnya.
 
 ### 6.2 Gaji Pokok
 

@@ -1,5 +1,7 @@
 # Profil Lengkap dan Impor Karyawan — Rencana Implementasi
 
+> **Catatan 2026-10-26:** bagian impor Excel (parser, service, endpoint, halaman impor) dibatalkan pengguna dan sudah dihapus oleh [2026-10-26-akun-karyawan-pesan-wa.md](2026-10-26-akun-karyawan-pesan-wa.md). Yang tetap berlaku: profil V17, username boleh memuat `@`, dan label "Finance & Accounting".
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Tujuan:**

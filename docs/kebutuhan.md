@@ -41,7 +41,7 @@ Sistem menggunakan tiga role awal:
 | Fitur | Owner | HR/Finance | Karyawan |
 |---|---|---|---|
 | Dashboard dan laporan perusahaan | Ya | Ya | Tidak |
-| Data karyawan (tambah/ubah) dan cabang absen | Ya | Lihat saja (K-128) | Tidak |
+| Data karyawan (tambah/ubah) dan cabang absen | Ya | Ya (K-135) | Tidak |
 | Master cabang dan kategori | Ya | Ya | Tidak |
 | Data perangkat dan status koneksi | Ya | Ya | Tidak |
 | Pendaftaran biometrik | Ya | Ya | Tidak |
