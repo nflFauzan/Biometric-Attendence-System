@@ -160,7 +160,7 @@ Kewenangan koreksi dan kebutuhan persetujuan tambahan harus mengikuti matriks ak
 | Scan ganda | Scan dengan mesin, PIN, dan waktu yang sama hanya disimpan sekali. | K-061 |
 | Riwayat lama | Scan sebelum "Terima scan sejak" mesin tidak disimpan, hanya dihitung. | K-057 |
 | PIN belum dipetakan | Scan tetap disimpan dengan penanda dan belum masuk rekap; terhubung otomatis saat PIN diisi. | K-065, K-068 |
-| Scan di mesin cabang lain | Cabang yang boleh dipakai = cabang penempatan ditambah cabang tambahan, diatur per karyawan oleh Owner atau HR/Finance. Scan di cabang tambahan tetap masuk rekap dengan penanda informasi `CABANG_BERBEDA`. | K-065, K-103, K-106 |
+| Scan di mesin cabang lain | Cabang yang boleh dipakai = cabang penempatan ditambah cabang tambahan, diatur per karyawan oleh Owner (K-128; semula juga HR/Finance). Scan di cabang tambahan tetap masuk rekap dengan penanda informasi `CABANG_BERBEDA`. | K-065, K-103, K-106 |
 | Scan dari cabang yang tidak diizinkan | Disimpan utuh dengan penanda `CABANG_TIDAK_DIIZINKAN`, tetapi **tertahan**: tidak dihitung di rekap sampai ditinjau. Peninjauan (Owner dan HR/Finance) memutuskan `DITERIMA` (masuk rekap) atau `DIABAIKAN`, alasan wajib; keputusan boleh diubah dan tercatat di audit log. Scan asli tidak pernah diubah. Tidak berlaku surut: mengubah daftar cabang tidak menilai ulang scan yang sudah tersimpan. | K-103, K-106 |
 | Waktu scan di masa depan | Tetap disimpan, diberi penanda (jam mesin mungkin salah). | K-065 |
 | Koreksi | Jam masuk dan/atau pulang; alasan wajib; Owner dan HR/Finance; hanya untuk tanggal yang sudah terjadi. | K-059 |
@@ -185,7 +185,7 @@ Jenis, kuota, dan dampak ke gaji belum diketahui (Q-013), sehingga yang ditetapk
 | Tanggal lampau | Boleh; batas waktunya menunggu Q-033. Rentang maks. 366 hari. | K-080 |
 | Notifikasi | Owner/HR mendapat notifikasi langsung di aplikasi saat ada pengajuan baru. | K-081 |
 | Templat surat | Diatur per jenis oleh Owner: `UMUM`, `IZIN`, `CUTI`, `SAKIT`. Kewajiban isian (mis. alamat selama cuti, nomor HP) divalidasi server saat dikirim menurut templat yang dibekukan; draft boleh belum lengkap. | K-113 |
-| Keputusan Owner di luar web | HR/Finance (bukan pemohon) boleh mencatat keputusan Owner di tahap Owner dengan cara (WhatsApp/lisan/tertulis), waktu (tidak di masa depan, tidak sebelum tahap HR, ketelitian menit), catatan wajib, dan bukti (wajib untuk WhatsApp dan tertulis). Spesimen Owner tidak ditempel di surat. | K-117 |
+| Keputusan Owner di luar web | HR/Finance (bukan pemohon) boleh mencatat keputusan Owner di tahap Owner dengan cara (WhatsApp/lisan/tertulis), waktu (tidak di masa depan, tidak sebelum tahap HR, ketelitian menit), catatan wajib, dan bukti (wajib untuk WhatsApp dan tertulis). Spesimen Owner tidak ditempel di surat, yang menulis nama karyawan pencatat (atau "HR/Finance"). Owner melihat keputusan yang dicatat HR (7 hari terakhir) di lonceng. | K-117, K-120, K-123 |
 | Surat PDF | PDF dibuat server, bisa diunduh pemilik, Owner, dan HR kapan saja; surat belum final bercap status. Memuat QR verifikasi publik dan spesimen tanda tangan yang dibekukan pada tahap yang disetujui di web. | K-114, K-115, K-116 |
 
 ---

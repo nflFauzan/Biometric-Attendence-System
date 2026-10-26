@@ -79,7 +79,7 @@ Prinsip urutan:
 
 - Status bertahap dan persetujuan ganda HR lalu Owner (migration V12, V13), TC-19 diuji di `LeaveApprovalTests.doubleApprovalNeedsHrThenOwner`.
 - Surat PDF dari server dengan QR dan spesimen tanda tangan (V14), halaman verifikasi publik `/verifikasi/:token`, serta pencatatan keputusan Owner oleh HR dengan bukti.
-- Area karyawan mobile-first: Beranda, navigasi bawah, alur pengajuan 4 langkah, dan Rekan Kerja berupa kartu di HP.
+- Area karyawan mobile-first: Beranda, navigasi bawah, alur pengajuan 4 langkah, dan Rekan Kerja berupa kartu di HP (Rekan Kerja diganti Absensi Saya oleh K-127).
 - Menunggu uji manual di HP 375 px (terang dan gelap) dan templat surat dari client (D-05) bila ada.
 
 ## Fase 7 — Integrasi mesin asli dan rilis

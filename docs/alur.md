@@ -62,7 +62,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A["HR/Finance membuka menu Karyawan"] --> B["Mengisi data karyawan"]
+    A["Owner membuka menu Karyawan (K-128)"] --> B["Mengisi data karyawan"]
     B --> C["Menentukan cabang dan kategori payroll"]
     C --> D["Mengatur gaji dan komponen yang relevan"]
     D --> E["Menyimpan data karyawan"]
@@ -242,11 +242,14 @@ stateDiagram-v2
     PERLU_TINJAU_HR --> DISETUJUI: HR setuju (jenis satu persetujuan)
     PERLU_TINJAU_HR --> PERLU_TINJAU_OWNER: HR setuju (jenis persetujuan ganda)
     PERLU_TINJAU_HR --> DITOLAK: HR tolak
+    PERLU_TINJAU_HR --> DISETUJUI: Owner setuju langsung (jenis persetujuan ganda, K-125)
+    PERLU_TINJAU_HR --> DITOLAK: Owner tolak langsung (K-125)
     PERLU_TINJAU_OWNER --> DISETUJUI: Owner setuju / HR catat persetujuan Owner
     PERLU_TINJAU_OWNER --> DITOLAK: Owner tolak / HR catat penolakan Owner
     PERLU_TINJAU_HR --> DIBATALKAN: karyawan tarik / HR-Owner batalkan
     PERLU_TINJAU_OWNER --> DIBATALKAN: karyawan tarik / HR-Owner batalkan
     DISETUJUI --> DIBATALKAN: HR-Owner batalkan (alasan wajib)
+    DITOLAK --> [*]: karyawan ajukan ulang (draft baru, K-126)
 ```
 
 ### 8.2 Ketentuan
@@ -254,7 +257,8 @@ stateDiagram-v2
 - Pengajuan memiliki identitas karyawan, jenis, tanggal atau rentang tanggal, alasan, dan status.
 - Dokumen pendukung dapat diwajibkan sesuai jenis pengajuan.
 - Pengajuan yang belum disetujui tidak boleh otomatis diperlakukan sebagai izin yang sah. Draft tidak memengaruhi rekap maupun pengecekan tumpang tindih.
-- Tidak ada yang memutus pengajuannya sendiri di tahap mana pun (K-079). Bila pemohon satu-satunya HR aktif, Owner boleh mengerjakan tahap HR.
+- Tidak ada yang memutus pengajuannya sendiri di tahap mana pun (K-079).
+- Pada jenis persetujuan ganda, Owner boleh langsung menyetujui atau menolak tanpa menunggu tahap HR. Keputusan tercatat satu baris tahap Owner, dan surat menuliskan tahap HR sebagai "diputus langsung oleh Owner" (K-125).
 - HR boleh mencatat keputusan Owner yang diberikan di luar web (WhatsApp, lisan, tertulis) beserta waktu, catatan, dan bukti (K-117).
 - Surat berupa PDF dari server, memuat QR ke halaman verifikasi publik `/verifikasi/<token>` (K-114, K-116).
 - Persetujuan atau penolakan harus tercatat.
@@ -427,7 +431,7 @@ Perubahan konfigurasi tidak boleh langsung memperbarui hasil payroll final yang 
 
 ```mermaid
 flowchart TD
-    A["HR/Finance membuka data karyawan"] --> B["Mencatat tanggal dan status keluar"]
+    A["Owner membuka data karyawan (K-128)"] --> B["Mencatat tanggal dan status keluar"]
     B --> C["Nonaktifkan akun web sesuai prosedur"]
     C --> D["Batasi penugasan dan akses baru"]
     D --> E["Proses penghapusan biometrik pada mesin [MESIN]"]

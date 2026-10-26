@@ -1,5 +1,7 @@
 # Rekan Kerja Implementation Plan
 
+> **Dibatalkan oleh K-127 (2026-10-25):** fitur rekan kerja dihapus dan diganti Absensi Saya. Disimpan sebagai riwayat.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Semua pengguna yang login, terutama role Karyawan, bisa melihat absensi semua karyawan aktif per tanggal dan riwayat per orang per bulan, tanpa data sensitif.

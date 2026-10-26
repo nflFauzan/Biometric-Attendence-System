@@ -103,7 +103,7 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-080 | 2026-10-13 | Pengajuan boleh untuk tanggal lampau; rentang maks. 366 hari (batas teknis) | Disepakati, batas lampau menunggu Q-033 |
 | K-081 | 2026-10-13 | Notifikasi langsung di dalam aplikasi untuk Owner/HR (pop-up SSE + lonceng); tanpa email/WA | Disepakati |
 | K-082 | 2026-10-13 | Surat pengajuan siap cetak / simpan PDF lewat fitur cetak browser | Disepakati. Pembuatan PDF di server menggantikan sebagian (K-114); halaman cetak browser dihapus |
-| K-083 | 2026-10-14 | Semua karyawan boleh melihat absensi semua karyawan aktif dengan kolom terbatas, tanpa data sensitif | Disepakati |
+| K-083 | 2026-10-14 | Semua karyawan boleh melihat absensi semua karyawan aktif dengan kolom terbatas, tanpa data sensitif | Disepakati. Diganti K-127 |
 | K-084 | 2026-10-14 | Status rekan kerja disederhanakan; izin tampil tanpa jenis, koreksi tidak terlihat | Disepakati |
 | K-085 | 2026-10-14 | Tema kaca (glassmorphism) penuh, terang/gelap dengan tombol tema, responsif HP/tablet/desktop | Disepakati |
 | K-086 | 2026-10-16 | Backend membuka port kedua untuk mesin (`DEVICE_EXTRA_PORT`) saat dijalankan di luar Docker lewat `start-dev.bat` | Disepakati |
@@ -132,6 +132,10 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-116 | 2026-10-24 | Verifikasi surat publik lewat token acak 128-bit di QR, dengan data minimal dan batas laju per IP | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
 | K-117 | 2026-10-24 | HR boleh mencatat keputusan Owner yang diberikan di luar web (WhatsApp, lisan, tertulis) dengan waktu, catatan, dan bukti | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
 | K-118 | 2026-10-24 | Area karyawan mobile-first: Beranda `/beranda`, navigasi bawah Beranda/Izin/Rekan/Profil, alur pengajuan 4 langkah | Disepakati pengguna 2026-10-24 ([spec](superpowers/specs/2026-10-24-persetujuan-ganda-surat-izin-design.md)) |
+| K-125 | 2026-10-25 | Owner boleh langsung menyetujui/menolak pengajuan jenis persetujuan ganda tanpa menunggu tahap HR; tercatat satu baris tahap Owner | Disepakati pengguna 2026-10-25 (review gap v0.6 baris 2); menggantikan bagian K-113 tentang HR tunggal |
+| K-126 | 2026-10-25 | Karyawan bisa mengajukan ulang pengajuan yang ditolak sebagai draft baru (V16), sekali per pengajuan, tanpa menyalin lampiran | Disepakati pengguna 2026-10-25 (review gap v0.6 baris 3) |
+| K-127 | 2026-10-25 | Karyawan hanya melihat absensinya sendiri (Absensi Saya `/absensi-saya`); daftar rekan kerja dihapus | Disepakati pengguna 2026-10-25 (review gap v0.6 baris 1); menggantikan K-083, K-084 (sebagian), dan menu Rekan di K-118 |
+| K-128 | 2026-10-25 | Tambah/ubah data karyawan dan cabang absen hanya Owner; HR/Finance tetap membaca dan mengurus sidik jari | Disepakati pengguna 2026-10-25 (review gap v0.6 baris 6); mengubah hak akses K-103 |
 
 ---
 
@@ -526,7 +530,7 @@ Merinci K-090 dan K-093. Rincian lengkap ada di spec §17 ([pendaftaran-sidik-ja
 **Keputusan (2026-10-20, jawaban client disampaikan pengguna):** client memiliki 25 karyawan dan 3 cabang dengan 1 mesin per cabang. Cabang tempat karyawan boleh absen diatur dari web, per karyawan.
 
 - **Bentuk.** Di Detail Karyawan ada daftar centang cabang yang boleh dipakai. Cabang penempatan selalu tercentang.
-- **Hak akses.** Owner dan HR/Finance boleh mengubahnya. Setiap perubahan dicatat di audit log.
+- **Hak akses.** ~~Owner dan HR/Finance boleh mengubahnya.~~ Diganti K-128: hanya Owner yang mengubah; HR/Finance melihat. Setiap perubahan dicatat di audit log.
 - **Penegakan utama.** Sidik jari hanya didaftarkan (`ENROLL`) ke alat rakitan di cabang yang diizinkan, sehingga mesin cabang lain tidak mengenali karyawan itu.
 - **Pengaman di server.** Scan dari mesin di cabang yang tidak diizinkan (misalnya lewat X401, atau jari yang belum terhapus) tetap disimpan apa adanya, tetapi **tidak masuk rekap** sampai ditinjau. Ini mengganti perilaku `CABANG_BERBEDA` di K-065, yang saat ini tetap memasukkan scan ke rekap.
 
@@ -660,6 +664,8 @@ Rincian teknis ada di [rencana-fase-4.md](rencana-fase-4.md). Keputusan dipilih 
 
 ### Daftar rekan kerja untuk karyawan (K-083–K-084)
 
+> **Diganti K-127 (2026-10-25):** karyawan hanya melihat absensinya sendiri. Bentuk data terbatas K-084 tetap dipakai untuk Absensi Saya.
+
 Rincian teknis ada di [rencana-rekan-kerja.md](rencana-rekan-kerja.md). Dipilih pengguna pada 2026-10-14 (hasil rapat dengan tim).
 
 - **K-083 Absensi rekan kerja.** Semua pengguna yang login (termasuk Karyawan) boleh melihat absensi semua karyawan aktif: No. karyawan, nama, cabang, jabatan, status, jam masuk/pulang, terlambat, dan lembur. Data sensitif (No. HP, PIN mesin, kategori, tanggal masuk/keluar, jenis/alasan/surat izin, koreksi, data gaji) tidak dikirim, karena respons paket `team` di backend hanya berisi kolom yang diizinkan; pembatasan tidak bergantung pada frontend.
@@ -708,7 +714,7 @@ Rincian teknis K-109, disepakati pengguna pada 2026-10-24 dan diimplementasikan 
   - Draft tidak berpengaruh ke rekap dan pengecekan tumpang tindih. Status aktif (K-075, K-076) adalah `PERLU_TINJAU_HR`, `PERLU_TINJAU_OWNER`, dan `DISETUJUI`.
   - Kebutuhan persetujuan Owner dan templat surat (`UMUM`, `IZIN`, `CUTI`, `SAKIT`) adalah kolom master Jenis Izin yang diatur Owner, lalu **dibekukan di pengajuan saat dikirim**. Mengubah jenis belakangan tidak mengubah rantai yang sedang berjalan.
   - Jenis satu persetujuan: HR/Finance atau Owner memutus di tahap HR (K-073). Jenis persetujuan ganda: HR/Finance dulu, lalu Owner; penolakan di tahap mana pun langsung Ditolak.
-  - K-079 berlaku di setiap tahap: akun yang terhubung ke karyawan pemohon tidak memutus, mencatat keputusan Owner, atau menyetujui pengajuannya sendiri. Bila pemohon adalah satu-satunya HR aktif (`HrReviewerCounter`), Owner boleh mengerjakan tahap HR; riwayat mencatatnya, dan tahap Owner tetap harus dilakukan terpisah.
+  - K-079 berlaku di setiap tahap: akun yang terhubung ke karyawan pemohon tidak memutus, mencatat keputusan Owner, atau menyetujui pengajuannya sendiri. ~~Bila pemohon adalah satu-satunya HR aktif (`HrReviewerCounter`), Owner boleh mengerjakan tahap HR; riwayat mencatatnya, dan tahap Owner tetap harus dilakukan terpisah.~~ Diganti K-125: Owner memutus langsung di tahap Owner.
   - Karyawan menarik pengajuan selama `PERLU_TINJAU_*` (alasan opsional). Pembatalan oleh HR/Owner wajib beralasan (K-074). Hapus draft bersifat permanen dan dicatat di audit (`DELETE`) dengan isi sebelumnya.
   - Audit baru: `SUBMIT`, `STAGE_APPROVE`, `OWNER_DECISION`, dan `VIEW` pada `LEAVE_LETTER` dan `LEAVE_EVIDENCE`.
 - **K-114 PDF dibuat server (menggantikan sebagian K-082).**
@@ -731,10 +737,56 @@ Rincian teknis K-109, disepakati pengguna pada 2026-10-24 dan diimplementasikan 
   - Riwayat mencatat Owner sebagai pemberi keputusan dan HR sebagai pencatat. Owner mendapat notifikasi di aplikasi. Spesimen Owner **tidak** ditempel; surat menulis "Disetujui melalui WhatsApp pada ..., dicatat oleh ...". Bukti hanya bisa dibuka HR/Owner dan setiap pembukaan diaudit.
 - **K-118 Beranda dan navigasi karyawan.**
   - Halaman awal role Karyawan menjadi `/beranda` (menggantikan `/profil` di `homePathFor`): sapaan, kartu Hari ini, pengajuan berjalan (maks. 3), tombol Ajukan izin, ringkasan bulan ini dari data K-083. Tidak ada data gaji.
-  - Navigasi bawah di HP berisi 4 item: Beranda, Izin, Rekan, Profil. Desktop tetap sidebar. Pengajuan lewat alur 4 langkah (Jenis, Tanggal & isian, Lampiran & tanda tangan, Pratinjau) dengan draft tersimpan setiap berpindah langkah.
+  - Navigasi bawah di HP berisi 4 item: Beranda, Izin, Rekan, Profil (Rekan diganti Absensi oleh K-127). Desktop tetap sidebar. Pengajuan lewat alur 4 langkah (Jenis, Tanggal & isian, Lampiran & tanda tangan, Pratinjau) dengan draft tersimpan setiap berpindah langkah.
   - Rekan Kerja di HP menampilkan kartu ringkas dan pencarian "Cari nama"; kolom dan batasan data tetap K-083/K-084. Karyawan tidak mendapat notifikasi langsung (K-081 tetap untuk Owner/HR).
+- **K-119 Tombol keputusan mengikuti flag dari server.**
+  - Respons detail izin untuk penampil Owner/HR memuat `canDecide` dan `canRecordOwnerDecision`, dihitung dengan aturan yang sama dengan endpoint aksi (bukan pemohon, status menunggu, tahap yang berjalan, termasuk K-079 untuk HR tunggal). Halaman detail hanya menampilkan tombol bila flag benar, tanpa menebak dari role di klien. Endpoint karyawan dan daftar selalu mengirim flag salah.
+- **K-120 Notifikasi keputusan Owner yang dicatat HR bersifat permanen.**
+  - Lonceng Owner menampilkan bagian "Keputusan Anda yang dicatat HR": keputusan tahap Owner dengan cara WhatsApp/Lisan/Tertulis dalam 7 hari terakhir, terbaru dulu. Tanda "sudah dilihat" disimpan di browser (`localStorage`, kunci per pengguna `absensi.recordedSeen.<username>`), bukan di server. Setiap baris menampilkan status pengajuan saat ini (mis. Dibatalkan). Nama pencatat memakai nama karyawan yang terhubung ke akunnya, atau "HR/Finance" bila tidak ada (tidak pernah username, sejalan dengan K-123).
+  - Alasan: tanpa perubahan schema. Bila nanti perlu lintas perangkat, pindahkan ke tabel notifikasi. Melengkapi K-117.
+- **K-121 Kembali ke halaman semula setelah login.**
+  - Pengguna yang belum login diarahkan ke `/login?next=<path>`; setelah login (dan setelah ganti password wajib) ia dikembalikan ke `next` bila berupa path relatif aman (satu garis miring, bukan `//`, bukan skema, bukan `/login` atau `/ganti-password`). Selain itu ke halaman awal role.
+  - Logout manual tidak membawa `next`; sesi kedaluwarsa membawanya.
+- **K-122 Riwayat persetujuan untuk pengajuan lama yang dibatalkan.**
+  - Migration V15 mengisi `leave_approvals` untuk pengajuan lama berstatus Dibatalkan yang sebelumnya sudah disetujui (V13 hanya mengambil Disetujui dan Ditolak). V13 tidak diubah karena sudah di-push.
+- **K-123 Nama pencatat di surat PDF.**
+  - Kolom Owner yang dicatat HR menulis "dicatat oleh <nama karyawan pencatat>"; bila akun tidak terhubung ke karyawan, memakai label peran "HR/Finance". Username tidak pernah tampil, termasuk di verifikasi publik.
+- **K-124 Halaman Profil untuk semua role.**
+  - `/profil` dibuka untuk Owner dan HR/Finance agar mereka bisa mengatur spesimen tanda tangan (K-115) yang ditempel saat menyetujui di web. Sebelumnya hanya role Karyawan yang punya halaman ini, sehingga persetujuan Owner/HR selalu tanpa gambar.
+  - Akun yang tidak terhubung ke karyawan melihat username, peran, dan keterangan "Akun ini tidak terhubung ke data karyawan", tanpa meminta `/api/me/employee`. Menu Profil Owner/HR ada di sidebar kelompok "Saya" dan di menu "Lainnya" pada HP; bottom navigation tidak berubah. Tanpa perubahan backend atau schema (spec persetujuan ganda sudah menyebut semua akun).
 
 **Alternatif yang dipertimbangkan:** cetak lewat browser tetap dipakai (ditolak: tanda tangan harus berasal dari server dan HP sulit menyimpan PDF yang andal); menempel spesimen Owner untuk keputusan yang dicatat HR (ditolak: sama dengan memalsukan tanda tangan); verifikasi hanya untuk pengguna login (ditolak: penerima PDF lewat WhatsApp belum tentu punya akun).
+
+
+### Keputusan review gap v0.6 (K-125–K-128)
+
+Jawaban pengguna pada 2026-10-25 atas tabel "Ketidaksesuaian dokumen dan kode" di dokumen review gap requirement v0.6. Rencana: [2026-10-25-keputusan-review-gap-v06.md](superpowers/plans/2026-10-25-keputusan-review-gap-v06.md).
+
+- **K-125 Owner memutus langsung tanpa tahap HR** (baris 2).
+  - Untuk pengajuan `PERLU_TINJAU_HR` pada jenis persetujuan ganda, Owner boleh langsung **Setujui** atau **Tolak**. Keputusan disimpan sebagai satu baris riwayat tahap `OWNER` (metode `WEB`), lalu status menjadi `DISETUJUI` atau `DITOLAK`. Tahap HR tidak mendapat baris riwayat.
+  - Satu pengguna tidak pernah memberi dua persetujuan (FR-LV-008). Jalur "Owner mengerjakan tahap HR bila pemohon satu-satunya HR" di K-113 tidak diperlukan lagi dan diganti aturan ini.
+  - Surat pendukung tetap wajib (K-077) selama pengajuan belum melewati tahap HR, siapa pun yang menyetujui.
+  - Jenis satu persetujuan tidak berubah: Owner memutus di tahap HR (K-073).
+  - HR menyetujui tahap HR bersamaan dengan Owner memutus langsung: penguncian versi pengajuan membuat yang kalah mendapat 409.
+  - Surat PDF: kotak "HR/Finance" berisi teks "Disetujui langsung oleh Owner" atau "Ditolak langsung oleh Owner" beserta waktu keputusan, tanpa nama dan gambar tanda tangan. Garis waktu menandai langkah "Ditinjau HR" dengan teks yang sama.
+  - Lonceng Owner tidak berubah: pengajuan tahap HR jenis persetujuan ganda tidak dimasukkan (kecuali pemohon HR tunggal), agar tidak terlalu ramai. Owner memutus langsung dari menu Izin & Cuti.
+- **K-126 Ajukan ulang pengajuan yang ditolak** (baris 3).
+  - Di detail pengajuan sendiri berstatus `DITOLAK`, karyawan menekan **Ajukan ulang**. Server (`POST /api/me/leave-requests/{id}/resubmit`) membuat draft baru yang menyalin jenis, tanggal, alasan, dan isian templat, dengan `resubmitted_from_id` menunjuk pengajuan lama, lalu karyawan dibawa ke wizard untuk memeriksa, mengunggah lampiran, dan mengirim.
+  - Lampiran tidak disalin. Pengajuan lama tidak berubah. Pengecekan saat kirim (tumpang tindih, jenis aktif, isian templat) memakai jalur kirim draft biasa.
+  - Satu pengajuan yang ditolak hanya bisa diajukan ulang sekali (unique index V16, klik ganda dibalas 409). Draft hasil ajukan ulang yang dihapus membebaskan pengajuan lama untuk diajukan ulang lagi; pengajuan ulang yang ditolak lagi diajukan ulang dari pengajuan yang baru itu.
+  - Jenis izin yang sudah dinonaktifkan: 409 "Jenis izin ini sudah tidak aktif". Audit draft baru: `RESUBMIT` dengan catatan "Ajukan ulang dari #<id>".
+  - Detail pengajuan menampilkan "Pengajuan ulang dari" dengan tautan ke nomor surat pengajuan lama.
+- **K-127 Karyawan hanya melihat absensinya sendiri** (baris 1; FR-USR-002, BR-018, AC-USR-01).
+  - Endpoint dan halaman rekan kerja (`/api/team/**`, `/rekan-kerja`) dihapus; alamat lama dialihkan ke Absensi Saya.
+  - Halaman **Absensi Saya** `/absensi-saya` menampilkan riwayat harian milik sendiri per bulan dari `GET /api/me/attendance?from=&to=` (bawaan: awal bulan sampai hari ini). Bentuk data sama dengan riwayat rekan sebelumnya (K-084: tanpa jenis izin, tanpa sumber koreksi, jam dalam menit penuh, tanpa data sensitif).
+  - Akun tanpa data karyawan atau karyawan nonaktif: 404 "Data karyawan untuk akun ini". Tanggal di masa depan: 400.
+  - Beranda mengambil kartu Hari ini dan Bulan ini dari endpoint yang sama. Navigasi bawah karyawan: Beranda, Izin, Absensi, Profil.
+- **K-128 Data karyawan dan cabang absen hanya diubah Owner** (baris 6).
+  - `POST /api/employees`, `PUT /api/employees/{id}`, dan `PUT /api/employees/{id}/branches` hanya untuk Owner. HR/Finance mendapat 403.
+  - HR/Finance tetap membaca daftar dan detail karyawan serta mengurus sidik jari (`/fingerprint-consent`, `/fingerprints/**`), sesuai catatan 7 requirement v0.6.
+  - Alasan pengguna: HR tidak boleh memanipulasi aturan kerja lewat data karyawan, karena kategori dan aturan per karyawan melekat ke data karyawan. Aturan kerja sendiri sudah khusus Owner (K-049).
+  - Master Kategori dan Cabang tetap bisa diubah HR/Finance (dikonfirmasi pengguna 2026-10-25).
+  - Frontend: daftar karyawan tanpa tombol Tambah/Ubah dan kartu Cabang absen dalam mode hanya baca untuk selain Owner ("Hanya Owner yang dapat mengubah cabang absen.").
 
 ---
 

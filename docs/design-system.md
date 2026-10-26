@@ -158,7 +158,7 @@ Breakpoint mengikuti Tailwind: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
 | Role | Item |
 | --- | --- |
 | Owner, HR/Finance | Dashboard · Absensi · Izin · Penggajian · Lainnya |
-| Karyawan | Beranda · Izin · Rekan · Profil (4 item, tanpa menu "Lainnya"; halaman awal `/beranda`, K-118) |
+| Karyawan | Beranda · Izin · Absensi · Profil (4 item, tanpa menu "Lainnya"; halaman awal `/beranda`, K-118, K-127) |
 
 ## 6. Komponen
 

@@ -1,5 +1,7 @@
 # Rencana: Daftar Rekan Kerja untuk Role Karyawan
 
+> **Dibatalkan oleh K-127 (2026-10-25):** karyawan hanya melihat absensinya sendiri (halaman Absensi Saya). Dokumen ini disimpan sebagai riwayat.
+
 **Status: diimplementasikan 2026-10-14, menunggu checkpoint.** Hasil rapat pengguna dengan tim: 3 role sudah benar, dan **semua karyawan** boleh melihat tabel seluruh karyawan beserta absensinya, tanpa data pribadi yang sensitif. Ini sub-pekerjaan A dari urutan A (rekan kerja) → B (tema glassmorphism) → C (Fase 5 penggajian) yang disetujui pengguna 2026-10-14.
 
 ## 1. Tujuan dan batasan
