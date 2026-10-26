@@ -143,9 +143,10 @@ function PickerSheet({
   )
 }
 
-const primaryButton =
+/** Tombol aksi sheet; juga dipakai form bergaya sheet lain (EmployeeFormDialog) agar seragam. */
+export const primaryButton =
   'flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-steel-800 font-heading text-sm font-semibold text-white hover:bg-steel-900 disabled:opacity-50 dark:bg-primary dark:text-primary-foreground [&_svg]:size-4'
-const outlineButton =
+export const outlineButton =
   'flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-input bg-card px-4 font-heading text-sm font-semibold hover:bg-accent [&_svg]:size-4'
 
 function SheetActions({ children }: { children: ReactNode }) {

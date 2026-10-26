@@ -78,17 +78,13 @@ function PickerField({
   return <DatePicker {...common} />
 }
 
-/** Form generik dalam dialog (bottom sheet di HP). Error per field dari backend ditampilkan di bawah field-nya. */
-export function FormDialog({
-  open,
-  title,
-  description,
-  fields,
+/** Isian, simpan, dan error form dialog; dipakai FormDialog dan form khusus seperti EmployeeFormDialog. */
+export function useFormState({
   initialValues,
-  onClose,
   onSubmit,
+  onClose,
   derive,
-}: FormDialogProps) {
+}: Pick<FormDialogProps, 'initialValues' | 'onSubmit' | 'onClose' | 'derive'>) {
   const [values, setValues] = useState<FormValues>(initialValues)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -119,6 +115,22 @@ export function FormDialog({
       setSaving(false)
     }
   }
+
+  return { values, set, error, fieldErrors, saving, handleSubmit }
+}
+
+/** Form generik dalam dialog (bottom sheet di HP). Error per field dari backend ditampilkan di bawah field-nya. */
+export function FormDialog({
+  open,
+  title,
+  description,
+  fields,
+  initialValues,
+  onClose,
+  onSubmit,
+  derive,
+}: FormDialogProps) {
+  const { values, set, error, fieldErrors, saving, handleSubmit } = useFormState({ initialValues, onSubmit, onClose, derive })
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>

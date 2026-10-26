@@ -25,7 +25,8 @@ interface CrudPageProps<T extends { id: number }> {
   description?: string
   endpoint: string
   columns: Column<T>[]
-  fields: (editing: T | null) => FieldDef[]
+  /** Field FormDialog generik; tidak dipakai bila `renderForm` diisi. */
+  fields?: (editing: T | null) => FieldDef[]
   emptyValues: FormValues
   toValues: (row: T) => FormValues
   toBody: (values: FormValues, editing: T | null) => unknown
@@ -40,6 +41,15 @@ interface CrudPageProps<T extends { id: number }> {
   derive?: (next: FormValues, prev: FormValues, editing: T | null) => FormValues
   /** Hanya baca: tanpa tombol Tambah, aksi Ubah, dan dialog form; daftar tetap tampil. */
   readOnly?: boolean
+  /** Form khusus pengganti FormDialog generik, mis. form karyawan yang berbagian. */
+  renderForm?: (form: CrudForm<T>) => ReactNode
+}
+
+export interface CrudForm<T> {
+  editing: T | null
+  initialValues: FormValues
+  onClose: () => void
+  onSubmit: (values: FormValues) => Promise<void>
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {
@@ -204,11 +214,17 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
         )}
       </section>
 
-      {dialog && !props.readOnly && (
+      {dialog && !props.readOnly && props.renderForm?.({
+        editing: dialog.editing,
+        initialValues: dialog.editing ? props.toValues(dialog.editing) : props.emptyValues,
+        onClose: () => setDialog(null),
+        onSubmit: save,
+      })}
+      {dialog && !props.readOnly && !props.renderForm && (
         <FormDialog
           open
           title={dialog.editing ? `Ubah ${props.title}` : `Tambah ${props.title}`}
-          fields={props.fields(dialog.editing)}
+          fields={props.fields?.(dialog.editing) ?? []}
           initialValues={dialog.editing ? props.toValues(dialog.editing) : props.emptyValues}
           onClose={() => setDialog(null)}
           onSubmit={save}
