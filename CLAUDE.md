@@ -68,6 +68,7 @@ Setiap commit pada modul/fitur tertentu wajib di-commit dengan akun yang sesuai 
    - Seluruh dokumen di direktori `docs/`: Product Requirements Document (PRD), spesifikasi teknis, rencana implementasi fitur, log keputusan arsitektur (`keputusan.md`), aturan bisnis (`aturan-bisnis.md`), alur sistem (`alur.md`), dan catatan pertanyaan terbuka.
 
 ### 3. Format Pesan Commit (Wajib Dipatuhi)
+- **DILARANG KERAS menyertakan `Co-Authored-By`, `Co-authored-by: Claude`, atau referensi AI apa pun.** Pesan commit harus 100% murni tanpa co-author agar di GitHub tidak muncul keterangan *"and claude committed"*.
 - **DILARANG menggunakan tanda kurung setelah tipe prefix.** Gunakan format langsung:
   - `feat: <penjelasan detail judul>`
   - `test: <penjelasan detail judul>`
