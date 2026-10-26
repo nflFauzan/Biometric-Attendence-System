@@ -41,7 +41,7 @@ public abstract class AttendanceFixtures extends IntegrationTest {
 	}
 
 	protected long createEmployee(long branchId, String pin) throws Exception {
-		return idOf(mockMvc.perform(post("/api/employees").with(HR)
+		return idOf(mockMvc.perform(post("/api/employees").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(employeeJson(branchId, unique("E"), pin)))
@@ -50,7 +50,7 @@ public abstract class AttendanceFixtures extends IntegrationTest {
 
 	protected ResultActions updateEmployeePin(long employeeId, long branchId, String number, String pin)
 			throws Exception {
-		return mockMvc.perform(put("/api/employees/" + employeeId).with(HR)
+		return mockMvc.perform(put("/api/employees/" + employeeId).with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(employeeJson(branchId, number, pin)));

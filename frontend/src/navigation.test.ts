@@ -9,7 +9,6 @@ describe('menu per role', () => {
     expect(labels('OWNER')).toEqual(
       expect.arrayContaining(['Dashboard', 'Karyawan', 'Cabang', 'Mesin Absensi', 'Akun', 'Audit Log']),
     )
-    expect(labels('OWNER')).not.toContain('Profil')
     expect(labels('OWNER')).not.toContain('Rekan')
     expect(labels('OWNER')).toEqual(expect.arrayContaining(['Izin & Cuti', 'Jenis Izin/Cuti']))
   })
@@ -23,10 +22,18 @@ describe('menu per role', () => {
     expect(labels('HR_FINANCE')).not.toContain('Jenis Izin/Cuti')
   })
 
+  it('Owner dan HR punya Profil untuk tanda tangan (K-115), lewat menu Lainnya di HP', () => {
+    for (const role of ['OWNER', 'HR_FINANCE'] as const) {
+      const profil = menuFor(role).filter((item) => item.path === '/profil')
+      expect(profil).toHaveLength(1)
+      expect(profil[0].mobile).toBeFalsy()
+    }
+  })
+
   it('Karyawan punya tepat 4 menu berurutan, semuanya tampil di bottom nav', () => {
     const items = menuFor('EMPLOYEE')
-    expect(items.map((item) => item.path)).toEqual(['/beranda', '/izin-saya', '/rekan-kerja', '/profil'])
-    expect(items.map((item) => item.label)).toEqual(['Beranda', 'Izin', 'Rekan', 'Profil'])
+    expect(items.map((item) => item.path)).toEqual(['/beranda', '/izin-saya', '/absensi-saya', '/profil'])
+    expect(items.map((item) => item.label)).toEqual(['Beranda', 'Izin', 'Absensi', 'Profil'])
     expect(items.every((item) => item.mobile)).toBe(true)
   })
 

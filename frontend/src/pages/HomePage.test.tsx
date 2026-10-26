@@ -34,8 +34,8 @@ const member = (days: TeamDay[]): TeamMember => ({
 
 const routes = (leaves: unknown[]) => ({
   'GET /api/auth/me': () => ({ status: 200, body: employee }),
-  'GET /api/team/employees/12/attendance?from=2026-10-14&to=2026-10-14': () => ({ status: 200, body: member([today]) }),
-  'GET /api/team/employees/12/attendance?from=2026-10-01&to=2026-10-14': () => ({ status: 200, body: member([yesterday, today]) }),
+  'GET /api/me/attendance?from=2026-10-14&to=2026-10-14': () => ({ status: 200, body: member([today]) }),
+  'GET /api/me/attendance?from=2026-10-01&to=2026-10-14': () => ({ status: 200, body: member([yesterday, today]) }),
   'GET /api/me/leave-requests': () => ({ status: 200, body: leaves }),
 })
 

@@ -249,6 +249,24 @@ describe('Akses kartu', () => {
     })
     renderPage()
     expect(await screen.findByRole('heading', { name: 'Cabang absen' }, LOAD)).toBeInTheDocument()
+    // K-128: HR hanya membaca cabang absen.
+    expect(await screen.findByText('Hanya Owner yang dapat mengubah cabang absen.', undefined, LOAD)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Simpan' })).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Cabang Gudang' })).toBeDisabled()
+  })
+
+  it('read-only card shows the branches without a save button', async () => {
+    const fetchMock = mockFetch(baseRoutes([2]))
+    render(
+      <QueryClientProvider client={client()}>
+        <BranchAccessCard employee={employee} readOnly />
+      </QueryClientProvider>,
+    )
+    const extra = await screen.findByRole('checkbox', { name: 'Cabang Gudang' }, LOAD)
+    expect(extra).toBeChecked()
+    expect(extra).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Simpan' })).not.toBeInTheDocument()
+    expect(putCalls(fetchMock)).toHaveLength(0)
   })
 
   it('an employee account never reaches the card', async () => {

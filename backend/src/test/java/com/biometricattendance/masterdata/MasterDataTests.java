@@ -24,6 +24,7 @@ import com.jayway.jsonpath.JsonPath;
 class MasterDataTests extends IntegrationTest {
 
 	private static final RequestPostProcessor HR = user("hr-master").roles("HR_FINANCE");
+	private static final RequestPostProcessor OWNER = user("owner-master").roles("OWNER");
 
 	@Autowired
 	private AuditLogRepository auditLogs;
@@ -84,12 +85,12 @@ class MasterDataTests extends IntegrationTest {
 				String.format("{\"code\":\"%s\",\"name\":\"Kategori Uji\",\"active\":true}", unique("K"))));
 		String number = unique("EMP");
 
-		postJson("/api/employees", employeeJson(number, branchId, categoryId, "2026-01-05", null))
+		postEmployee(employeeJson(number, branchId, categoryId, "2026-01-05", null))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.employeeNumber").value(number))
 			.andExpect(jsonPath("$.categoryName").value("Kategori Uji"));
 
-		postJson("/api/employees", employeeJson(number, branchId, categoryId, "2026-01-05", null))
+		postEmployee(employeeJson(number, branchId, categoryId, "2026-01-05", null))
 			.andExpect(status().isConflict());
 	}
 
@@ -98,7 +99,7 @@ class MasterDataTests extends IntegrationTest {
 		long branchId = idOf(createBranch(unique("C"), "Asia/Jakarta"));
 		long categoryId = idOf(postJson("/api/employee-categories",
 				String.format("{\"code\":\"%s\",\"name\":\"K\",\"active\":true}", unique("K"))));
-		postJson("/api/employees", employeeJson(unique("EMP"), branchId, categoryId, "2026-03-01", "\"2026-02-01\""))
+		postEmployee(employeeJson(unique("EMP"), branchId, categoryId, "2026-03-01", "\"2026-02-01\""))
 			.andExpect(status().isBadRequest());
 	}
 
@@ -118,6 +119,12 @@ class MasterDataTests extends IntegrationTest {
 
 	private ResultActions postJson(String path, String body) throws Exception {
 		return mockMvc.perform(post(path).with(HR).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body));
+	}
+
+	/** Data karyawan hanya ditulis Owner (K-128). */
+	private ResultActions postEmployee(String body) throws Exception {
+		return mockMvc
+			.perform(post("/api/employees").with(OWNER).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body));
 	}
 
 	private static long idOf(ResultActions result) throws Exception {

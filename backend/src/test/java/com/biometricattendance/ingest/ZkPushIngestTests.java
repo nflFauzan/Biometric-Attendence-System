@@ -210,7 +210,7 @@ class ZkPushIngestTests extends AttendanceFixtures {
 			.containsEntry("flags", "PIN_TIDAK_DIKENAL");
 
 		String number = unique("E");
-		long employee = idOf(mockMvc.perform(post("/api/employees").with(HR)
+		long employee = idOf(mockMvc.perform(post("/api/employees").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(employeeJson(branch, number, null))).andExpect(status().isCreated()));
@@ -230,7 +230,7 @@ class ZkPushIngestTests extends AttendanceFixtures {
 		long branch = createBranch();
 		String pin = uniquePin();
 		createEmployee(branch, pin);
-		mockMvc.perform(post("/api/employees").with(HR)
+		mockMvc.perform(post("/api/employees").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(employeeJson(branch, unique("E"), pin))).andExpect(status().isConflict());

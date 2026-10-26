@@ -26,7 +26,7 @@ class EmployeeBranchAccessTests extends AttendanceFixtures {
 	private AuditLogRepository auditLogs;
 
 	private ResultActions putBranches(long employeeId, String json) throws Exception {
-		return mockMvc.perform(put("/api/employees/" + employeeId + "/branches").with(HR)
+		return mockMvc.perform(put("/api/employees/" + employeeId + "/branches").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(json));

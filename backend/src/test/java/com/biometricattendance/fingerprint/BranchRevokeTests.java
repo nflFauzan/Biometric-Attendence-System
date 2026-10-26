@@ -21,7 +21,7 @@ class BranchRevokeTests extends RakitanFixtures {
 
 	private ResultActions setExtras(long employeeId, Long... branchIds) throws Exception {
 		String ids = String.join(",", java.util.Arrays.stream(branchIds).map(String::valueOf).toList());
-		return mockMvc.perform(put("/api/employees/" + employeeId + "/branches").with(HR)
+		return mockMvc.perform(put("/api/employees/" + employeeId + "/branches").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"extraBranchIds\":[" + ids + "]}"));
@@ -141,7 +141,7 @@ class BranchRevokeTests extends RakitanFixtures {
 		String number = jdbc.queryForObject("select employee_number from employees where id = ?", String.class,
 				employee);
 		String pin = jdbc.queryForObject("select device_pin from employees where id = ?", String.class, employee);
-		mockMvc.perform(put("/api/employees/" + employee).with(HR)
+		mockMvc.perform(put("/api/employees/" + employee).with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(employeeJson(b2, number, pin)));

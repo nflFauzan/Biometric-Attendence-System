@@ -86,9 +86,7 @@ class AccessControlTests extends IntegrationTest {
 				Arguments.of(HttpMethod.PUT, "/api/branches/" + MISSING, BRANCH),
 				Arguments.of(HttpMethod.PUT, "/api/employee-categories/" + MISSING, CATEGORY),
 				Arguments.of(HttpMethod.GET, "/api/employees/" + MISSING, null),
-				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING, EMPLOYEE_BODY),
 				Arguments.of(HttpMethod.GET, "/api/employees/" + MISSING + "/branches", null),
-				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING + "/branches", "{\"extraBranchIds\":[]}"),
 				Arguments.of(HttpMethod.PUT, "/api/devices/" + MISSING, DEVICE),
 				Arguments.of(HttpMethod.PUT, "/api/users/" + MISSING, USER_UPDATE),
 				Arguments.of(HttpMethod.POST, "/api/users/" + MISSING + "/reset-password", RESET));
@@ -107,6 +105,35 @@ class AccessControlTests extends IntegrationTest {
 			.andExpect(status().isUnauthorized())
 			.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
 			.andExpect(jsonPath("$.detail").value(ProblemResponses.UNAUTHORIZED));
+	}
+
+	/** Data karyawan dan cabang absen hanya diubah Owner (K-128); HR/Finance tetap membaca. */
+	static Stream<Arguments> ownerOnlyEmployeeWrites() {
+		return Stream.of(Arguments.of(HttpMethod.POST, "/api/employees", EMPLOYEE_BODY),
+				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING, EMPLOYEE_BODY),
+				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING + "/branches", "{\"extraBranchIds\":[]}"));
+	}
+
+	@ParameterizedTest(name = "{0} {1}")
+	@MethodSource("ownerOnlyEmployeeWrites")
+	void employeeDataIsWritableByOwnerOnly(HttpMethod method, String url, String body) throws Exception {
+		mockMvc.perform(build(method, url, body).with(HR_FINANCE))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.detail").value(ProblemResponses.FORBIDDEN));
+		mockMvc.perform(build(method, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(build(method, url, body)).andExpect(status().isUnauthorized());
+		int owner = mockMvc.perform(build(method, url, body).with(OWNER)).andReturn().getResponse().getStatus();
+		assertThat(owner).as("Owner lolos otorisasi").isNotIn(401, 403);
+	}
+
+	@Test
+	void hrStillReadsEmployeesAndKeepsFingerprintEnrollment() throws Exception {
+		mockMvc.perform(get("/api/employees").with(HR_FINANCE)).andExpect(status().isOk());
+		mockMvc.perform(get("/api/employees/" + MISSING).with(HR_FINANCE)).andExpect(status().isNotFound());
+		mockMvc.perform(build(HttpMethod.POST, "/api/employees/" + MISSING + "/fingerprint-consent", null).with(HR_FINANCE))
+			.andExpect(status().isNotFound());
+		mockMvc.perform(build(HttpMethod.POST, "/api/employees/" + MISSING + "/fingerprints/enroll",
+				"{\"deviceId\":1,\"finger\":1}").with(HR_FINANCE)).andExpect(status().isNotFound());
 	}
 
 	private static final String WORK_RULE = "{\"scope\":\"GLOBAL\",\"effectiveFrom\":\"2099-01-01\","
@@ -270,7 +297,8 @@ class AccessControlTests extends IntegrationTest {
 		String body = "{\"leaveTypeId\":1,\"draft\":true}";
 		return Stream.of(Arguments.of(HttpMethod.PUT, "/api/me/leave-requests/" + MISSING, body),
 				Arguments.of(HttpMethod.DELETE, "/api/me/leave-requests/" + MISSING, null),
-				Arguments.of(HttpMethod.POST, "/api/me/leave-requests/" + MISSING + "/submit", null));
+				Arguments.of(HttpMethod.POST, "/api/me/leave-requests/" + MISSING + "/submit", null),
+				Arguments.of(HttpMethod.POST, "/api/me/leave-requests/" + MISSING + "/resubmit", null));
 	}
 
 	@ParameterizedTest(name = "{0} {1}")
@@ -317,23 +345,22 @@ class AccessControlTests extends IntegrationTest {
 		return request(method, url).with(csrf());
 	}
 
-	/** Daftar rekan kerja dibuka semua role yang login (K-083); kolomnya dibatasi DTO, bukan role. */
-	@ParameterizedTest
-	@ValueSource(strings = { "/api/team/attendance", "/api/team/attendance?date=2026-10-05&branchId=" + MISSING })
-	void teamAttendanceIsOpenToAllSignedInRoles(String url) throws Exception {
-		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());
-		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
-		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isOk());
-		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
-	}
-
+	/** Absensi Saya (K-127): cukup login; akun uji tanpa data karyawan dibalas 404 oleh controller. */
 	@Test
-	void teamMemberHistoryRequiresLoginOnly() throws Exception {
-		String url = "/api/team/employees/" + MISSING + "/attendance";
+	void myAttendanceRequiresLoginOnly() throws Exception {
+		String url = "/api/me/attendance";
+		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
 		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isNotFound());
 		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isNotFound());
 		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isNotFound());
-		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+	}
+
+	/** Daftar dan riwayat rekan kerja sudah dihapus (K-127); jatuh ke denyAll. */
+	@ParameterizedTest
+	@ValueSource(strings = { "/api/team/attendance", "/api/team/employees/" + MISSING + "/attendance" })
+	void teamEndpointsAreDenied(String url) throws Exception {
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isForbidden());
 	}
 
 	@Test

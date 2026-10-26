@@ -125,7 +125,7 @@ public abstract class RakitanFixtures extends AttendanceFixtures {
 		String json = employeeJson(((Number) row.get("branch_id")).longValue(), (String) row.get("employee_number"),
 				pin).replace("\"active\":true", "\"active\":" + active
 						+ (endDate == null ? "" : ",\"endDate\":\"" + endDate + "\""));
-		return mockMvc.perform(put("/api/employees/" + employeeId).with(HR)
+		return mockMvc.perform(put("/api/employees/" + employeeId).with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(json));

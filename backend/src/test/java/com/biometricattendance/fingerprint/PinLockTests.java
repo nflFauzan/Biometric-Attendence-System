@@ -95,7 +95,7 @@ class PinLockTests extends RakitanFixtures {
 		saveEmployee(employee, null, null, true).andExpect(status().isOk());
 		setActive(a, branch, true);
 
-		expectRejected(mockMvc.perform(post("/api/employees").with(HR)
+		expectRejected(mockMvc.perform(post("/api/employees").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(employeeJson(branch, unique("E"), pin))), PIN_PENDING);

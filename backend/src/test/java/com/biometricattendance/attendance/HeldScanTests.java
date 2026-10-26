@@ -284,7 +284,7 @@ class HeldScanTests extends AttendanceFixtures {
 	@Test
 	void additionalBranchScanDoesNotNeedReview() throws Exception {
 		Setup s = setup();
-		mockMvc.perform(put("/api/employees/" + s.employee() + "/branches").with(HR)
+		mockMvc.perform(put("/api/employees/" + s.employee() + "/branches").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"extraBranchIds\":[" + s.other() + "]}")).andExpect(status().isOk());

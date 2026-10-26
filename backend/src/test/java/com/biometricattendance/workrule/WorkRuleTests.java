@@ -288,7 +288,7 @@ class WorkRuleTests extends IntegrationTest {
 			.content("{\"code\":\"" + unique("C") + "\",\"name\":\"Cabang uji\",\"timezone\":\"Asia/Jakarta\","
 					+ "\"active\":true}"))
 			.andExpect(status().isCreated()));
-		return idOf(mockMvc.perform(post("/api/employees").with(HR)
+		return idOf(mockMvc.perform(post("/api/employees").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"employeeNumber\":\"" + unique("E") + "\",\"fullName\":\"Karyawan Uji\",\"branchId\":"

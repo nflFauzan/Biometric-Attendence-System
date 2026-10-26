@@ -19,7 +19,7 @@ import com.biometricattendance.AttendanceFixtures;
 class BranchAccessIngestTests extends AttendanceFixtures {
 
 	private void addExtraBranch(long employeeId, long branchId) throws Exception {
-		mockMvc.perform(put("/api/employees/" + employeeId + "/branches").with(HR)
+		mockMvc.perform(put("/api/employees/" + employeeId + "/branches").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"extraBranchIds\":[" + branchId + "]}")).andExpect(status().isOk());
@@ -109,7 +109,7 @@ class BranchAccessIngestTests extends AttendanceFixtures {
 		assertThat(flagsOf(deviceOther)).containsExactly("PIN_TIDAK_DIKENAL");
 
 		String number = unique("E");
-		long employee = idOf(mockMvc.perform(post("/api/employees").with(HR)
+		long employee = idOf(mockMvc.perform(post("/api/employees").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(employeeJson(b1, number, null))).andExpect(status().isCreated()));
@@ -137,7 +137,7 @@ class BranchAccessIngestTests extends AttendanceFixtures {
 		postAttlog(sn3, lines(line(pin, "2026-10-05 08:00:00"))).andExpect(content().string("OK"));
 
 		String number = unique("E");
-		long employee = idOf(mockMvc.perform(post("/api/employees").with(HR)
+		long employee = idOf(mockMvc.perform(post("/api/employees").with(OWNER)
 			.with(csrf())
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(employeeJson(b1, number, null))).andExpect(status().isCreated()));
