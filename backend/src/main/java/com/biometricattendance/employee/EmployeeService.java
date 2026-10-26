@@ -1,6 +1,8 @@
 package com.biometricattendance.employee;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -11,6 +13,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.biometricattendance.account.UserAccountDtos.CreateUserRequest;
+import com.biometricattendance.account.UserAccountService;
 import com.biometricattendance.attendance.AttendanceScanRepository;
 import com.biometricattendance.audit.AuditService;
 import com.biometricattendance.branch.Branch;
@@ -36,10 +40,11 @@ public class EmployeeService {
 	private final AttendanceScanRepository scans;
 	private final ApplicationEventPublisher events;
 	private final FingerprintRemoval fingerprintRemoval;
+	private final UserAccountService accounts;
 
 	public EmployeeService(EmployeeRepository repository, BranchRepository branches,
 			EmployeeCategoryRepository categories, AuditService audit, AttendanceScanRepository scans,
-			ApplicationEventPublisher events, FingerprintRemoval fingerprintRemoval) {
+			ApplicationEventPublisher events, FingerprintRemoval fingerprintRemoval, UserAccountService accounts) {
 		this.repository = repository;
 		this.branches = branches;
 		this.categories = categories;
@@ -47,6 +52,7 @@ public class EmployeeService {
 		this.scans = scans;
 		this.events = events;
 		this.fingerprintRemoval = fingerprintRemoval;
+		this.accounts = accounts;
 	}
 
 	@Transactional(readOnly = true)
@@ -70,11 +76,16 @@ public class EmployeeService {
 			throw ApiException.conflict("PIN mesin sudah dipakai karyawan lain");
 		}
 		Employee employee = new Employee();
-		apply(employee, request);
+		apply(employee, request, null);
 		events.publishEvent(new EmployeeChangedEvent(employee, null, true));
 		EmployeeResponse created = EmployeeResponse.from(repository.save(employee));
 		audit.record("CREATE", ENTITY, created.id(), null, created);
 		linkUnmatchedScans(employee, null);
+		// K-133: akun ikut dibuat di transaksi yang sama; gagal di sini membatalkan karyawannya juga.
+		if (request.account() != null) {
+			var account = request.account();
+			accounts.create(new CreateUserRequest(account.username(), account.password(), account.role(), created.id()));
+		}
 		return created;
 	}
 
@@ -91,7 +102,7 @@ public class EmployeeService {
 		EmployeeResponse before = EmployeeResponse.from(employee);
 		List<Long> extrasBefore = sortedExtraIds(employee);
 		Branch previousBranch = employee.getBranch();
-		apply(employee, request);
+		apply(employee, request, employee.getJoinDate());
 		keepPlacementConsistent(employee, previousBranch);
 		events.publishEvent(new EmployeeChangedEvent(employee, before.devicePin(), false));
 		EmployeeResponse after = EmployeeResponse.from(repository.save(employee));
@@ -193,18 +204,22 @@ public class EmployeeService {
 		return repository.findById(id).orElseThrow(() -> ApiException.notFound("Karyawan"));
 	}
 
-	private void apply(Employee employee, EmployeeRequest request) {
-		if (request.endDate() != null && request.endDate().isBefore(request.joinDate())) {
+	/** {@code currentJoinDate} null saat tambah: tanggal masuk kosong diisi hari ini menurut zona cabang (K-134). */
+	private void apply(Employee employee, EmployeeRequest request, LocalDate currentJoinDate) {
+		Branch branch = branches.findById(request.branchId()).orElseThrow(() -> ApiException.notFound("Cabang"));
+		LocalDate joinDate = request.joinDate() != null ? request.joinDate()
+				: currentJoinDate != null ? currentJoinDate : LocalDate.now(ZoneId.of(branch.getTimezone()));
+		if (request.endDate() != null && request.endDate().isBefore(joinDate)) {
 			throw ApiException.badRequest("Tanggal keluar tidak boleh sebelum tanggal masuk");
 		}
 		employee.setEmployeeNumber(request.employeeNumber().trim());
 		employee.setFullName(request.fullName().trim());
 		employee.setPhone(request.phone());
-		employee.setBranch(branches.findById(request.branchId()).orElseThrow(() -> ApiException.notFound("Cabang")));
+		employee.setBranch(branch);
 		employee.setCategory(
 				categories.findById(request.categoryId()).orElseThrow(() -> ApiException.notFound("Kategori")));
 		employee.setPosition(request.position());
-		employee.setJoinDate(request.joinDate());
+		employee.setJoinDate(joinDate);
 		employee.setEndDate(request.endDate());
 		employee.setActive(request.active());
 		employee.setDevicePin(normalizePin(request.devicePin()));

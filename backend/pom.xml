@@ -19,7 +19,6 @@
 		<springdoc.version>3.1.1</springdoc.version>
 		<openpdf.version>2.4.0</openpdf.version>
 		<zxing.version>3.5.4</zxing.version>
-		<poi.version>5.4.1</poi.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -62,12 +61,6 @@
 		</dependency>
 
 		<!-- Surat izin/cuti PDF dan QR verifikasi (spec 2026-10-24 bagian 8). -->
-		<!-- Impor data karyawan dari template Excel client (K-130). -->
-		<dependency>
-			<groupId>org.apache.poi</groupId>
-			<artifactId>poi-ooxml</artifactId>
-			<version>${poi.version}</version>
-		</dependency>
 		<dependency>
 			<groupId>com.github.librepdf</groupId>
 			<artifactId>openpdf</artifactId>

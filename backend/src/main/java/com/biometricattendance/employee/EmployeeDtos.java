@@ -3,6 +3,10 @@ package com.biometricattendance.employee;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.biometricattendance.account.Role;
+import com.biometricattendance.account.UserAccountDtos;
+
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,7 +26,8 @@ public final class EmployeeDtos {
 			@NotNull(message = "Cabang wajib dipilih") Long branchId,
 			@NotNull(message = "Kategori wajib dipilih") Long categoryId,
 			@Size(max = 100) String position,
-			@NotNull(message = "Tanggal masuk wajib diisi") LocalDate joinDate,
+			// K-134: kosong saat tambah = hari ini menurut zona cabang; kosong saat ubah = nilai lama.
+			LocalDate joinDate,
 			LocalDate endDate,
 			@NotNull(message = "Status aktif wajib diisi") Boolean active,
 			@Pattern(regexp = "^\\s*$|^[A-Za-z0-9]{1,20}$",
@@ -31,7 +36,19 @@ public final class EmployeeDtos {
 			Gender gender,
 			@Past(message = "Tanggal lahir harus sebelum hari ini") LocalDate birthDate,
 			@Size(max = 500, message = "Alamat maksimal 500 karakter") String address,
-			@Size(max = 500, message = "Catatan maksimal 500 karakter") String notes) {
+			@Size(max = 500, message = "Catatan maksimal 500 karakter") String notes,
+			@Valid AccountRequest account) {
+	}
+
+	/** K-133: akun login yang dibuat bersama karyawan baru; diabaikan saat ubah. Password tidak pernah dikembalikan. */
+	public record AccountRequest(
+			@NotBlank(message = "Username wajib diisi")
+			@Pattern(regexp = UserAccountDtos.USERNAME_PATTERN, message = UserAccountDtos.USERNAME_MESSAGE)
+			String username,
+			@NotBlank(message = "Password wajib diisi")
+			@Size(min = UserAccountDtos.MIN_PASSWORD_LENGTH, max = 100, message = "Password minimal 8 karakter")
+			String password,
+			@NotNull(message = "Role wajib dipilih") Role role) {
 	}
 
 	/** K-103: cabang absen tambahan; ID penempatan di daftar diabaikan, duplikat digabung. */
