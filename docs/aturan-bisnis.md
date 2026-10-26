@@ -256,6 +256,8 @@ Terdapat dua kelompok penggajian utama:
 
 Penetapan kategori karyawan harus dapat dikonfigurasi. Kategori menentukan pengaturan awal, tetapi nominal dan ketentuan khusus dapat berbeda untuk setiap karyawan.
 
+**Data awal dari client (Disepakati, 2026-10-26, K-130):** Unit Office (termasuk staf Gudang) masuk kategori bulanan; Supir dan Kenek masuk kategori mingguan. Tanggal masuk karyawan hasil impor diisi tanggal mulai pemakaian sistem yang ditentukan client saat produksi, sehingga perhitungan dimulai dari bulan itu dan tidak memakai tanggal masuk kerja sebenarnya.
+
 ### 6.2 Gaji Pokok
 
 Gaji pokok merupakan komponen terpisah dari upah harian.

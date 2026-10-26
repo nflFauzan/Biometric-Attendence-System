@@ -453,11 +453,15 @@ K-103 menyebut 25 karyawan, tetapi dokumen AS-IS memuat sekitar 32 orang (18 sup
 
 **Dampak:** kapasitas sidik jari per mesin dan data awal.
 
+**Dijawab 2026-10-26:** data karyawan dari client berisi 28 orang (Takka 1: 4, Takka 2: 18, Takka Cilong: 6; 13 Office, 8 Supir, 7 Kenek), dan semuanya dibuatkan akun (K-130, K-131).
+
 ### Q-042. Departemen dan nama panggilan
 
 Laporan mesin lama mencatat Dept (OPS, PRC, FIN, MAR, SHIP), dan pengajuan dana memakai nama panggilan. Apakah keduanya perlu disimpan sebagai data karyawan dan ditampilkan di laporan?
 
 **Dampak:** schema karyawan dan kolom laporan.
+
+**Sebagian dijawab 2026-10-26:** template data client memakai Unit Office/Supir/Kenek, yang dipetakan ke kategori karyawan tanpa kolom departemen baru (K-130). Nama panggilan menjadi bagian depan username (`balqis@takka.id`, K-131). Kode departemen mesin lama (OPS, PRC, FIN, MAR, SHIP) di laporan masih terbuka.
 
 ### Q-043. Metode bayar dan biaya transfer
 
@@ -478,6 +482,8 @@ Beberapa baris di lembar gaji staf tampak memiliki Wages 140.000–180.000 per h
 Alat rakitan dipasang di satu cabang dulu, dan dua cabang lain belum memakai sistem (K-112). Cabang mana yang dipasang lebih dulu? Apakah karyawan di dua cabang lain sudah dibuatkan akun dan boleh mengajukan izin lewat web sebelum alatnya terpasang? Bagaimana rekap mereka ditandai agar tidak terbaca "Tidak hadir"?
 
 **Dampak:** data awal karyawan, rekap dan laporan per cabang, serta urutan uji Fase 7.
+
+**Sebagian dijawab 2026-10-26:** semua karyawan di ketiga cabang dibuatkan akun web (K-130). Cabang yang dipasang lebih dulu dan penanda rekap untuk cabang tanpa alat masih terbuka.
 
 ## 8. Prioritas Penyelesaian
 

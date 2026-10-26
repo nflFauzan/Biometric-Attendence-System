@@ -136,6 +136,10 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-126 | 2026-10-25 | Karyawan bisa mengajukan ulang pengajuan yang ditolak sebagai draft baru (V16), sekali per pengajuan, tanpa menyalin lampiran | Disepakati pengguna 2026-10-25 (review gap v0.6 baris 3) |
 | K-127 | 2026-10-25 | Karyawan hanya melihat absensinya sendiri (Absensi Saya `/absensi-saya`); daftar rekan kerja dihapus | Disepakati pengguna 2026-10-25 (review gap v0.6 baris 1); menggantikan K-083, K-084 (sebagian), dan menu Rekan di K-118 |
 | K-128 | 2026-10-25 | Tambah/ubah data karyawan dan cabang absen hanya Owner; HR/Finance tetap membaca dan mengurus sidik jari | Disepakati pengguna 2026-10-25 (review gap v0.6 baris 6); mengubah hak akses K-103 |
+| K-129 | 2026-10-26 | Profil lengkap karyawan: email, jenis kelamin, tanggal lahir, alamat, catatan (V17, semuanya opsional) | Disepakati pengguna 2026-10-26 (data karyawan dari client) |
+| K-130 | 2026-10-26 | Impor karyawan dari template Excel client: pratinjau lalu simpan sekaligus (semua atau tidak sama sekali), hanya Owner; tanggal masuk = tanggal mulai pemakaian sistem; PIN mesin = ID karyawan | Disepakati pengguna 2026-10-26 |
+| K-131 | 2026-10-26 | Username akun `<nama>@takka.id`, password awal `<nama>-<ID>`, wajib diganti saat login pertama | Disepakati pengguna 2026-10-26 |
+| K-132 | 2026-10-26 | Label role HR_FINANCE ditampilkan sebagai "Finance & Accounting" (kode role tetap) | Disepakati pengguna 2026-10-26 |
 
 ---
 
@@ -787,6 +791,26 @@ Jawaban pengguna pada 2026-10-25 atas tabel "Ketidaksesuaian dokumen dan kode" d
   - Alasan pengguna: HR tidak boleh memanipulasi aturan kerja lewat data karyawan, karena kategori dan aturan per karyawan melekat ke data karyawan. Aturan kerja sendiri sudah khusus Owner (K-049).
   - Master Kategori dan Cabang tetap bisa diubah HR/Finance (dikonfirmasi pengguna 2026-10-25).
   - Frontend: daftar karyawan tanpa tombol Tambah/Ubah dan kartu Cabang absen dalam mode hanya baca untuk selain Owner ("Hanya Owner yang dapat mengubah cabang absen.").
+
+### Data karyawan dari client (K-129–K-132)
+
+Client mengirim template "Data Karyawan" berisi 28 karyawan (Takka 1: 4, Takka 2: 18, Takka Cilong: 6) pada 2026-10-26. File aslinya berisi data pribadi, sehingga diabaikan git dan tidak disalin ke repo. Rencana: [2026-10-26-profil-dan-impor-karyawan.md](superpowers/plans/2026-10-26-profil-dan-impor-karyawan.md).
+
+- **K-129 Profil lengkap karyawan.** Migration V17 menambah kolom email, jenis kelamin (`LAKI_LAKI`, `PEREMPUAN`, `TIDAK_DISEBUTKAN`), tanggal lahir, alamat, dan catatan pada tabel `employees`. Semua opsional, bisa diedit Owner di form karyawan, dan tampil di detail karyawan serta Profil Saya. Validasinya sama dengan form: format email, tanggal lahir sebelum hari ini, alamat dan catatan maksimal 500 karakter.
+- **K-130 Impor karyawan dari template client** (`/karyawan/impor`, hanya Owner).
+  - Dua langkah tanpa state di server: `POST /api/employee-imports/preview` (file .xlsx + tanggal mulai) lalu `POST /api/employee-imports` (baris yang sudah diperiksa). Server selalu memvalidasi ulang. Satu baris bermasalah saja membuat seluruh impor ditolak (409, daftar masalah per baris di ProblemDetail `rows`).
+  - Kolom template dicocokkan dari teks judulnya. Isian dirapikan: spasi berlebih, nomor HP tanpa 0 di depan atau berawalan 62, tanggal lahir berupa serial Excel, dan baris kedua alamat dipindah ke catatan.
+  - Unit `Office` → kategori Kantor (bulanan, termasuk staf Gudang); `Supir` dan `Kenek` → kategori Supir/Kenek. Cabang dicocokkan dari namanya.
+  - Tanggal masuk semua karyawan impor = tanggal mulai pemakaian sistem yang dipilih Owner (bawaan tanggal 1 bulan berjalan). Perhitungan dimulai pada bulan itu; tanggal masuk sebenarnya tidak diminta ke client.
+  - PIN mesin = ID karyawan (`001`, `002`, …). Mesin rakitan diatur penuh dari web, sehingga PIN bisa disesuaikan saat integrasi bila perlu.
+  - Status Akun `Aktif` / `Nonaktif` / `Belum dibuat` menentukan status karyawan dan akunnya; `Belum dibuat` tidak dibuatkan akun.
+  - Setiap karyawan dan akun dicatat di audit log seperti lewat form, ditambah satu entri `IMPORT` (`EMPLOYEE_IMPORT`). Password tidak pernah masuk audit log.
+- **K-131 Format akun karyawan.**
+  - Username `<nama>@takka.id`, dengan nama panggilan huruf kecil. Usulan otomatis memakai kata pertama nama setelah awalan Muhammad/M/Siti (`dafa`, `rochmat`, `balqis`); Owner bisa mengubahnya di pratinjau. Username kini boleh memuat `@`.
+  - Password awal `<nama>-<ID>` (contoh `harfianti-002`), wajib diganti saat login pertama, dan hanya ditampilkan sekali setelah impor (bisa diunduh CSV). Minimal 8 karakter tetap berlaku, sehingga username yang terlalu pendek harus diperpanjang (`eni.daniyati@takka.id`, `nurcahyani@takka.id`).
+  - Risiko yang diterima pengguna: password awal mudah ditebak rekan kerja, sehingga sebaiknya dibagikan tepat sebelum akun dipakai.
+  - Role dari data client: 001 Owner; 003 dan 005 Finance & Accounting; lainnya Karyawan. Akun Owner bawaan dari environment tetap dipertahankan sebagai akun teknis tim pengembang. Owner (001) ikut dihitung absensi dan gajinya.
+- **K-132 Label "Finance & Accounting".** Semua teks yang dilihat pengguna (menu, pesan error, notifikasi, label tahap izin, dan surat PDF) memakai "Finance & Accounting" menggantikan "HR/Finance" dan "HR". Kode role `HR_FINANCE` dan tahap `HR` di API tidak berubah, sehingga data lama tetap valid.
 
 ---
 

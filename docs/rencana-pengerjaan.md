@@ -70,6 +70,12 @@ Prinsip urutan:
 - Ekspor Excel/PDF, dengan setiap ekspor tercatat di audit log.
 - Format laporan mengikuti dokumen AS-IS client ([dokumen-as-is.md](dokumen-as-is.md), K-105). Laporan yang hanya butuh data absensi (detail absensi dan kisi kehadiran) boleh dikerjakan sebelum Fase 5.
 
+## Revisi 2026-10-26 — Profil dan impor data karyawan client
+
+- Profil lengkap karyawan (V17) dan impor template Excel client dengan pratinjau, untuk 28 karyawan (K-129 sampai K-132, [rencana](superpowers/plans/2026-10-26-profil-dan-impor-karyawan.md)).
+- Label role "HR/Finance" diganti "Finance & Accounting".
+- Data asli client tidak masuk repo; impor dilakukan Owner lewat halaman Impor Karyawan setelah cabang Takka 1, Takka 2, dan Takka Cilong dibuat.
+
 ## Revisi meeting client 2026-10-23 — Persetujuan ganda izin (diimplementasikan 2026-10-24)
 
 - Penanda "butuh persetujuan Owner" di master Jenis Izin, dengan alur HR/Finance lalu Owner (K-109, TC-19). Pekerjaan ini mengubah schema, API, dan UI izin, sehingga rinciannya ditulis sebagai rencana tersendiri sebelum dikerjakan.
