@@ -32,27 +32,40 @@ const budi: Employee = {
   email: null, gender: 'PEREMPUAN', birthDate: '1990-05-01', address: 'Jl. Lama 1', notes: null,
 }
 
-const routes = (me: Me) => ({
+const branch = (id: number, name: string, active = true) => ({ id, name, active })
+
+type Routes = Parameters<typeof mockFetch>[0]
+
+const routes = (me: Me, extra: Routes = {}): Routes => ({
   'PUT /api/employees/12': () => ({ status: 200, body: budi }),
   'POST /api/employees': () => ({
     status: 201,
     body: { ...budi, id: 13, employeeNumber: '006', fullName: 'Eni Daniyati' },
   }),
   'GET /api/auth/me': () => ({ status: 200, body: me }),
-  'GET /api/employees': () => ({ status: 200, body: [budi] }),
-  'GET /api/branches': () => ({ status: 200, body: [] }),
+  'GET /api/employees': () => ({ status: 200, body: [budi, { ...budi, id: 14, position: 'Supir' }] }),
+  'GET /api/branches': () => ({ status: 200, body: [branch(1, 'Takka 1'), branch(2, 'Takka 2')] }),
   'GET /api/employee-categories': () => ({ status: 200, body: [] }),
+  ...extra,
 })
 
-/** K-135: Owner dan F&A menambah/mengubah karyawan; K-133: akun + pesan WA; K-134: tanggal masuk otomatis. */
+/** K-135: Owner dan F&A menambah/mengubah karyawan; K-133: akun + pesan WA; K-134: tanggal masuk otomatis; K-136: form ringkas. */
 describe('Daftar karyawan', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  async function openCreate(me: Me) {
-    const fetch = mockFetch(routes(me))
+  async function openCreate(me: Me, extra: Routes = {}) {
+    const fetch = mockFetch(routes(me, extra))
     renderAt('/karyawan')
     fireEvent.click(await screen.findByRole('button', { name: 'Tambah' }, LOAD))
     await screen.findByLabelText(/Nama lengkap/)
+    return fetch
+  }
+
+  async function openEdit() {
+    const fetch = mockFetch(routes(owner))
+    renderAt('/karyawan')
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Ubah' }, LOAD))[0])
+    await screen.findByLabelText('Alamat')
     return fetch
   }
 
@@ -77,20 +90,33 @@ describe('Daftar karyawan', () => {
     expect(screen.queryByRole('link', { name: 'Impor dari Excel' })).not.toBeInTheDocument()
   })
 
-  it('form tambah tanpa tanggal masuk/keluar dan usulan akun mengikuti nama', async () => {
+  it('form tambah ringkas: PIN dan akun tampil sebagai ringkasan, data pribadi dilipat', async () => {
     await openCreate(owner)
     expect(screen.queryByLabelText(/Tanggal masuk/)).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/Tanggal keluar/)).not.toBeInTheDocument()
     expect(screen.getByLabelText('Buatkan akun login')).toBeChecked()
     fillIdentity()
-    expect(screen.getByLabelText(/Username/)).toHaveValue('eni@takka.id')
-    expect(screen.getByLabelText(/Password sementara/)).toHaveValue('eni-006-takka')
+    expect(screen.queryByLabelText('PIN mesin')).not.toBeInTheDocument()
+    expect(screen.getByTestId('pin-summary')).toHaveTextContent('006')
+    expect(screen.queryByLabelText(/Username/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('account-summary')).toHaveTextContent('eni@takka.id')
+    expect(screen.getByTestId('account-summary')).toHaveTextContent('eni-006-takka')
+    expect(screen.queryByLabelText('Alamat')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Data pribadi/ }))
+    expect(screen.getByLabelText('Alamat').tagName).toBe('TEXTAREA')
+  })
+
+  it('PIN mesin bisa diubah dari ringkasan', async () => {
+    await openCreate(owner)
+    fillIdentity()
+    fireEvent.click(screen.getByRole('button', { name: 'Ubah PIN mesin' }))
     expect(screen.getByLabelText('PIN mesin')).toHaveValue('006')
   })
 
   it('username yang diubah manual tidak ditimpa', async () => {
     await openCreate(owner)
     fillIdentity()
+    fireEvent.click(screen.getByRole('button', { name: 'Ubah akun' }))
     fireEvent.change(screen.getByLabelText(/Username/), { target: { value: 'eni.d@takka.id' } })
     fireEvent.change(screen.getByLabelText(/Nama lengkap/), { target: { value: 'Eni Daniyati Putri' } })
     expect(screen.getByLabelText(/Username/)).toHaveValue('eni.d@takka.id')
@@ -114,7 +140,7 @@ describe('Daftar karyawan', () => {
     const fetch = await openCreate(owner)
     fillIdentity()
     fireEvent.click(screen.getByLabelText('Buatkan akun login'))
-    expect(screen.queryByLabelText(/Username/)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('account-summary')).not.toBeInTheDocument()
     const body = await submitAndReadBody(fetch, '/api/employees', 'POST')
     expect(body.account).toBeNull()
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Simpan' })).not.toBeInTheDocument())
@@ -123,25 +149,63 @@ describe('Daftar karyawan', () => {
 
   it('F&A bisa menambah karyawan tetapi tidak memilih role', async () => {
     const fetch = await openCreate(hr)
-    expect(screen.queryByLabelText(/^Role/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'Role' })).not.toBeInTheDocument()
     fillIdentity()
     const body = await submitAndReadBody(fetch, '/api/employees', 'POST')
     expect(body.account.role).toBe('EMPLOYEE')
   })
 
-  it('Owner bisa memilih role akun', async () => {
+  it('Owner memilih role akun dengan tombol pilihan', async () => {
     const fetch = await openCreate(owner)
     fillIdentity()
-    fireEvent.change(screen.getByLabelText(/^Role/), { target: { value: 'HR_FINANCE' } })
+    fireEvent.click(screen.getByRole('radio', { name: 'Finance & Accounting' }))
     const body = await submitAndReadBody(fetch, '/api/employees', 'POST')
     expect(body.account.role).toBe('HR_FINANCE')
   })
 
+  it('jenis kelamin dipilih dengan tombol pilihan', async () => {
+    const fetch = await openCreate(owner)
+    fillIdentity()
+    fireEvent.click(screen.getByRole('button', { name: /Data pribadi/ }))
+    const male = screen.getByRole('radio', { name: 'Laki-laki' })
+    fireEvent.click(male)
+    expect(male).toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: 'Perempuan' }))
+    const body = await submitAndReadBody(fetch, '/api/employees', 'POST')
+    expect(body.gender).toBe('PEREMPUAN')
+  })
+
+  it('jabatan menyarankan jabatan yang sudah dipakai', async () => {
+    await openCreate(owner)
+    const position = screen.getByLabelText('Jabatan')
+    await waitFor(() => {
+      const list = document.getElementById(position.getAttribute('list')!)
+      expect(Array.from(list!.querySelectorAll('option')).map((o) => o.value)).toEqual(['Supir'])
+    })
+  })
+
+  it('cabang langsung terpilih bila hanya ada satu cabang aktif', async () => {
+    await openCreate(owner, {
+      'GET /api/branches': () => ({ status: 200, body: [branch(1, 'Takka 1'), branch(2, 'Lama', false)] }),
+    })
+    await waitFor(() => expect(screen.getByLabelText(/Cabang/)).toHaveValue('1'))
+  })
+
+  it('error server pada field yang tersembunyi membuka field itu', async () => {
+    await openCreate(owner, {
+      'POST /api/employees': () => ({
+        status: 400,
+        body: { status: 400, detail: 'Data tidak valid', errors: { devicePin: 'PIN hanya boleh angka' } },
+      }),
+    })
+    fillIdentity()
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+    expect(await screen.findByText('PIN hanya boleh angka')).toBeInTheDocument()
+    expect(screen.getByLabelText('PIN mesin')).toHaveValue('006')
+  })
+
   it('form ubah: ada Tanggal keluar dan Aktif, tanpa Tanggal masuk dan bagian akun', async () => {
-    const fetch = mockFetch(routes(owner))
-    renderAt('/karyawan')
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ubah' }, LOAD))[0])
-    await screen.findByLabelText('Alamat')
+    const fetch = await openEdit()
     expect(screen.getByLabelText(/Tanggal keluar/)).toBeInTheDocument()
     expect(screen.getByLabelText('Aktif')).toBeInTheDocument()
     expect(screen.queryByLabelText(/Tanggal masuk/)).not.toBeInTheDocument()
@@ -152,10 +216,8 @@ describe('Daftar karyawan', () => {
   })
 
   it('form memuat dan mengirim profil lengkap (K-129)', async () => {
-    const fetch = mockFetch(routes(owner))
-    renderAt('/karyawan')
-    fireEvent.click((await screen.findAllByRole('button', { name: 'Ubah' }, LOAD))[0])
-    const address = await screen.findByLabelText('Alamat')
+    const fetch = await openEdit()
+    const address = screen.getByLabelText('Alamat')
     expect(address).toHaveValue('Jl. Lama 1')
     fireEvent.change(address, { target: { value: 'Jl. Baru 2' } })
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'budi@contoh.id' } })
@@ -166,6 +228,7 @@ describe('Daftar karyawan', () => {
       gender: 'PEREMPUAN',
       birthDate: '1990-05-01',
       notes: null,
+      devicePin: '12',
     })
   })
 })
