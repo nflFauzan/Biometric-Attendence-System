@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -95,16 +95,51 @@ describe('EmployeeDetailPage', () => {
     expect(screen.getByText('1 Mei 1990')).toBeInTheDocument()
   })
 
-  it('menampilkan ajakan membuat akun jika karyawan belum punya akun', async () => {
-    mockFetch({
+  it('membuat akun dari detail karyawan lalu menampilkan pesan WA (K-133)', async () => {
+    const fetch = mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
-      'GET /api/employees/12': () => ({ status: 200, body: employee() }),
+      'GET /api/employees/12': () => ({ status: 200, body: employee({ phone: '0812-0000-0012' }) }),
       'GET /api/users': () => ({ status: 200, body: [account({ employeeId: 99 })] }),
+      'POST /api/users': () => ({ status: 201, body: account({ id: 31, username: 'budi@takka.id' }) }),
     })
     renderAt('/karyawan/12')
 
     expect(await screen.findByText('Karyawan ini belum punya akun web.', {}, LOAD)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Buat di menu Akun' })).toHaveAttribute('href', '/akun')
+    expect(screen.queryByRole('link', { name: 'Buat di menu Akun' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Buat akun' }))
+    expect(await screen.findByLabelText(/Username/)).toHaveValue('budi@takka.id')
+    expect(screen.getByLabelText(/Password sementara/)).toHaveValue('budi-K-012-takka')
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+
+    const isPost = ([url, init]: Parameters<typeof fetch>) => url === '/api/users' && init?.method === 'POST'
+    await waitFor(() => expect(fetch.mock.calls.some(isPost)).toBe(true))
+    expect(JSON.parse(String(fetch.mock.calls.find(isPost)![1]!.body))).toEqual({
+      username: 'budi@takka.id',
+      password: 'budi-K-012-takka',
+      role: 'EMPLOYEE',
+      employeeId: 12,
+    })
+    expect(await screen.findByDisplayValue(/sudah dibuat oleh Admin/, {}, LOAD)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Kirim WA' }).getAttribute('href')).toMatch(/^https:\/\/wa\.me\/6281200000012\?/)
+  })
+
+  it('mereset password dari detail karyawan dengan usulan password dan pesan reset', async () => {
+    const fetch = mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/employees/12': () => ({ status: 200, body: employee() }),
+      'GET /api/users': () => ({ status: 200, body: [account({ username: 'budi@takka.id' })] }),
+      'POST /api/users/30/reset-password': () => ({ status: 204 }),
+    })
+    renderAt('/karyawan/12')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset password' }, LOAD))
+    expect(await screen.findByLabelText(/Password sementara/)).toHaveValue('budi-K-012-takka')
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+
+    const isReset = ([url]: Parameters<typeof fetch>) => url === '/api/users/30/reset-password'
+    await waitFor(() => expect(fetch.mock.calls.some(isReset)).toBe(true))
+    expect(JSON.parse(String(fetch.mock.calls.find(isReset)![1]!.body))).toEqual({ newPassword: 'budi-K-012-takka' })
+    expect(await screen.findByDisplayValue(/\*Password Baru\*/, {}, LOAD)).toBeInTheDocument()
   })
 
   it('memperingatkan jika karyawan nonaktif tetapi akunnya masih aktif', async () => {

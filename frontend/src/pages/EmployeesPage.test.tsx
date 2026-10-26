@@ -34,35 +34,124 @@ const budi: Employee = {
 
 const routes = (me: Me) => ({
   'PUT /api/employees/12': () => ({ status: 200, body: budi }),
+  'POST /api/employees': () => ({
+    status: 201,
+    body: { ...budi, id: 13, employeeNumber: '006', fullName: 'Eni Daniyati' },
+  }),
   'GET /api/auth/me': () => ({ status: 200, body: me }),
   'GET /api/employees': () => ({ status: 200, body: [budi] }),
   'GET /api/branches': () => ({ status: 200, body: [] }),
   'GET /api/employee-categories': () => ({ status: 200, body: [] }),
 })
 
-/** K-128: data karyawan hanya diubah Owner; HR/Finance tetap melihat daftar. */
+/** K-135: Owner dan F&A menambah/mengubah karyawan; K-133: akun + pesan WA; K-134: tanggal masuk otomatis. */
 describe('Daftar karyawan', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('Finance & Accounting melihat daftar tanpa tombol Tambah dan Ubah', async () => {
-    mockFetch(routes(hr))
+  async function openCreate(me: Me) {
+    const fetch = mockFetch(routes(me))
     renderAt('/karyawan')
-    expect((await screen.findAllByRole('link', { name: 'Budi Santoso' }, LOAD)).length).toBeGreaterThan(0)
-    expect(screen.queryByRole('button', { name: 'Tambah' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Ubah' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Impor dari Excel' })).not.toBeInTheDocument()
-  })
+    fireEvent.click(await screen.findByRole('button', { name: 'Tambah' }, LOAD))
+    await screen.findByLabelText(/Nama lengkap/)
+    return fetch
+  }
 
-  it('Owner tetap bisa menambah dan mengubah', async () => {
-    mockFetch(routes(owner))
+  function fillIdentity() {
+    fireEvent.change(screen.getByLabelText(/No\. karyawan/), { target: { value: '006' } })
+    fireEvent.change(screen.getByLabelText(/Nama lengkap/), { target: { value: 'Eni Daniyati' } })
+  }
+
+  async function submitAndReadBody(fetch: ReturnType<typeof mockFetch>, url: string, method: string) {
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
+    const matches = ([u, init]: Parameters<typeof fetch>) => u === url && init?.method === method
+    await waitFor(() => expect(fetch.mock.calls.some(matches)).toBe(true))
+    return JSON.parse(String(fetch.mock.calls.find(matches)![1]!.body))
+  }
+
+  it('Finance & Accounting bisa menambah dan mengubah', async () => {
+    mockFetch(routes(hr))
     renderAt('/karyawan')
     expect((await screen.findAllByRole('link', { name: 'Budi Santoso' }, LOAD)).length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: 'Tambah' })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Ubah' }).length).toBeGreaterThan(0)
-    expect(screen.getByRole('link', { name: 'Impor dari Excel' })).toHaveAttribute('href', '/karyawan/impor')
+    expect(screen.queryByRole('link', { name: 'Impor dari Excel' })).not.toBeInTheDocument()
   })
 
-  it('form Owner memuat dan mengirim profil lengkap (K-129)', async () => {
+  it('form tambah tanpa tanggal masuk/keluar dan usulan akun mengikuti nama', async () => {
+    await openCreate(owner)
+    expect(screen.queryByLabelText(/Tanggal masuk/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Tanggal keluar/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Buatkan akun login')).toBeChecked()
+    fillIdentity()
+    expect(screen.getByLabelText(/Username/)).toHaveValue('eni@takka.id')
+    expect(screen.getByLabelText(/Password sementara/)).toHaveValue('eni-006-takka')
+    expect(screen.getByLabelText('PIN mesin')).toHaveValue('006')
+  })
+
+  it('username yang diubah manual tidak ditimpa', async () => {
+    await openCreate(owner)
+    fillIdentity()
+    fireEvent.change(screen.getByLabelText(/Username/), { target: { value: 'eni.d@takka.id' } })
+    fireEvent.change(screen.getByLabelText(/Nama lengkap/), { target: { value: 'Eni Daniyati Putri' } })
+    expect(screen.getByLabelText(/Username/)).toHaveValue('eni.d@takka.id')
+    expect(screen.getByLabelText(/Password sementara/)).toHaveValue('eni.d-006-takka')
+  })
+
+  it('menyimpan karyawan dengan akun lalu menampilkan pesan', async () => {
+    const fetch = await openCreate(owner)
+    fillIdentity()
+    const body = await submitAndReadBody(fetch, '/api/employees', 'POST')
+    expect(body).toMatchObject({
+      employeeNumber: '006',
+      joinDate: null,
+      devicePin: '006',
+      account: { username: 'eni@takka.id', password: 'eni-006-takka', role: 'EMPLOYEE' },
+    })
+    expect(await screen.findByDisplayValue(/Halo Kak Eni Daniyati!/, {}, LOAD)).toBeInTheDocument()
+  })
+
+  it('tanpa centang akun, body tanpa account dan tanpa jendela pesan', async () => {
+    const fetch = await openCreate(owner)
+    fillIdentity()
+    fireEvent.click(screen.getByLabelText('Buatkan akun login'))
+    expect(screen.queryByLabelText(/Username/)).not.toBeInTheDocument()
+    const body = await submitAndReadBody(fetch, '/api/employees', 'POST')
+    expect(body.account).toBeNull()
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Simpan' })).not.toBeInTheDocument())
+    expect(screen.queryByDisplayValue(/Halo Kak/)).not.toBeInTheDocument()
+  })
+
+  it('F&A bisa menambah karyawan tetapi tidak memilih role', async () => {
+    const fetch = await openCreate(hr)
+    expect(screen.queryByLabelText(/^Role/)).not.toBeInTheDocument()
+    fillIdentity()
+    const body = await submitAndReadBody(fetch, '/api/employees', 'POST')
+    expect(body.account.role).toBe('EMPLOYEE')
+  })
+
+  it('Owner bisa memilih role akun', async () => {
+    const fetch = await openCreate(owner)
+    fillIdentity()
+    fireEvent.change(screen.getByLabelText(/^Role/), { target: { value: 'HR_FINANCE' } })
+    const body = await submitAndReadBody(fetch, '/api/employees', 'POST')
+    expect(body.account.role).toBe('HR_FINANCE')
+  })
+
+  it('form ubah: ada Tanggal keluar dan Aktif, tanpa Tanggal masuk dan bagian akun', async () => {
+    const fetch = mockFetch(routes(owner))
+    renderAt('/karyawan')
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Ubah' }, LOAD))[0])
+    await screen.findByLabelText('Alamat')
+    expect(screen.getByLabelText(/Tanggal keluar/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Aktif')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Tanggal masuk/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Buatkan akun login')).not.toBeInTheDocument()
+    const sent = await submitAndReadBody(fetch, '/api/employees/12', 'PUT')
+    expect(sent.joinDate).toBe('2026-01-05')
+    expect(sent.account).toBeNull()
+  })
+
+  it('form memuat dan mengirim profil lengkap (K-129)', async () => {
     const fetch = mockFetch(routes(owner))
     renderAt('/karyawan')
     fireEvent.click((await screen.findAllByRole('button', { name: 'Ubah' }, LOAD))[0])
@@ -70,11 +159,8 @@ describe('Daftar karyawan', () => {
     expect(address).toHaveValue('Jl. Lama 1')
     fireEvent.change(address, { target: { value: 'Jl. Baru 2' } })
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'budi@contoh.id' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Simpan' }))
-
-    await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => url === '/api/employees/12' && init?.method === 'PUT')).toBe(true))
-    const put = fetch.mock.calls.find(([url, init]) => url === '/api/employees/12' && init?.method === 'PUT')!
-    expect(JSON.parse(String(put[1]!.body))).toMatchObject({
+    const sent = await submitAndReadBody(fetch, '/api/employees/12', 'PUT')
+    expect(sent).toMatchObject({
       address: 'Jl. Baru 2',
       email: 'budi@contoh.id',
       gender: 'PEREMPUAN',

@@ -8,6 +8,7 @@ import { AuthProvider } from '@/auth/AuthContext'
 import { sampleRequest } from '@/components/leave/fixtures'
 import type { LeaveRequest, LeaveType, Me } from '@/lib/types'
 import { mockFetch } from '@/test/fetchMock'
+import { pickDate } from '@/test/pickers'
 
 const employee: Me = { username: 'budi', role: 'EMPLOYEE', employeeId: 12, employeeName: 'Budi Santoso', mustChangePassword: false }
 
@@ -89,8 +90,8 @@ describe('LeaveWizardPage', () => {
     renderAt('/izin-saya/9/ubah?langkah=2')
 
     const start = await screen.findByLabelText(/Tanggal mulai/)
-    fireEvent.change(start, { target: { value: '2026-11-03' } })
-    fireEvent.change(screen.getByLabelText(/Tanggal selesai/), { target: { value: '2026-11-06' } })
+    pickDate(start, '2026-11-03')
+    pickDate(screen.getByLabelText(/Tanggal selesai/), '2026-11-06')
     expect(screen.getByText('4 hari')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Lanjut' }))

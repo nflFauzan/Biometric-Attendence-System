@@ -7,6 +7,7 @@ import App from '@/App'
 import { AuthProvider } from '@/auth/AuthContext'
 import type { EffectiveRule, Employee, Me, WorkRule } from '@/lib/types'
 import { mockFetch } from '@/test/fetchMock'
+import { pickDate, pickTime } from '@/test/pickers'
 
 function renderAt(path: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -121,8 +122,8 @@ describe('WorkRulesPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Tambah versi/ }, LOAD))
     const dialog = await screen.findByRole('dialog')
-    fireEvent.change(within(dialog).getByLabelText(/Berlaku mulai/), { target: { value: '2099-02-01' } })
-    fireEvent.change(within(dialog).getByLabelText('Jam masuk'), { target: { value: '08:00' } })
+    pickDate(within(dialog).getByLabelText(/Berlaku mulai/), '2099-02-01')
+    pickTime(within(dialog).getByLabelText('Jam masuk'), '08:00')
     fireEvent.click(within(dialog).getByLabelText('Senin'))
     fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan' }))
 
@@ -154,11 +155,11 @@ describe('WorkRulesPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Tambah versi/ }, LOAD))
     const dialog = await screen.findByRole('dialog')
-    fireEvent.change(within(dialog).getByLabelText(/Berlaku mulai/), { target: { value: '2099-02-01' } })
+    pickDate(within(dialog).getByLabelText(/Berlaku mulai/), '2099-02-01')
     const gap = within(dialog).getByLabelText(/Jeda minimum antar scan/)
     fireEvent.change(gap, { target: { value: '7' } })
     fireEvent.change(gap, { target: { value: '' } })
-    fireEvent.change(within(dialog).getByLabelText('Jam masuk'), { target: { value: '08:00' } })
+    pickTime(within(dialog).getByLabelText('Jam masuk'), '08:00')
     fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
@@ -188,7 +189,7 @@ describe('WorkRulesPage', () => {
 
     await screen.findByRole('option', { name: /Budi Santoso/ }, LOAD)
     fireEvent.change(screen.getByLabelText('Karyawan'), { target: { value: '12' } })
-    fireEvent.change(screen.getByLabelText('Tanggal'), { target: { value: '2026-10-12' } })
+    pickDate(screen.getByLabelText('Tanggal'), '2026-10-12')
 
     expect(await screen.findByText('Karyawan · sejak 5 Okt 2026')).toBeInTheDocument()
     expect(screen.getByText('Global · sejak 1 Okt 2026')).toBeInTheDocument()

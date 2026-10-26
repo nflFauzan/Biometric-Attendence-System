@@ -254,10 +254,9 @@ describe('Akses kartu', () => {
     })
     renderPage()
     expect(await screen.findByRole('heading', { name: 'Cabang absen' }, LOAD)).toBeInTheDocument()
-    // K-128: HR hanya membaca cabang absen.
-    expect(await screen.findByText('Hanya Owner yang dapat mengubah cabang absen.', undefined, LOAD)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Simpan' })).not.toBeInTheDocument()
-    expect(screen.getByRole('checkbox', { name: 'Cabang Gudang' })).toBeDisabled()
+    // K-135: Finance & Accounting kembali boleh mengubah cabang absen.
+    expect(await screen.findByRole('checkbox', { name: 'Cabang Gudang' }, LOAD)).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Simpan' })).toBeInTheDocument()
   })
 
   it('read-only card shows the branches without a save button', async () => {

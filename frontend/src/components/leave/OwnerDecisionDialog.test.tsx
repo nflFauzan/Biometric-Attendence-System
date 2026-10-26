@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { sampleRequest } from '@/components/leave/fixtures'
 import { OwnerDecisionDialog } from '@/components/leave/OwnerDecisionDialog'
 import { mockFetch } from '@/test/fetchMock'
+import { pickDateTime } from '@/test/pickers'
 
 function open(onDone = vi.fn()) {
   render(
@@ -14,13 +15,20 @@ function open(onDone = vi.fn()) {
   )
   const dialog = screen.getByRole('dialog')
   fireEvent.change(within(dialog).getByLabelText(/Cara keputusan/), { target: { value: 'WHATSAPP' } })
-  fireEvent.change(within(dialog).getByLabelText(/Waktu keputusan/), { target: { value: '2026-10-24T14:05' } })
+  pickDateTime(within(dialog).getByLabelText(/Waktu keputusan/), '2026-10-24T14:05')
   fireEvent.change(within(dialog).getByLabelText(/Catatan/), { target: { value: 'Owner setuju lewat WA' } })
   return { dialog, onDone }
 }
 
 describe('OwnerDecisionDialog', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 26, 9, 0))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
 
   it('blocks WhatsApp without evidence and does not call fetch', () => {
     const fetch = mockFetch({})

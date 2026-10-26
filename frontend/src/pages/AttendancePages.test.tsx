@@ -8,6 +8,7 @@ import { AuthProvider } from '@/auth/AuthContext'
 import { localDateIso } from '@/lib/format'
 import type { DailyAttendance, DashboardSummary, DayRecord, Device, EmployeeAttendance, Me } from '@/lib/types'
 import { mockFetch } from '@/test/fetchMock'
+import { pickTime } from '@/test/pickers'
 
 function renderAt(path: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -206,7 +207,7 @@ describe('Halaman absensi Fase 3', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Koreksi 5 Okt 2026' }))
     const dialog = await screen.findByRole('dialog')
-    fireEvent.change(within(dialog).getByLabelText('Jam pulang'), { target: { value: '17:00' } })
+    pickTime(within(dialog).getByLabelText('Jam pulang'), '17:00')
     fireEvent.change(within(dialog).getByLabelText(/Alasan koreksi/), { target: { value: 'Lupa scan pulang' } })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Simpan' }))
 

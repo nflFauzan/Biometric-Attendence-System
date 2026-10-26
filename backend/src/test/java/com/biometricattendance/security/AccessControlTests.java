@@ -107,26 +107,24 @@ class AccessControlTests extends IntegrationTest {
 			.andExpect(jsonPath("$.detail").value(ProblemResponses.UNAUTHORIZED));
 	}
 
-	/** Data karyawan dan cabang absen hanya diubah Owner (K-128); HR/Finance tetap membaca. */
-	static Stream<Arguments> ownerOnlyEmployeeWrites() {
+	/** Data karyawan dan cabang absen diubah Owner dan Finance & Accounting (K-135, membatalkan sebagian K-128). */
+	static Stream<Arguments> managerEmployeeWrites() {
 		return Stream.of(Arguments.of(HttpMethod.POST, "/api/employees", EMPLOYEE_BODY),
 				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING, EMPLOYEE_BODY),
-				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING + "/branches", "{\"extraBranchIds\":[]}"),
-				// Impor karyawan dari template client (K-130).
-				Arguments.of(HttpMethod.POST, "/api/employee-imports/preview", null),
-				Arguments.of(HttpMethod.POST, "/api/employee-imports", "{}"));
+				Arguments.of(HttpMethod.PUT, "/api/employees/" + MISSING + "/branches", "{\"extraBranchIds\":[]}"));
 	}
 
 	@ParameterizedTest(name = "{0} {1}")
-	@MethodSource("ownerOnlyEmployeeWrites")
-	void employeeDataIsWritableByOwnerOnly(HttpMethod method, String url, String body) throws Exception {
-		mockMvc.perform(build(method, url, body).with(HR_FINANCE))
+	@MethodSource("managerEmployeeWrites")
+	void employeeDataIsWritableByManagers(HttpMethod method, String url, String body) throws Exception {
+		mockMvc.perform(build(method, url, body).with(EMPLOYEE))
 			.andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.detail").value(ProblemResponses.FORBIDDEN));
-		mockMvc.perform(build(method, url, body).with(EMPLOYEE)).andExpect(status().isForbidden());
 		mockMvc.perform(build(method, url, body)).andExpect(status().isUnauthorized());
 		int owner = mockMvc.perform(build(method, url, body).with(OWNER)).andReturn().getResponse().getStatus();
 		assertThat(owner).as("Owner lolos otorisasi").isNotIn(401, 403);
+		int finance = mockMvc.perform(build(method, url, body).with(HR_FINANCE)).andReturn().getResponse().getStatus();
+		assertThat(finance).as("Finance & Accounting lolos otorisasi").isNotIn(401, 403);
 	}
 
 	@Test

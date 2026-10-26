@@ -8,6 +8,7 @@ import { AuthProvider } from '@/auth/AuthContext'
 import type { DailyPreview, Employee, Me } from '@/lib/types'
 import { parseScanTimes } from '@/lib/form'
 import { mockFetch } from '@/test/fetchMock'
+import { pickDate } from '@/test/pickers'
 
 function renderAt(path: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -111,7 +112,7 @@ describe('CalculationPreviewPage', () => {
 
     await screen.findByRole('option', { name: /Budi Santoso/ }, LOAD)
     fireEvent.change(screen.getByLabelText('Karyawan'), { target: { value: '12' } })
-    fireEvent.change(screen.getByLabelText('Tanggal'), { target: { value: '2026-10-12' } })
+    pickDate(screen.getByLabelText('Tanggal'), '2026-10-12')
     fireEvent.change(screen.getByLabelText('Jam scan'), { target: { value: '15:00, 18:00' } })
     fireEvent.click(screen.getByRole('button', { name: 'Hitung' }))
 
