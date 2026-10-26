@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
-import { fieldClass, selectClass } from '@/components/FormDialog'
+import { DatePicker } from '@/components/DatePickers'
+import { selectClass } from '@/components/FormDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { TimeCell } from '@/components/TimeCell'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
@@ -67,7 +67,7 @@ export function AttendancePage() {
           <Label htmlFor="tanggal" className="font-semibold">
             Tanggal
           </Label>
-          <Input id="tanggal" type="date" className={fieldClass} value={date} onChange={(e) => setDate(e.target.value)} />
+          <DatePicker id="tanggal" context="Tanggal absensi" value={date} onChange={setDate} />
         </div>
         <div className="flex min-w-48 flex-col gap-1.5">
           <Label htmlFor="cabang" className="font-semibold">

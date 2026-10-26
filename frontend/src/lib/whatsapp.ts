@@ -9,3 +9,18 @@ export function buildWhatsAppUrl(
   const text = `Permohonan ${request.leaveTypeName} ${letterNumber(request.id)} a.n. ${request.employeeName}, ${formatLeaveRange(request)}. Mohon ditinjau: ${origin}/izin/${request.id}`
   return `https://wa.me/?text=${encodeURIComponent(text)}`
 }
+
+/** Nomor HP ke format internasional wa.me: 08… → 628…, 8… → 628…, 62… tetap; null bila tidak ada angka. */
+export function normalizeWhatsAppNumber(phone: string | null | undefined): string | null {
+  const digits = (phone ?? '').replace(/\D/g, '')
+  if (!digits) return null
+  if (digits.startsWith('0')) return '62' + digits.slice(1)
+  if (digits.startsWith('8')) return '62' + digits
+  return digits
+}
+
+/** Tautan wa.me berisi pesan; tanpa nomor, pengguna memilih kontak sendiri di WhatsApp. */
+export function whatsAppSendUrl(text: string, phone?: string | null): string {
+  const number = normalizeWhatsAppNumber(phone)
+  return `https://wa.me/${number ?? ''}?text=${encodeURIComponent(text)}`
+}

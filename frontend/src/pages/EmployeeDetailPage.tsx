@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowLeft, KeyRound, UserRound } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, KeyRound, UserPlus, UserRound } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
 import { ActiveBadge } from '@/components/CrudPage'
 import { BranchAccessCard } from '@/components/BranchAccessCard'
+import { CreateAccountDialog } from '@/components/CreateAccountDialog'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { FingerprintSection } from '@/components/FingerprintSection'
 import { PageHeader } from '@/components/PageHeader'
+import { ResetPasswordDialog } from '@/components/ResetPasswordDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ApiError, api } from '@/lib/api'
@@ -29,6 +32,8 @@ export function EmployeeDetailPage() {
   // HR/Finance hanya menerima akun karyawan dari backend; itu cukup untuk mencari akun milik karyawan ini.
   const accounts = useQuery({ queryKey: ['/api/users'], queryFn: () => api<UserAccount[]>('/api/users') })
   const account = accounts.data?.find((user) => String(user.employeeId) === id)
+  const [dialog, setDialog] = useState<'create' | 'reset' | null>(null)
+  const canManage = me?.role === 'OWNER' || me?.role === 'HR_FINANCE'
 
   const back = (
     <Button variant="outline" asChild>
@@ -103,9 +108,12 @@ export function EmployeeDetailPage() {
             <EmptyState
               message="Karyawan ini belum punya akun web."
               action={
-                <Button variant="secondary" size="sm" asChild>
-                  <Link to="/akun">Buat di menu Akun</Link>
-                </Button>
+                data && (
+                  <Button variant="secondary" size="sm" onClick={() => setDialog('create')}>
+                    <UserPlus />
+                    Buat akun
+                  </Button>
+                )
               }
             />
           )}
@@ -133,6 +141,13 @@ export function EmployeeDetailPage() {
                   </Badge>
                 </div>
               )}
+              {/* F&A hanya menerima akun karyawan dari backend, jadi tombol ini tidak muncul untuk akun Owner/F&A. */}
+              <div className="px-5 py-3">
+                <Button variant="secondary" size="sm" onClick={() => setDialog('reset')}>
+                  <KeyRound />
+                  Reset password
+                </Button>
+              </div>
             </dl>
           )}
           {data && !data.active && account?.active && (
@@ -143,10 +158,15 @@ export function EmployeeDetailPage() {
           )}
         </section>
 
-        {data && <BranchAccessCard employee={data} readOnly={me?.role !== 'OWNER'} />}
+        {data && <BranchAccessCard employee={data} readOnly={!canManage} />}
 
         {data && <FingerprintSection employee={data} />}
       </div>
+
+      {dialog === 'create' && data && <CreateAccountDialog employee={data} onClose={() => setDialog(null)} />}
+      {dialog === 'reset' && account && (
+        <ResetPasswordDialog account={account} employee={data} onClose={() => setDialog(null)} />
+      )}
     </div>
   )
 }

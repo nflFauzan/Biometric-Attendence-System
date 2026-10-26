@@ -21,7 +21,7 @@ import { dialogSheetClass } from '@/lib/ui'
 /**
  * Kartu "Cabang absen" di Detail Karyawan (K-103): cabang penempatan selalu boleh, cabang lain dicentang sebagai
  * tambahan. Mencabut cabang yang mesinnya menyimpan sidik jari meminta konfirmasi, karena catatan jarinya dihapus.
- * Hanya Owner yang mengubah (K-128); role lain melihatnya dalam mode hanya baca.
+ * Owner dan Finance & Accounting mengubahnya (K-135); role lain melihatnya dalam mode hanya baca.
  */
 export function BranchAccessCard({ employee, readOnly = false }: { employee: Employee; readOnly?: boolean }) {
   const queryClient = useQueryClient()
@@ -144,7 +144,7 @@ export function BranchAccessCard({ employee, readOnly = false }: { employee: Emp
             </p>
           )}
           {readOnly ? (
-            <p className="text-sm text-muted-foreground">Hanya Owner yang dapat mengubah cabang absen.</p>
+            <p className="text-sm text-muted-foreground">Hanya Owner dan Finance & Accounting yang dapat mengubah cabang absen.</p>
           ) : (
             <div>
               <Button

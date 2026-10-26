@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Paperclip } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
+import { DatePicker } from '@/components/DatePickers'
 import { ErrorAlert } from '@/components/feedback'
 import { fieldClass, selectClass } from '@/components/FormDialog'
 import { Button } from '@/components/ui/button'
@@ -158,30 +159,20 @@ export function LeaveRequestForm({ open, mode, onClose, onCreated }: LeaveReques
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Tanggal mulai" htmlFor="startDate" required error={fieldErrors.startDate}>
-              <Input
+              <DatePicker
                 id="startDate"
-                type="date"
-                className={fieldClass}
+                context="Tanggal mulai izin"
                 value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value)
-                  if (endDate < e.target.value) {
-                    setEndDate(e.target.value)
+                onChange={(value) => {
+                  setStartDate(value)
+                  if (endDate < value) {
+                    setEndDate(value)
                   }
                 }}
-                required
               />
             </Field>
             <Field label="Tanggal selesai" htmlFor="endDate" required error={fieldErrors.endDate}>
-              <Input
-                id="endDate"
-                type="date"
-                className={fieldClass}
-                value={endDate}
-                min={startDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                required
-              />
+              <DatePicker id="endDate" context="Tanggal selesai izin" value={endDate} min={startDate} onChange={setEndDate} />
             </Field>
           </div>
 

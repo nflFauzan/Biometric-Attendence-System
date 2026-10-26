@@ -2,6 +2,7 @@ import { AlertTriangle, Calculator, CheckCircle2, Info } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
 import { ErrorAlert } from '@/components/feedback'
+import { DatePicker, TimePicker } from '@/components/DatePickers'
 import { fieldClass, selectClass } from '@/components/FormDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
@@ -138,7 +139,7 @@ export function CalculationPreviewPage() {
             <Label htmlFor="sim-date" className="font-semibold">
               Tanggal
             </Label>
-            <Input id="sim-date" type="date" className={fieldClass} value={date} onChange={(e) => setDate(e.target.value)} />
+            <DatePicker id="sim-date" context="Tanggal simulasi" value={date} onChange={setDate} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="sim-scans" className="font-semibold">
@@ -161,25 +162,13 @@ export function CalculationPreviewPage() {
               <Label htmlFor="sim-correction-in" className="text-sm">
                 Jam masuk
               </Label>
-              <Input
-                id="sim-correction-in"
-                type="time"
-                className={fieldClass}
-                value={correctionIn}
-                onChange={(e) => setCorrectionIn(e.target.value)}
-              />
+              <TimePicker id="sim-correction-in" context="Koreksi jam masuk" clearable value={correctionIn} onChange={setCorrectionIn} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="sim-correction-out" className="text-sm">
                 Jam pulang
               </Label>
-              <Input
-                id="sim-correction-out"
-                type="time"
-                className={fieldClass}
-                value={correctionOut}
-                onChange={(e) => setCorrectionOut(e.target.value)}
-              />
+              <TimePicker id="sim-correction-out" context="Koreksi jam pulang" clearable value={correctionOut} onChange={setCorrectionOut} />
             </div>
           </fieldset>
           <Button type="submit" disabled={busy}>

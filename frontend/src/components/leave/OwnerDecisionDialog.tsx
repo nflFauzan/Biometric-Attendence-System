@@ -2,11 +2,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Paperclip } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
+import { DateTimePicker } from '@/components/DatePickers'
 import { ErrorAlert } from '@/components/feedback'
 import { selectClass } from '@/components/FormDialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError, apiForm } from '@/lib/api'
 import { localDateIso } from '@/lib/format'
@@ -107,7 +107,7 @@ export function OwnerDecisionDialog({ request, onClose, onDone }: { request: Lea
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="decidedAt">Waktu keputusan Owner</Label>
-            <Input id="decidedAt" type="datetime-local" className="h-11" value={decidedAt} onChange={(e) => setDecidedAt(e.target.value)} required />
+            <DateTimePicker id="decidedAt" value={decidedAt} onChange={setDecidedAt} context={letterNumber(request.id)} max={localDateIso()} />
             <p className="text-xs text-muted-foreground">Tidak boleh di masa depan dan tidak boleh sebelum tahap Finance & Accounting.</p>
           </div>
 

@@ -3,9 +3,8 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
-import { fieldClass } from '@/components/FormDialog'
+import { DatePicker } from '@/components/DatePickers'
 import { PageHeader } from '@/components/PageHeader'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
 import { addDays, formatDateTime, formatLocalDateTime, localDateIso } from '@/lib/format'
@@ -40,13 +39,13 @@ export function UnmatchedScansPage() {
           <Label htmlFor="dari" className="font-semibold">
             Dari
           </Label>
-          <Input id="dari" type="date" className={fieldClass} value={from} onChange={(e) => setFrom(e.target.value)} />
+          <DatePicker id="dari" context="Dari tanggal" value={from} max={to || undefined} onChange={setFrom} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="sampai" className="font-semibold">
             Sampai
           </Label>
-          <Input id="sampai" type="date" className={fieldClass} value={to} onChange={(e) => setTo(e.target.value)} />
+          <DatePicker id="sampai" context="Sampai tanggal" value={to} min={from || undefined} onChange={setTo} />
         </div>
       </div>
 

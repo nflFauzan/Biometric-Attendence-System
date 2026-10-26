@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
+import { DatePicker } from '@/components/DatePickers'
 import { fieldClass, selectClass } from '@/components/FormDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
@@ -71,13 +72,13 @@ export function HeldScansPage() {
           <Label htmlFor="dari" className="font-semibold">
             Dari
           </Label>
-          <Input id="dari" type="date" className={fieldClass} value={from} onChange={(e) => setFrom(e.target.value)} />
+          <DatePicker id="dari" context="Dari tanggal" value={from} max={to || undefined} onChange={setFrom} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="sampai" className="font-semibold">
             Sampai
           </Label>
-          <Input id="sampai" type="date" className={fieldClass} value={to} onChange={(e) => setTo(e.target.value)} />
+          <DatePicker id="sampai" context="Sampai tanggal" value={to} min={from || undefined} onChange={setTo} />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="status" className="font-semibold">

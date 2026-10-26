@@ -1,6 +1,7 @@
 import { AlertCircle } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 
+import { DatePicker, DateTimePicker, TimePicker } from '@/components/DatePickers'
 import { ErrorAlert } from '@/components/feedback'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,6 +29,8 @@ export interface FieldDef {
   placeholder?: string
   /** Keterangan singkat di bawah field. */
   hint?: string
+  /** Field hanya tampil bila fungsi ini true, mis. bagian akun saat "Buatkan akun login" dicentang. */
+  visible?: (values: FormValues) => boolean
 }
 
 export type FormValues = Record<string, FieldValue>
@@ -41,6 +44,8 @@ interface FormDialogProps {
   initialValues: FormValues
   onClose: () => void
   onSubmit: (values: FormValues) => Promise<unknown>
+  /** Menurunkan nilai field lain setiap ada perubahan, mis. usulan username dari nama. */
+  derive?: (next: FormValues, prev: FormValues) => FormValues
 }
 
 /** Tinggi 44px di HP agar mudah disentuh, 40px di desktop (docs/design-system.md §6.2). */
@@ -49,14 +54,51 @@ export const fieldClass = 'h-11 rounded-md border-input bg-card px-3 text-base m
 export const selectClass =
   'h-11 w-full rounded-md border border-input bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 md:h-10 md:text-sm'
 
+/**
+ * Field tanggal/jam memakai pemilih sheet (DatePickers). Field tidak wajib bisa dikosongkan;
+ * datetime-local memakai roda detik karena nilainya presisi detik (mis. "Terima scan sejak").
+ */
+function PickerField({
+  field,
+  ...props
+}: {
+  field: FieldDef
+  value: string
+  onChange: (value: string) => void
+  'aria-invalid'?: boolean
+  'aria-describedby'?: string
+}) {
+  const common = { id: field.name, context: field.label, clearable: !field.required, ...props }
+  if (field.type === 'time') {
+    return <TimePicker {...common} />
+  }
+  if (field.type === 'datetime-local') {
+    return <DateTimePicker {...common} withSeconds />
+  }
+  return <DatePicker {...common} />
+}
+
 /** Form generik dalam dialog (bottom sheet di HP). Error per field dari backend ditampilkan di bawah field-nya. */
-export function FormDialog({ open, title, description, fields, initialValues, onClose, onSubmit }: FormDialogProps) {
+export function FormDialog({
+  open,
+  title,
+  description,
+  fields,
+  initialValues,
+  onClose,
+  onSubmit,
+  derive,
+}: FormDialogProps) {
   const [values, setValues] = useState<FormValues>(initialValues)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
-  const set = (name: string, value: FieldValue) => setValues((current) => ({ ...current, [name]: value }))
+  const set = (name: string, value: FieldValue) =>
+    setValues((current) => {
+      const next = { ...current, [name]: value }
+      return derive ? derive(next, current) : next
+    })
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -87,7 +129,7 @@ export function FormDialog({ open, title, description, fields, initialValues, on
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {error && <ErrorAlert message={error} />}
-          {fields.map((field) => {
+          {fields.filter((field) => !field.visible || field.visible(values)).map((field) => {
             const fieldError = fieldErrors[field.name]
             const errorId = `${field.name}-error`
             return (
@@ -148,11 +190,18 @@ export function FormDialog({ open, title, description, fields, initialValues, on
                           </option>
                         ))}
                       </select>
+                    ) : field.type === 'date' || field.type === 'time' || field.type === 'datetime-local' ? (
+                      <PickerField
+                        field={field}
+                        value={String(values[field.name] ?? '')}
+                        onChange={(value) => set(field.name, value)}
+                        aria-invalid={Boolean(fieldError)}
+                        aria-describedby={fieldError ? errorId : undefined}
+                      />
                     ) : (
                       <Input
                         id={field.name}
                         type={field.type ?? 'text'}
-                        step={field.type === 'datetime-local' ? 1 : undefined}
                         className={fieldClass}
                         placeholder={field.placeholder}
                         aria-invalid={Boolean(fieldError)}

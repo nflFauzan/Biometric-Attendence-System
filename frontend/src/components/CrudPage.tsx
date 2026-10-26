@@ -34,8 +34,10 @@ interface CrudPageProps<T extends { id: number }> {
   listParams?: Record<string, string>
   /** Kontrol tambahan di atas tabel, mis. pemilih tahun. */
   toolbar?: ReactNode
-  /** Dipanggil dengan hasil PUT/POST setelah tersimpan, mis. untuk menampilkan data yang hanya ada sekali. */
-  onSaved?: (saved: T, editing: T | null) => void
+  /** Dipanggil dengan hasil PUT/POST dan isian form setelah tersimpan, mis. untuk menampilkan data yang hanya ada sekali. */
+  onSaved?: (saved: T, editing: T | null, values: FormValues) => void
+  /** Nilai turunan di form (lihat FormDialog.derive); `editing` null saat tambah. */
+  derive?: (next: FormValues, prev: FormValues, editing: T | null) => FormValues
   /** Hanya baca: tanpa tombol Tambah, aksi Ubah, dan dialog form; daftar tetap tampil. */
   readOnly?: boolean
 }
@@ -74,7 +76,7 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
       ? await api<T>(`${props.endpoint}/${editing.id}`, { method: 'PUT', body })
       : await api<T>(props.endpoint, { method: 'POST', body })
     await queryClient.invalidateQueries({ queryKey: [props.endpoint] })
-    props.onSaved?.(saved, editing)
+    props.onSaved?.(saved, editing, values)
   }
 
   const openCreate = () => setDialog({ editing: null })
@@ -210,6 +212,7 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
           initialValues={dialog.editing ? props.toValues(dialog.editing) : props.emptyValues}
           onClose={() => setDialog(null)}
           onSubmit={save}
+          derive={props.derive && ((next, prev) => props.derive!(next, prev, dialog.editing))}
         />
       )}
     </div>

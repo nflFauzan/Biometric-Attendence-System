@@ -5,11 +5,11 @@ import { useState, type ReactNode } from 'react'
 import { useAuth } from '@/auth/AuthContext'
 import { ConfirmDeleteButton } from '@/components/ConfirmDeleteButton'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
-import { fieldClass, FormDialog, selectClass, type FieldDef, type FormValues } from '@/components/FormDialog'
+import { DatePicker } from '@/components/DatePickers'
+import { FormDialog, selectClass, type FieldDef, type FormValues } from '@/components/FormDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
 import { emptyToNull } from '@/lib/form'
@@ -396,7 +396,7 @@ function EffectiveRulePanel() {
           <Label htmlFor="effective-date" className="font-semibold">
             Tanggal
           </Label>
-          <Input id="effective-date" type="date" className={fieldClass} value={date} onChange={(e) => setDate(e.target.value)} />
+          <DatePicker id="effective-date" context="Aturan yang berlaku pada tanggal" value={date} onChange={setDate} />
         </div>
       </div>
       {effective.error && <ErrorAlert className="mx-5 mb-4" message={effective.error.message} />}

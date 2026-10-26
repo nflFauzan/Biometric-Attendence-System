@@ -12,6 +12,14 @@ export function formatDate(iso: string | null | undefined): string {
   return `${Number(match[3])} ${MONTHS[Number(match[2]) - 1]} ${match[1]}`
 }
 
+const WEEKDAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
+
+/** "2026-10-24" → "Sab, 24 Okt 2026" (hari singkat + tanggal, design-system.md §7). */
+export function formatDayLabel(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number)
+  return `${WEEKDAYS[new Date(year, month - 1, day).getDay()]}, ${formatDate(iso)}`
+}
+
 /** Waktu kejadian (instant) → "9 Okt 2026, 08.14". */
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) {

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 
+import { DatePicker } from '@/components/DatePickers'
 import { fieldClass } from '@/components/FormDialog'
 import type { WizardForm } from '@/components/leave/wizard/form'
 import { Input } from '@/components/ui/input'
@@ -29,24 +30,22 @@ export function StepDetails({ form, template, errors, onChange }: StepDetailsPro
     <div className="flex flex-col gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="startDate" label="Tanggal mulai" required error={errors.startDate}>
-          <Input
+          <DatePicker
             id="startDate"
-            type="date"
-            className={fieldClass}
+            context="Tanggal mulai izin"
             value={form.startDate}
             aria-invalid={!!errors.startDate}
-            onChange={(e) => onChange({ startDate: e.target.value })}
+            onChange={(startDate) => onChange({ startDate })}
           />
         </Field>
         <Field id="endDate" label="Tanggal selesai" required error={endError}>
-          <Input
+          <DatePicker
             id="endDate"
-            type="date"
-            className={fieldClass}
+            context="Tanggal selesai izin"
             value={form.endDate}
             min={form.startDate || undefined}
             aria-invalid={!!endError}
-            onChange={(e) => onChange({ endDate: e.target.value })}
+            onChange={(endDate) => onChange({ endDate })}
           />
         </Field>
       </div>
