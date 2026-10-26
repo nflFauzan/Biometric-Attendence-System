@@ -164,6 +164,11 @@ public class EmployeeService {
 		m.put("endDate", e.endDate());
 		m.put("active", e.active());
 		m.put("devicePin", e.devicePin());
+		m.put("email", e.email());
+		m.put("gender", e.gender());
+		m.put("birthDate", e.birthDate());
+		m.put("address", e.address());
+		m.put("notes", e.notes());
 		m.put("extraBranchIds", extraBranchIds);
 		return m;
 	}
@@ -203,6 +208,15 @@ public class EmployeeService {
 		employee.setEndDate(request.endDate());
 		employee.setActive(request.active());
 		employee.setDevicePin(normalizePin(request.devicePin()));
+		employee.setEmail(blankToNull(request.email()));
+		employee.setGender(request.gender());
+		employee.setBirthDate(request.birthDate());
+		employee.setAddress(blankToNull(request.address()));
+		employee.setNotes(blankToNull(request.notes()));
+	}
+
+	private static String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value.trim();
 	}
 
 	private static String normalizePin(String pin) {

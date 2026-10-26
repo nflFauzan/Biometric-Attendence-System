@@ -132,7 +132,7 @@ public class UserAccountService {
 
 	private void requireCanManage(Role targetRole) {
 		if (!isOwner() && targetRole != Role.EMPLOYEE) {
-			throw ApiException.forbidden("HR/Finance hanya boleh mengelola akun karyawan");
+			throw ApiException.forbidden("Finance & Accounting hanya boleh mengelola akun karyawan");
 		}
 	}
 

@@ -136,7 +136,7 @@ public class LeaveLetterService {
 		if (name != null) {
 			return name;
 		}
-		return a.getStage() == ApprovalStage.OWNER ? "Owner" : "HR/Finance";
+		return a.getStage() == ApprovalStage.OWNER ? "Owner" : "Finance & Accounting";
 	}
 
 	private static ApiException notFound() {
@@ -229,7 +229,7 @@ public class LeaveLetterService {
 			LeaveApproval hr = stageOf(history, ApprovalStage.HR);
 			LeaveApproval owner = stageOf(history, ApprovalStage.OWNER);
 			boxes.add(hr == null && owner != null ? directByOwnerBox(owner)
-					: approvalBox("HR/Finance", hr, names));
+					: approvalBox("Finance & Accounting", hr, names));
 			boxes.add(approvalBox("Owner", owner, names));
 		}
 		else {
@@ -245,7 +245,7 @@ public class LeaveLetterService {
 	/** Tahap HR tidak dijalani karena Owner memutus langsung (K-125): teks saja, tanpa nama dan gambar. */
 	private SignatureBox directByOwnerBox(LeaveApproval owner) {
 		String verdict = owner.isApproved() ? "Disetujui" : "Ditolak";
-		return new SignatureBox("HR/Finance", null, null, verdict + " langsung oleh Owner\n"
+		return new SignatureBox("Finance & Accounting", null, null, verdict + " langsung oleh Owner\n"
 				+ DATE_TIME.format(owner.getDecidedAt().atZone(companyZone)));
 	}
 
@@ -266,7 +266,7 @@ public class LeaveLetterService {
 		}
 		// Keputusan di luar web dicatat HR: ditulis sebagai teks, bukan gambar tanda tangan.
 		String verdict = a.isApproved() ? "Disetujui" : "Ditolak";
-		String recorder = a.getRecordedBy() == null ? "" : ", dicatat oleh " + names.getOrDefault(a.getRecordedBy(), "HR/Finance"); // tidak pernah username
+		String recorder = a.getRecordedBy() == null ? "" : ", dicatat oleh " + names.getOrDefault(a.getRecordedBy(), "Finance & Accounting"); // tidak pernah username
 		return new SignatureBox(title, null, name,
 				verdict + " " + methodWords(a.getMethod()) + " pada " + when + recorder);
 	}

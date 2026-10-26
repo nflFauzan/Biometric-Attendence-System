@@ -11,12 +11,17 @@ public final class UserAccountDtos {
 
 	public static final int MIN_PASSWORD_LENGTH = 8;
 
+	/** Username boleh berbentuk email, mis. dafa@takka.id (K-131). */
+	public static final String USERNAME_PATTERN = "[A-Za-z0-9._@-]{3,50}";
+
+	public static final String USERNAME_MESSAGE = "Username 3-50 karakter: huruf, angka, titik, @, _ atau -";
+
 	private UserAccountDtos() {
 	}
 
 	public record CreateUserRequest(
 			@NotBlank(message = "Username wajib diisi")
-			@Pattern(regexp = "[A-Za-z0-9._-]{3,50}", message = "Username 3-50 karakter: huruf, angka, titik, _ atau -")
+			@Pattern(regexp = USERNAME_PATTERN, message = USERNAME_MESSAGE)
 			String username,
 			@NotBlank(message = "Password wajib diisi")
 			@Size(min = MIN_PASSWORD_LENGTH, max = 100, message = "Password minimal 8 karakter")

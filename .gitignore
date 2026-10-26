@@ -55,3 +55,6 @@ Thumbs.db
  
 # Surat pendukung izin/cuti (data pribadi, K-078) saat backend dijalankan lokal
 uploads/
+
+# Data karyawan dari client (data pribadi: alamat, tanggal lahir, nomor HP)
+docs/Template_Pengisian_Data_Karyawan*.xlsx

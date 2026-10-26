@@ -53,6 +53,8 @@ public class SecurityConfig {
 				// Rencana 6: jaringan dan ganti kunci alat rakitan hanya Owner (spec §18.8).
 				.requestMatchers("/api/devices/*/network", "/api/devices/*/rotate-key").hasRole(OWNER)
 				// Data karyawan dan cabang absen hanya diubah Owner (K-128); sidik jari tetap untuk HR (v0.6 catatan 7).
+				// Impor karyawan dari template client membuat data dan akun sekaligus: hanya Owner (K-130).
+				.requestMatchers("/api/employee-imports/**").hasRole(OWNER)
 				.requestMatchers(HttpMethod.POST, "/api/employees").hasRole(OWNER)
 				.requestMatchers(HttpMethod.PUT, "/api/employees/*", "/api/employees/*/branches").hasRole(OWNER)
 				.requestMatchers("/api/branches/**", "/api/employee-categories/**", "/api/employees/**",

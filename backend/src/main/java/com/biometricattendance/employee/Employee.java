@@ -15,6 +15,8 @@ import com.biometricattendance.category.EmployeeCategory;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -80,6 +82,18 @@ public class Employee {
 
 	/** Kapan sidik jari karyawan keluar/nonaktif dihapus (spec §17.4); null = belum atau aktif kembali. */
 	private Instant fingerprintsRemovedAt;
+
+	/** Profil dari template data client (K-129); semuanya opsional. */
+	private String email;
+
+	@Enumerated(EnumType.STRING)
+	private Gender gender;
+
+	private LocalDate birthDate;
+
+	private String address;
+
+	private String notes;
 
 	@CreationTimestamp
 	@Column(nullable = false, updatable = false)
@@ -211,6 +225,46 @@ public class Employee {
 	public void recordFingerprintConsent(String by, Instant at) {
 		this.fingerprintConsentBy = by;
 		this.fingerprintConsentAt = at;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public Gender getGender() {
+		return gender;
+	}
+
+	public void setGender(Gender gender) {
+		this.gender = gender;
+	}
+
+	public LocalDate getBirthDate() {
+		return birthDate;
+	}
+
+	public void setBirthDate(LocalDate birthDate) {
+		this.birthDate = birthDate;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	public String getNotes() {
+		return notes;
+	}
+
+	public void setNotes(String notes) {
+		this.notes = notes;
 	}
 
 }

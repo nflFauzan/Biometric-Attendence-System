@@ -246,7 +246,7 @@ public class LeaveService {
 		LeaveRequest r = find(id);
 		ownerRecordCheck(r).orThrow();
 		if (req.method() == DecisionMethod.WEB) {
-			throw ApiException.badRequest("Keputusan lewat web dibuat Owner sendiri, bukan dicatat HR");
+			throw ApiException.badRequest("Keputusan lewat web dibuat Owner sendiri, bukan dicatat Finance & Accounting");
 		}
 		String note = requireText(req.note(), "Catatan wajib diisi");
 		boolean hasEvidence = evidence != null && !evidence.isEmpty();
@@ -263,7 +263,7 @@ public class LeaveService {
 			.orElse(null);
 		// Isian waktu dari UI presisi menit, jadi tahap HR dibandingkan per menit (10:05 sah setelah HR 10:05:30).
 		if (hrStageAt != null && decidedAt.isBefore(hrStageAt.truncatedTo(ChronoUnit.MINUTES))) {
-			throw ApiException.badRequest("Waktu keputusan Owner tidak boleh sebelum tahap HR");
+			throw ApiException.badRequest("Waktu keputusan Owner tidak boleh sebelum tahap Finance & Accounting");
 		}
 
 		AttachmentStorage.Stored stored = hasEvidence ? storeWithCleanup(evidence) : null;
@@ -372,7 +372,7 @@ public class LeaveService {
 		requests.findAllById(found.stream().map(LeaveApproval::getLeaveRequestId).collect(Collectors.toSet()))
 			.forEach(r -> byId.put(r.getId(), r));
 		// Pencatat tanpa karyawan terhubung ditampilkan sebagai peran, bukan username (K-123).
-		Function<String, String> nameOf = nameResolver(found, u -> "HR/Finance");
+		Function<String, String> nameOf = nameResolver(found, u -> "Finance & Accounting");
 		return found.stream()
 			.filter(a -> byId.containsKey(a.getLeaveRequestId()))
 			.map(a -> {
@@ -503,7 +503,7 @@ public class LeaveService {
 		LeaveRequest r = findMine(id);
 		if (!r.getStatus().isPending()) {
 			throw ApiException.conflict("Pengajuan yang sudah " + label(r.getStatus())
-					+ " hanya bisa dibatalkan oleh Owner atau HR/Finance");
+					+ " hanya bisa dibatalkan oleh Owner atau Finance & Accounting");
 		}
 		AuditView before = AuditView.of(r);
 		String reason = trimToNull(note);
@@ -704,7 +704,7 @@ public class LeaveService {
 		}
 		if (isOwnRequest(r)) {
 			return Check.denied(ApiException
-				.forbidden("Pengajuan milik sendiri harus diputus oleh Owner atau HR/Finance lain"));
+				.forbidden("Pengajuan milik sendiri harus diputus oleh Owner atau Finance & Accounting lain"));
 		}
 		boolean owner = CurrentUser.hasRole("OWNER");
 		if (r.getStatus() == LeaveStatus.PERLU_TINJAU_OWNER) {
@@ -729,7 +729,7 @@ public class LeaveService {
 		}
 		if (isOwnRequest(r)) {
 			return Check.denied(ApiException
-				.forbidden("Pengajuan milik sendiri harus diputus oleh Owner atau HR/Finance lain"));
+				.forbidden("Pengajuan milik sendiri harus diputus oleh Owner atau Finance & Accounting lain"));
 		}
 		return Check.ok(Boolean.TRUE);
 	}
@@ -785,7 +785,7 @@ public class LeaveService {
 		return accounts.findByUsername(CurrentUser.username())
 			.map(UserAccount::getEmployee)
 			.orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN,
-					"Akun ini belum terhubung ke data karyawan. Hubungi HR/Finance"));
+					"Akun ini belum terhubung ke data karyawan. Hubungi Finance & Accounting"));
 	}
 
 	private LeaveAttachment attachmentOf(LeaveRequest r, Long attachmentId) {
@@ -923,7 +923,7 @@ public class LeaveService {
 	static String label(LeaveStatus status) {
 		return switch (status) {
 			case DRAFT -> "draft";
-			case PERLU_TINJAU_HR -> "perlu ditinjau HR";
+			case PERLU_TINJAU_HR -> "perlu ditinjau Finance & Accounting";
 			case PERLU_TINJAU_OWNER -> "perlu ditinjau Owner";
 			case DISETUJUI -> "disetujui";
 			case DITOLAK -> "ditolak";
