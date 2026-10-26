@@ -18,7 +18,7 @@ export function StepType({ types, value, onChange }: StepTypeProps) {
   if (types.length === 0) {
     return (
       <p className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-        Belum ada jenis izin yang aktif. Hubungi HR.
+        Belum ada jenis izin yang aktif. Hubungi Finance & Accounting.
       </p>
     )
   }

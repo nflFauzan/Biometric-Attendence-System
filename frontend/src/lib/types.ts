@@ -2,7 +2,7 @@ export type Role = 'OWNER' | 'HR_FINANCE' | 'EMPLOYEE'
 
 export const ROLE_LABELS: Record<Role, string> = {
   OWNER: 'Owner',
-  HR_FINANCE: 'HR/Finance',
+  HR_FINANCE: 'Finance & Accounting',
   EMPLOYEE: 'Karyawan',
 }
 
@@ -45,6 +45,63 @@ export interface Employee {
   active: boolean
   /** PIN/User ID di mesin absensi (K-056). */
   devicePin: string | null
+  /** Profil dari template data client (K-129). */
+  email: string | null
+  gender: Gender | null
+  birthDate: string | null
+  address: string | null
+  notes: string | null
+}
+
+export type Gender = 'LAKI_LAKI' | 'PEREMPUAN' | 'TIDAK_DISEBUTKAN'
+
+/** Satu baris pratinjau impor karyawan (K-130); username dan role boleh diubah Owner. */
+export interface ImportPreviewRow {
+  rowNumber: number
+  employeeNumber: string | null
+  fullName: string | null
+  unit: string | null
+  categoryId: number | null
+  categoryName: string | null
+  position: string | null
+  branchId: number | null
+  branchName: string | null
+  phone: string | null
+  email: string | null
+  gender: Gender | null
+  birthDate: string | null
+  address: string | null
+  notes: string | null
+  accountStatus: string | null
+  username: string | null
+  role: Role | null
+  errors: string[]
+}
+
+export interface ImportPreview {
+  startDate: string
+  rows: ImportPreviewRow[]
+  errorCount: number
+}
+
+export interface ImportCreatedAccount {
+  employeeNumber: string
+  fullName: string
+  username: string
+  role: Role
+  initialPassword: string
+}
+
+export interface ImportCommitResult {
+  employeesCreated: number
+  accountsCreated: number
+  accounts: ImportCreatedAccount[]
+}
+
+export const GENDER_LABELS: Record<Gender, string> = {
+  LAKI_LAKI: 'Laki-laki',
+  PEREMPUAN: 'Perempuan',
+  TIDAK_DISEBUTKAN: 'Tidak ingin menyebutkan',
 }
 
 /** Cabang tempat karyawan boleh absen (K-103): penempatan + tambahan. */

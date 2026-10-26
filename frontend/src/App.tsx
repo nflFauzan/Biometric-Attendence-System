@@ -16,6 +16,7 @@ import { ChangePasswordPage } from '@/pages/ChangePasswordPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { DevicesPage } from '@/pages/DevicesPage'
 import { EmployeeDetailPage } from '@/pages/EmployeeDetailPage'
+import { EmployeeImportPage } from '@/pages/EmployeeImportPage'
 import { EmployeesPage } from '@/pages/EmployeesPage'
 import { HolidaysPage } from '@/pages/HolidaysPage'
 import { LeaveDetailPage } from '@/pages/LeaveDetailPage'
@@ -111,6 +112,8 @@ function App() {
         <Route path="rekan-kerja" element={<Navigate to="/absensi-saya" replace />} />
         <Route path="rekan-kerja/:id" element={<Navigate to="/absensi-saya" replace />} />
         <Route path="karyawan" element={managers(<EmployeesPage />)} />
+        {/* Impor karyawan dari template client membuat data dan akun sekaligus: hanya Owner (K-130). */}
+        <Route path="karyawan/impor" element={<RequireRole roles={['OWNER']}><EmployeeImportPage /></RequireRole>} />
         <Route path="karyawan/:id" element={managers(<EmployeeDetailPage />)} />
         <Route path="cabang" element={managers(<BranchesPage />)} />
         <Route path="kategori" element={managers(<CategoriesPage />)} />

@@ -5,7 +5,7 @@ import { ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { SignatureCard } from '@/components/signature/SignatureCard'
 import { api } from '@/lib/api'
 import { formatDate, initials } from '@/lib/format'
-import { ROLE_LABELS, type Employee } from '@/lib/types'
+import { GENDER_LABELS, ROLE_LABELS, type Employee } from '@/lib/types'
 
 /**
  * Profil akun untuk semua role. Dipakai terutama dari HP, jadi teks dan jarak dibuat besar (docs/design-system.md §3).
@@ -27,6 +27,11 @@ export function ProfilePage() {
     ['Jabatan', data?.position],
     ['No. HP', data?.phone],
     ['Tanggal masuk', data?.joinDate ? formatDate(data.joinDate) : null],
+    ['Email', data?.email],
+    ['Jenis kelamin', data?.gender ? GENDER_LABELS[data.gender] : null],
+    ['Tanggal lahir', data?.birthDate ? formatDate(data.birthDate) : null],
+    ['Alamat', data?.address],
+    ['Catatan', data?.notes],
   ]
 
   return (

@@ -2,11 +2,14 @@
 export class ApiError extends Error {
   readonly status: number
   readonly fieldErrors: Record<string, string>
+  /** Isi ProblemDetail lengkap, mis. `rows` pada 409 impor karyawan. */
+  readonly problem: Record<string, unknown> | null
 
-  constructor(status: number, message: string, fieldErrors: Record<string, string> = {}) {
+  constructor(status: number, message: string, fieldErrors: Record<string, string> = {}, problem: Record<string, unknown> | null = null) {
     super(message)
     this.status = status
     this.fieldErrors = fieldErrors
+    this.problem = problem
   }
 }
 
@@ -111,6 +114,7 @@ async function handle<T>(path: string, response: Response): Promise<T> {
       response.status,
       problem?.detail ?? `Terjadi kesalahan (${response.status})`,
       problem?.errors ?? {},
+      problem,
     )
   }
   if (response.status === 204) {

@@ -108,7 +108,7 @@ export function OwnerDecisionDialog({ request, onClose, onDone }: { request: Lea
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="decidedAt">Waktu keputusan Owner</Label>
             <Input id="decidedAt" type="datetime-local" className="h-11" value={decidedAt} onChange={(e) => setDecidedAt(e.target.value)} required />
-            <p className="text-xs text-muted-foreground">Tidak boleh di masa depan dan tidak boleh sebelum tahap HR.</p>
+            <p className="text-xs text-muted-foreground">Tidak boleh di masa depan dan tidak boleh sebelum tahap Finance & Accounting.</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -137,7 +137,7 @@ export function OwnerDecisionDialog({ request, onClose, onDone }: { request: Lea
               <span className="min-w-0 truncate">{file ? `${file.name} · ${formatFileSize(file.size)}` : 'Pilih tangkapan layar atau dokumen…'}</span>
             </label>
             <input id="evidence" type="file" accept={ATTACHMENT_ACCEPT} className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-            <p className="text-xs text-muted-foreground">PDF, JPG, atau PNG, maks. 5 MB. Hanya HR dan Owner yang bisa membukanya.</p>
+            <p className="text-xs text-muted-foreground">PDF, JPG, atau PNG, maks. 5 MB. Hanya Finance & Accounting dan Owner yang bisa membukanya.</p>
           </div>
 
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">

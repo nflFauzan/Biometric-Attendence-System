@@ -169,7 +169,7 @@ export function LeaveNotifications() {
             </ul>
             {recorded.length > 0 && (
               <>
-                <p className="border-t border-b px-4 py-2 text-sm font-semibold">Keputusan Anda yang dicatat HR</p>
+                <p className="border-t border-b px-4 py-2 text-sm font-semibold">Keputusan Anda yang dicatat Finance & Accounting</p>
                 <ul className="max-h-60 divide-y overflow-y-auto">
                   {recorded.map((item) => (
                     <li key={item.approvalId}>

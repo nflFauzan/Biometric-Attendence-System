@@ -129,7 +129,7 @@ export function LeaveRequestForm({ open, mode, onClose, onCreated }: LeaveReques
             {mode === 'manager' ? 'Catat izin atas nama karyawan' : 'Ajukan izin / cuti'}
           </DialogTitle>
           <DialogDescription>
-            Untuk hari penuh. Setelah dikirim, Owner dan HR/Finance langsung mendapat notifikasi untuk menyetujui.
+            Untuk hari penuh. Setelah dikirim, Owner dan Finance & Accounting langsung mendapat notifikasi untuk menyetujui.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">

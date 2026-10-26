@@ -42,7 +42,7 @@ function buildSteps(request: LeaveRequest): Step[] {
   const submitted: Step = request.submittedAt
     ? { key: 'submitted', label: 'Diajukan', state: 'done', detail: `${request.submittedBy ?? 'Pemohon'} · ${formatDateTime(request.submittedAt)}` }
     : { key: 'submitted', label: 'Diajukan', state: 'upcoming', detail: 'Belum dikirim' }
-  const steps: Step[] = [submitted, stageStep(request, 'HR', 'Ditinjau HR')]
+  const steps: Step[] = [submitted, stageStep(request, 'HR', 'Ditinjau Finance & Accounting')]
   if (request.requiresOwnerApproval) {
     steps.push(stageStep(request, 'OWNER', 'Ditinjau Owner'))
   }

@@ -26,7 +26,7 @@ export function UsersPage() {
         description={
           me?.role === 'OWNER'
             ? 'Akun baru wajib mengganti password saat login pertama.'
-            : 'HR/Finance hanya dapat mengelola akun karyawan.'
+            : 'Finance & Accounting hanya dapat mengelola akun karyawan.'
         }
         endpoint="/api/users"
         columns={[

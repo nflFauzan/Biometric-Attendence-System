@@ -20,7 +20,7 @@ const MAX_BYTES = 1024 * 1024
 
 function messageOf(error: unknown): string {
   if (error instanceof ApiError && error.status === 404) {
-    return 'Akun Anda belum terhubung ke data pengguna, jadi tanda tangan belum bisa diatur. Hubungi HR.'
+    return 'Akun Anda belum terhubung ke data pengguna, jadi tanda tangan belum bisa diatur. Hubungi Finance & Accounting.'
   }
   return error instanceof Error ? error.message : 'Terjadi kesalahan.'
 }

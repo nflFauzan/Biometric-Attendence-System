@@ -37,7 +37,7 @@ export function StepReview({ form, type, template, request }: StepReviewProps) {
         ))}
       </dl>
       <p className="text-sm text-muted-foreground">
-        {type?.requiresOwnerApproval ? 'Setelah dikirim, pengajuan ditinjau HR lalu Owner.' : 'Setelah dikirim, pengajuan ditinjau HR.'}{' '}
+        {type?.requiresOwnerApproval ? 'Setelah dikirim, pengajuan ditinjau Finance & Accounting lalu Owner.' : 'Setelah dikirim, pengajuan ditinjau Finance & Accounting.'}{' '}
         Periksa isian, lalu pilih Kirim atau simpan sebagai draft.
       </p>
     </section>

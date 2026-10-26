@@ -25,7 +25,7 @@ type StatusFilter = LeaveStatus | '' | 'MENUNGGU'
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'MENUNGGU', label: 'Semua menunggu' },
-  { value: 'PERLU_TINJAU_HR', label: 'Perlu ditinjau HR' },
+  { value: 'PERLU_TINJAU_HR', label: 'Perlu ditinjau Finance & Accounting' },
   { value: 'PERLU_TINJAU_OWNER', label: 'Perlu ditinjau Owner' },
   { value: 'DISETUJUI', label: 'Disetujui' },
   { value: 'DITOLAK', label: 'Ditolak' },

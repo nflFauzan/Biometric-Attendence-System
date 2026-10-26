@@ -33,7 +33,7 @@ export function LeaveTypesPage() {
         },
         {
           header: 'Persetujuan',
-          cell: (t) => (t.requiresOwnerApproval ? <Badge variant="info">HR lalu Owner</Badge> : <span className="text-muted-foreground">HR/Finance</span>),
+          cell: (t) => (t.requiresOwnerApproval ? <Badge variant="info">Finance & Accounting lalu Owner</Badge> : <span className="text-muted-foreground">Finance & Accounting</span>),
         },
         { header: 'Templat surat', cell: (t) => LETTER_TEMPLATE_LABELS[t.letterTemplate] ?? t.letterTemplate },
         { header: 'Gaji', cell: (t) => paidLabel(t.paid) },
@@ -52,7 +52,7 @@ export function LeaveTypesPage() {
           name: 'requiresOwnerApproval',
           label: 'Butuh persetujuan Owner',
           type: 'checkbox',
-          hint: 'Bila aktif, pengajuan disetujui HR/Finance lalu Owner. Perubahan tidak memengaruhi pengajuan yang sedang berjalan.',
+          hint: 'Bila aktif, pengajuan disetujui Finance & Accounting lalu Owner. Perubahan tidak memengaruhi pengajuan yang sedang berjalan.',
         },
         { name: 'letterTemplate', label: 'Templat surat', type: 'select', options: TEMPLATE_OPTIONS },
         { name: 'paid', label: 'Pengaruh ke gaji', type: 'select', options: PAID_OPTIONS },

@@ -90,7 +90,7 @@ function LetterDetail({ letter }: { letter: PublicLetter }) {
             {letter.approvals.map((a) => (
               <li key={a.stage} className="py-2.5 text-sm">
                 <p className="font-semibold">
-                  {a.stage === 'HR' ? 'HR/Finance' : 'Owner'} · {a.approved ? 'Disetujui' : 'Ditolak'}
+                  {a.stage === 'HR' ? 'Finance & Accounting' : 'Owner'} · {a.approved ? 'Disetujui' : 'Ditolak'}
                 </p>
                 <p className="text-muted-foreground">
                   {a.decidedByName} · {formatDateTime(a.decidedAt)} · {DECISION_METHOD_PHRASES[a.method]}

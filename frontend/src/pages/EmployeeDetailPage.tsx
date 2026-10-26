@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ApiError, api } from '@/lib/api'
 import { formatDate, formatDateTime } from '@/lib/format'
-import type { Employee, UserAccount } from '@/lib/types'
+import { GENDER_LABELS, type Employee, type UserAccount } from '@/lib/types'
 
 /**
  * Detail satu karyawan untuk Owner dan HR/Finance: data kepegawaian dan status akun web.
@@ -56,6 +56,11 @@ export function EmployeeDetailPage() {
     ['No. HP', data?.phone],
     ['Tanggal masuk', data ? formatDate(data.joinDate) : null],
     ['Tanggal keluar', data?.endDate ? formatDate(data.endDate) : null],
+    ['Email', data?.email],
+    ['Jenis kelamin', data?.gender ? GENDER_LABELS[data.gender] : null],
+    ['Tanggal lahir', data?.birthDate ? formatDate(data.birthDate) : null],
+    ['Alamat', data?.address],
+    ['Catatan', data?.notes],
   ]
 
   return (

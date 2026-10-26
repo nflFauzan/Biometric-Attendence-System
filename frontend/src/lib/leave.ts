@@ -5,7 +5,7 @@ import type { DecisionMethod, LeaveRequest, LeaveStatus, LetterTemplate } from '
 
 export const LEAVE_STATUS_LABELS: Record<LeaveStatus, string> = {
   DRAFT: 'Draft',
-  PERLU_TINJAU_HR: 'Perlu ditinjau HR',
+  PERLU_TINJAU_HR: 'Perlu ditinjau Finance & Accounting',
   PERLU_TINJAU_OWNER: 'Perlu ditinjau Owner',
   DISETUJUI: 'Disetujui',
   DITOLAK: 'Ditolak',
