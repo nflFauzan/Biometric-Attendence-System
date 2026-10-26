@@ -1,13 +1,18 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 
 import App from '@/App'
 import { AuthProvider } from '@/auth/AuthContext'
 import type { Me } from '@/lib/types'
 import { mockFetch } from '@/test/fetchMock'
 
+
+function LocationProbe() {
+  const l = useLocation()
+  return <span data-testid="loc">{l.pathname + l.search}</span>
+}
 
 function renderApp(path: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -16,6 +21,7 @@ function renderApp(path: string) {
       <MemoryRouter initialEntries={[path]}>
         <AuthProvider>
           <App />
+          <LocationProbe />
         </AuthProvider>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -39,6 +45,20 @@ describe('App', () => {
     expect(await screen.findByRole('button', { name: 'Masuk' })).toBeInTheDocument()
   })
 
+  it('guard membawa lokasi asal lewat next ke halaman login', async () => {
+    mockFetch({ 'GET /api/auth/me': () => ({ status: 401 }) })
+    renderApp('/izin/123?tab=a')
+    expect(await screen.findByRole('button', { name: 'Masuk' })).toBeInTheDocument()
+    expect(screen.getByTestId('loc')).toHaveTextContent('/login?next=%2Fizin%2F123%3Ftab%3Da')
+  })
+
+  it('akun wajib ganti password membawa lokasi asal lewat next', async () => {
+    mockFetch({ 'GET /api/auth/me': () => ({ status: 200, body: me('OWNER', true) }) })
+    renderApp('/izin/123')
+    expect(await screen.findByText('Anda wajib mengganti password sebelum melanjutkan.')).toBeInTheDocument()
+    expect(screen.getByTestId('loc')).toHaveTextContent('/ganti-password?next=%2Fizin%2F123')
+  })
+
   it('memaksa ganti password bila akun baru', async () => {
     mockFetch({ 'GET /api/auth/me': () => ({ status: 200, body: me('OWNER', true) }) })
     renderApp('/')
@@ -58,6 +78,7 @@ describe('App', () => {
     renderApp('/cabang')
     expect(await screen.findByRole('button', { name: 'Masuk' })).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('Sesi Anda sudah berakhir. Silakan masuk kembali.')
+    expect(screen.getByTestId('loc')).toHaveTextContent('/login?next=%2Fcabang')
   })
 
   it('login pertama tanpa sesi tidak menampilkan pemberitahuan sesi berakhir', async () => {
@@ -91,6 +112,23 @@ describe('App', () => {
     const sidebar = await screen.findByRole('navigation', { name: 'Menu utama' })
     expect(within(sidebar).getByRole('link', { name: 'Audit Log' })).toBeInTheDocument()
     expect(within(sidebar).getByRole('link', { name: 'Karyawan' })).toBeInTheDocument()
+  })
+
+  it('logout eksplisit berakhir di /login polos tanpa next', async () => {
+    let alive = true
+    mockFetch({
+      'GET /api/auth/me': () => (alive ? { status: 200, body: me('HR_FINANCE') } : { status: 401 }),
+      'GET /api/auth/csrf': () => ({ status: 204 }),
+      'POST /api/auth/logout': () => {
+        alive = false
+        return { status: 204 }
+      },
+    })
+    renderApp('/izin/5')
+    const buttons = await screen.findAllByRole('button', { name: 'Keluar' })
+    fireEvent.click(buttons[0])
+    expect(await screen.findByRole('button', { name: 'Masuk' })).toBeInTheDocument()
+    expect(screen.getByTestId('loc')).toHaveTextContent(/^\/login$/)
   })
 
   it('Karyawan diarahkan ke beranda dan tidak melihat menu master data', async () => {
