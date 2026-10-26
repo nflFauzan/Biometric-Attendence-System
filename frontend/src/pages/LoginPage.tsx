@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
 import { Wordmark } from '@/components/Brand'
@@ -9,12 +9,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/lib/api'
+import { appendNext, safeNextPath } from '@/lib/safeNext'
 import { homePathFor } from '@/navigation'
 
 /** Halaman login bergaya Steel Premium dengan satu kartu glass (docs/design-system.md §7). */
 export function LoginPage() {
   const { login, sessionExpired } = useAuth()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const next = safeNextPath(params.get('next'))
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +29,9 @@ export function LoginPage() {
     setError(null)
     try {
       const me = await login(username, password)
-      navigate(me.mustChangePassword ? '/ganti-password' : homePathFor(me.role), { replace: true })
+      navigate(me.mustChangePassword ? appendNext('/ganti-password', next) : (next ?? homePathFor(me.role)), {
+        replace: true,
+      })
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Tidak dapat terhubung ke server')
     } finally {

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 
 import { useAuth } from '@/auth/AuthContext'
 import { Wordmark } from '@/components/Brand'
@@ -9,11 +9,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError, api } from '@/lib/api'
+import { safeNextPath } from '@/lib/safeNext'
 import { homePathFor } from '@/navigation'
 
 export function ChangePasswordPage() {
   const { me, refresh } = useAuth()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const target = safeNextPath(params.get('next'))
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -29,7 +32,7 @@ export function ChangePasswordPage() {
     try {
       await api('/api/auth/change-password', { method: 'POST', body: { currentPassword: current, newPassword: next } })
       await refresh()
-      navigate(me ? homePathFor(me.role) : '/', { replace: true })
+      navigate(target ?? (me ? homePathFor(me.role) : '/'), { replace: true })
     } catch (e) {
       setError(e instanceof ApiError ? Object.values(e.fieldErrors)[0] ?? e.message : 'Terjadi kesalahan')
     }

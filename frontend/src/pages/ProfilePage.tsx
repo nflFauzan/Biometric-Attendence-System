@@ -1,16 +1,23 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { useAuth } from '@/auth/AuthContext'
 import { ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { SignatureCard } from '@/components/signature/SignatureCard'
 import { api } from '@/lib/api'
 import { formatDate, initials } from '@/lib/format'
-import type { Employee } from '@/lib/types'
+import { ROLE_LABELS, type Employee } from '@/lib/types'
 
-/** Profil karyawan. Dipakai terutama dari HP, jadi teks dan jarak dibuat besar (docs/design-system.md §3). */
+/**
+ * Profil akun untuk semua role. Dipakai terutama dari HP, jadi teks dan jarak dibuat besar (docs/design-system.md §3).
+ * Data karyawan hanya untuk akun yang terhubung ke karyawan; Owner/HR tanpa data karyawan tetap bisa mengatur tanda tangan (K-115).
+ */
 export function ProfilePage() {
+  const { me } = useAuth()
+  const linked = me?.employeeId != null
   const { data, error, isPending } = useQuery({
     queryKey: ['/api/me/employee'],
     queryFn: () => api<Employee>('/api/me/employee'),
+    enabled: linked,
   })
 
   const rows: [string, string | null | undefined][] = [
@@ -33,13 +40,20 @@ export function ProfilePage() {
         </div>
         <div className="-mt-9 flex flex-col gap-1 px-5 pb-5">
           <span className="grid size-[72px] place-items-center rounded-full border-4 border-card bg-steel-600 font-heading text-2xl font-bold text-white">
-            {initials(data?.fullName)}
+            {initials(data?.fullName ?? me?.employeeName ?? me?.username)}
           </span>
-          {isPending && <SkeletonLines count={2} />}
+          {linked && isPending && <SkeletonLines count={2} />}
           {data && (
             <>
               <p className="mt-2 font-heading text-xl font-bold text-steel-800 dark:text-foreground">{data.fullName}</p>
               <p className="text-muted-foreground">{data.position ?? data.categoryName}</p>
+            </>
+          )}
+          {!linked && me && (
+            <>
+              <p className="mt-2 font-heading text-xl font-bold text-steel-800 dark:text-foreground">{me.username}</p>
+              <p className="text-muted-foreground">{ROLE_LABELS[me.role]}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Akun ini tidak terhubung ke data karyawan.</p>
             </>
           )}
         </div>

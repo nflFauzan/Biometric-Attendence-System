@@ -9,6 +9,8 @@ interface AuthState {
   loading: boolean
   /** True jika sesi berakhir saat sedang dipakai; halaman login menampilkan pemberitahuan. */
   sessionExpired: boolean
+  /** True setelah keluar secara eksplisit; guard tidak membawa ?next= agar pengguna berikutnya tidak mewarisi halaman ini. */
+  loggedOut: boolean
   login: (username: string, password: string) => Promise<Me>
   logout: () => Promise<void>
   refresh: () => Promise<unknown>
@@ -44,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const { data, isPending, refetch } = useQuery({ queryKey: ME_KEY, queryFn: fetchMe, retry: false })
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [loggedOut, setLoggedOut] = useState(false)
 
   // Sesi berakhir atau dicabut di tengah pemakaian: buang data lama dan kembali ke halaman login.
   useEffect(
@@ -61,17 +64,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const me = await api<Me>('/api/auth/login', { method: 'POST', body: { username, password } })
     resetSession(queryClient, me)
     setSessionExpired(false)
+    setLoggedOut(false)
     return me
   }
 
   const logout = async () => {
     await api('/api/auth/logout', { method: 'POST' })
+    setLoggedOut(true)
     resetSession(queryClient, null)
   }
 
   return (
     <AuthContext.Provider
-      value={{ me: data ?? null, loading: isPending, sessionExpired, login, logout, refresh: refetch }}
+      value={{ me: data ?? null, loading: isPending, sessionExpired, loggedOut, login, logout, refresh: refetch }}
     >
       {children}
     </AuthContext.Provider>
