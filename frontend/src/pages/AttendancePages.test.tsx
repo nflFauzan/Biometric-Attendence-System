@@ -162,6 +162,30 @@ describe('Halaman absensi Fase 3', () => {
     )
   })
 
+  it('absensi harian bisa difilter per kategori karyawan', async () => {
+    const date = localDateIso()
+    const empty: DailyAttendance = { date, branchId: null, rows: [] }
+    const fetchFn = mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/branches': () => ({ status: 200, body: [] }),
+      'GET /api/employee-categories': () => ({
+        status: 200,
+        body: [{ id: 3, code: 'SPR', name: 'Supir', active: true }],
+      }),
+      [`GET /api/attendance/daily?date=${date}`]: () => ({ status: 200, body: empty }),
+      [`GET /api/attendance/daily?date=${date}&categoryId=3`]: () => ({ status: 200, body: empty }),
+    })
+    renderAt('/absensi')
+
+    const select = await screen.findByLabelText('Kategori')
+    await screen.findByRole('option', { name: 'Supir' })
+    fireEvent.change(select, { target: { value: '3' } })
+
+    await waitFor(() =>
+      expect(fetchFn.mock.calls.some(([url]) => url === `/api/attendance/daily?date=${date}&categoryId=3`)).toBe(true),
+    )
+  })
+
   it('koreksi absensi mengirim jam dan alasan, lalu memuat ulang rekap', async () => {
     const corrected = day({
       result: {

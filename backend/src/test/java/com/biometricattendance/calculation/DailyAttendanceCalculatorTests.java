@@ -240,6 +240,15 @@ class DailyAttendanceCalculatorTests {
 		assertThat(result.flags()).doesNotContain(Flag.ISTIRAHAT_BELUM_DIATUR);
 	}
 
+	/** TC-18 (K-110): 08.00–17.00 dengan istirahat 12.00–13.00 = 8 jam; masuk 09.00 = 7 jam. */
+	@Test
+	void lateArrivalAtNineCountsSevenWorkingHours() {
+		EffectiveRule rule = rule(LocalTime.of(12, 0), LocalTime.of(13, 0));
+
+		assertThat(calculate(rule, "08:00", "17:00").regularWork()).isEqualTo(Duration.ofHours(8));
+		assertThat(calculate(rule, "09:00", "17:00").regularWork()).isEqualTo(Duration.ofHours(7));
+	}
+
 	@Test
 	void breakOutsidePresenceIsNotSubtracted() {
 		DailyResult result = calculate(rule(LocalTime.of(12, 0), LocalTime.of(13, 0)), "13:30", "17:00");

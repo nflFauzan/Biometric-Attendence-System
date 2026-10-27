@@ -215,6 +215,16 @@ describe('Daftar karyawan', () => {
     expect(sent.account).toBeNull()
   })
 
+  it('mematikan Aktif memberi tahu bahwa akun login ikut dinonaktifkan (K-137)', async () => {
+    await openEdit()
+    const note = /Akun login karyawan ini \(bila ada\) juga akan dinonaktifkan/
+    expect(screen.queryByText(note)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Aktif'))
+    expect(screen.getByText(note)).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Aktif'))
+    expect(screen.queryByText(note)).not.toBeInTheDocument()
+  })
+
   it('form memuat dan mengirim profil lengkap (K-129)', async () => {
     const fetch = await openEdit()
     const address = screen.getByLabelText('Alamat')

@@ -51,6 +51,18 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Username atau password salah')).toBeInTheDocument()
   })
 
+  it('menampilkan pesan kunci saat terlalu banyak percobaan (K-138)', async () => {
+    const message = 'Terlalu banyak percobaan masuk. Coba lagi dalam 15 menit.'
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 401 }),
+      'GET /api/auth/csrf': () => ({ status: 200, body: {} }),
+      'POST /api/auth/login': () => ({ status: 429, body: { detail: message } }),
+    })
+    renderLogin()
+    submit('budi', 'rahasia-123')
+    expect(await screen.findByText(message)).toBeInTheDocument()
+  })
+
   it('mengarahkan ke ganti password setelah login pertama', async () => {
     const fetchFn = mockFetch({
       'GET /api/auth/me': () => ({ status: 401 }),

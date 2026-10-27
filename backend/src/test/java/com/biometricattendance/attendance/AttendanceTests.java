@@ -187,6 +187,32 @@ class AttendanceTests extends AttendanceFixtures {
 			.with(HR)).andExpect(status().isBadRequest());
 	}
 
+	/** Pemantauan absensi bisa difilter per kategori karyawan (requirement v0.6); kategori tak dikenal = kosong. */
+	@Test
+	void dailyCanBeFilteredByCategory() throws Exception {
+		long branch = createBranch();
+		createEmployee(branch, uniquePin());
+		long category = idOf(mockMvc.perform(post("/api/employee-categories").with(OWNER).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"code\":\"" + unique("K") + "\",\"name\":\"Supir\",\"active\":true}"))
+			.andExpect(status().isCreated()));
+		long driver = idOf(mockMvc.perform(post("/api/employees").with(OWNER).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(employeeJson(branch, unique("E"), uniquePin()).replace("\"categoryId\":1", "\"categoryId\":" + category)))
+			.andExpect(status().isCreated()));
+
+		daily(branch).andExpect(jsonPath("$.rows", hasSize(2)));
+		mockMvc.perform(get("/api/attendance/daily").param("date", DATE).param("branchId", String.valueOf(branch))
+			.param("categoryId", String.valueOf(category)).with(HR))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.rows", hasSize(1)))
+			.andExpect(jsonPath("$.rows[0].employeeId").value(Math.toIntExact(driver)));
+		mockMvc.perform(get("/api/attendance/daily").param("date", DATE).param("branchId", String.valueOf(branch))
+			.param("categoryId", "999999").with(HR))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.rows", hasSize(0)));
+	}
+
 	private ResultActions daily(long branch) throws Exception {
 		return mockMvc.perform(get("/api/attendance/daily").param("date", DATE)
 			.param("branchId", String.valueOf(branch))

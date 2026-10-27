@@ -59,6 +59,33 @@ class AuthFlowTests extends IntegrationTest {
 			.andExpect(jsonPath("$.detail").value("Username atau password salah"));
 	}
 
+	/** K-138: setelah 5 kali gagal, password yang benar pun ditolak sampai kunci habis. */
+	@Test
+	void fiveWrongPasswordsLockTheAccount() throws Exception {
+		String username = createAccount(false);
+		for (int i = 0; i < 5; i++) {
+			mockMvc.perform(loginRequest(username, "salah-sekali")).andExpect(status().isUnauthorized());
+		}
+		mockMvc.perform(loginRequest(username, INITIAL_PASSWORD))
+			.andExpect(status().isTooManyRequests())
+			.andExpect(jsonPath("$.detail").value("Terlalu banyak percobaan masuk. Coba lagi dalam 15 menit."));
+	}
+
+	/** K-138: username yang tidak ada ikut dihitung, agar tidak bisa dipakai menebak username yang ada. */
+	@Test
+	void unknownUsernameIsLimitedToo() throws Exception {
+		String username = unique("tidak-ada-");
+		for (int i = 0; i < 5; i++) {
+			mockMvc.perform(loginRequest(username, INITIAL_PASSWORD)).andExpect(status().isUnauthorized());
+		}
+		mockMvc.perform(loginRequest(username, INITIAL_PASSWORD)).andExpect(status().isTooManyRequests());
+	}
+
+	@Test
+	void overlongUsernameIsRejectedBeforeCounting() throws Exception {
+		mockMvc.perform(loginRequest("x".repeat(51), INITIAL_PASSWORD)).andExpect(status().isBadRequest());
+	}
+
 	@Test
 	void passwordIsStoredAsBcryptHash() {
 		String username = createAccount(false);

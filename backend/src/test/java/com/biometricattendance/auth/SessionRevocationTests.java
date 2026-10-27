@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.session.web.http.SessionRepositoryFilter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -182,6 +183,91 @@ class SessionRevocationTests extends IntegrationTest {
 	void unknownSessionCookieIsUnauthorized() throws Exception {
 		web.perform(get("/api/auth/me").cookie(new Cookie("SESSION", "YmVsdW0tYWRhLXNlc2k=")))
 			.andExpect(status().isUnauthorized());
+	}
+
+	/** K-137: menonaktifkan karyawan ikut menonaktifkan akunnya dan mencabut sesinya. */
+	@Test
+	void deactivatingEmployeeDeactivatesLinkedAccountAndEndsSessions() throws Exception {
+		long employeeId = createEmployee();
+		UserAccount target = createAccount(Role.EMPLOYEE, employeeId);
+		Cookie session = login(target.getUsername());
+
+		updateEmployeeActive(employeeId, false);
+
+		assertThat(accounts.findById(target.getId()).orElseThrow().isActive()).isFalse();
+		web.perform(get("/api/me/employee").cookie(session)).andExpect(status().isUnauthorized());
+		web.perform(loginRequest(target.getUsername())).andExpect(status().isUnauthorized());
+		assertThat(accountAudits(target, "UPDATE")).isEqualTo(1);
+	}
+
+	/** K-137: mengaktifkan kembali karyawan ikut mengaktifkan akunnya (keputusan pengguna 2026-10-27). */
+	@Test
+	void reactivatingEmployeeReactivatesLinkedAccount() throws Exception {
+		long employeeId = createEmployee();
+		UserAccount target = createAccount(Role.EMPLOYEE, employeeId);
+
+		updateEmployeeActive(employeeId, false);
+		updateEmployeeActive(employeeId, true);
+
+		assertThat(accounts.findById(target.getId()).orElseThrow().isActive()).isTrue();
+		assertThat(accountAudits(target, "UPDATE")).isEqualTo(2);
+		login(target.getUsername());
+	}
+
+	/** K-137: Finance & Accounting tidak boleh mengubah akun non-karyawan lewat form karyawan (sama dengan menu Akun). */
+	@Test
+	void financeCannotDeactivateEmployeeLinkedToFinanceAccount() throws Exception {
+		long employeeId = createEmployee();
+		UserAccount colleague = createAccount(Role.HR_FINANCE, employeeId);
+
+		performEmployeeActive(employeeId, false, HR).andExpect(status().isForbidden());
+
+		assertThat(accounts.findById(colleague.getId()).orElseThrow().isActive()).isTrue();
+		assertThat(employees.findById(employeeId).orElseThrow().isActive()).isTrue();
+	}
+
+	@Test
+	void deactivatingEmployeeWithoutAccountStillWorks() throws Exception {
+		long employeeId = createEmployee();
+
+		updateEmployeeActive(employeeId, false);
+
+		assertThat(employees.findById(employeeId).orElseThrow().isActive()).isFalse();
+	}
+
+	@Test
+	void savingEmployeeWithoutStatusChangeLeavesAccountAlone() throws Exception {
+		long employeeId = createEmployee();
+		UserAccount target = createAccount(Role.EMPLOYEE, employeeId);
+		Cookie session = login(target.getUsername());
+
+		updateEmployeeActive(employeeId, true);
+
+		web.perform(get("/api/me/employee").cookie(session)).andExpect(status().isOk());
+		assertThat(accountAudits(target, "UPDATE")).isZero();
+	}
+
+	private int accountAudits(UserAccount target, String action) {
+		Integer count = jdbc.queryForObject(
+				"SELECT count(*) FROM audit_logs WHERE action = ? AND entity_type = 'USER_ACCOUNT' AND entity_id = ?",
+				Integer.class, action, target.getId().toString());
+		return count == null ? 0 : count;
+	}
+
+	private void updateEmployeeActive(long employeeId, boolean active) throws Exception {
+		performEmployeeActive(employeeId, active, OWNER).andExpect(status().isOk());
+	}
+
+	private ResultActions performEmployeeActive(long employeeId, boolean active, RequestPostProcessor actor)
+			throws Exception {
+		String current = web.perform(get("/api/employees/" + employeeId).with(OWNER))
+			.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+		return web.perform(put("/api/employees/" + employeeId).with(actor).with(csrf())
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(String.format(
+					"{\"employeeNumber\":\"%s\",\"fullName\":\"Sesi Uji\",\"branchId\":%s,\"categoryId\":%s,\"joinDate\":\"2026-01-05\",\"active\":%s}",
+					JsonPath.read(current, "$.employeeNumber"), JsonPath.read(current, "$.branchId").toString(),
+					JsonPath.read(current, "$.categoryId").toString(), active)));
 	}
 
 	private UserAccount createAccount(Role role, Long employeeId) {
