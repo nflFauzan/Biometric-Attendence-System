@@ -144,6 +144,8 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-134 | 2026-10-26 | Tanggal masuk otomatis hari ini menurut zona cabang penempatan; form tambah tanpa tanggal masuk/keluar | Disepakati pengguna 2026-10-26 |
 | K-135 | 2026-10-26 | Finance & Accounting kembali boleh menambah/mengubah data karyawan dan cabang absen; Aturan Kerja tetap hanya Owner | Disepakati pengguna 2026-10-26; membatalkan sebagian K-128 |
 | K-136 | 2026-10-26 | Form karyawan dibagi per bagian: PIN mesin dan akun tampil sebagai ringkasan, data pribadi dilipat, pilihan sedikit berupa tombol berjejer | Disetujui pengguna 2026-10-26 ("langsung kerjakan"); hanya tampilan, kontrak API tetap |
+| K-137 | 2026-10-27 | Akun login ikut nonaktif saat karyawannya dinonaktifkan dan ikut aktif saat karyawan diaktifkan kembali | Disepakati pengguna 2026-10-27 (FR-EMP-005, AC-LV-02); alternatif "pengaktifan manual" tidak dipilih |
+| K-138 | 2026-10-27 | Batas percobaan login: 5 kali gagal berturut-turut per username → dikunci 15 menit (429), disimpan di memori | Disepakati pengguna 2026-10-27 (NFR-SEC-004); nilai bisa diubah lewat properti |
 
 ---
 
@@ -828,6 +830,22 @@ Client mengirim template "Data Karyawan" berisi 28 karyawan (Takka 1: 4, Takka 2
   - Jabatan menyarankan jabatan yang sudah pernah dipakai, tetapi tetap bisa diketik baru. Cabang/kategori langsung terpilih bila hanya ada satu yang aktif.
   - Bila server menolak field yang sedang tersembunyi, bagiannya terbuka sendiri agar pesan error terlihat.
   - Tidak dipilih: kategori otomatis dari jabatan, karena aturan pemetaannya belum dikonfirmasi client.
+### Keamanan akun (K-137–K-138, 2026-10-27)
+
+- **K-137 Akun ikut status karyawan.** Saat `PUT /api/employees/{id}` mengubah Aktif, akun yang terhubung ikut diubah di transaksi yang sama (`UserAccountService.followEmployeeStatus`) dan dicatat sebagai audit `UPDATE` pada `USER_ACCOUNT`.
+  - Dinonaktifkan: semua sesi akun itu dicabut, sehingga karyawan yang sedang login langsung keluar.
+  - Diaktifkan kembali: akun ikut aktif (pilihan pengguna). Risiko yang diterima: akun yang sengaja dinonaktifkan terpisah di menu Akun ikut aktif lagi bila karyawannya dinonaktifkan lalu diaktifkan.
+  - Karyawan tanpa akun tidak terpengaruh. Akun milik pengguna sendiri atau Owner aktif terakhir tidak bisa dinonaktifkan lewat jalur ini (400, pesan sama dengan menu Akun).
+  - Finance & Accounting hanya bisa memicu perubahan ini untuk akun role Karyawan. Bila karyawannya terhubung ke akun Owner atau Finance & Accounting, perubahan status ditolak 403 dan karyawan tidak jadi diubah (aturan sama dengan menu Akun, K-135).
+  - Form ubah karyawan menampilkan pemberitahuan "(bila ada)" saat Aktif diubah, karena form tidak tahu apakah akunnya ada.
+- **K-138 Batas percobaan login** (`auth/LoginAttemptLimiter`).
+  - Setelah `app.login.max-failures` (5) kali gagal berturut-turut, username itu ditolak selama `app.login.lock-minutes` (15) menit, termasuk bila passwordnya benar: **429** "Terlalu banyak percobaan masuk. Coba lagi dalam N menit." (N dibulatkan ke atas).
+  - Username dinormalisasi (trim, huruf kecil) dan dibatasi 50 karakter (400 bila lebih). Username yang tidak ada ikut dihitung agar tidak bisa dipakai menebak username. Login berhasil mengosongkan hitungan.
+  - Gagal hanya dihitung dalam satu masa kunci: bila gagal terakhir sudah lebih dari 15 menit lalu, hitungan mulai dari nol.
+  - Permintaan paralel bisa sedikit melewati batas 5 karena pemeriksaan dilakukan sebelum password dicek; diterima karena bcrypt lambat dan pengguna sedikit.
+  - Saat kunci mulai berlaku dicatat di audit (`LOGIN_LOCKED`, entitas `AUTH`, aktor = username yang dicoba).
+  - Disimpan di memori satu proses seperti K-116: kunci hilang saat server di-restart. Penyerang bisa sengaja mengunci akun orang lain selama 15 menit; diterima karena jumlah pengguna kecil.
+
 - **K-132 Label "Finance & Accounting".** Semua teks yang dilihat pengguna (menu, pesan error, notifikasi, label tahap izin, dan surat PDF) memakai "Finance & Accounting" menggantikan "HR/Finance" dan "HR". Kode role `HR_FINANCE` dan tahap `HR` di API tidak berubah, sehingga data lama tetap valid.
 
 ---
