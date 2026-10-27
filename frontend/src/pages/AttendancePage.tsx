@@ -15,7 +15,7 @@ import { dayStatus, reviewNotes } from '@/lib/attendance'
 import { formatDuration, localDateIso } from '@/lib/format'
 import type { DailyAttendance, DailyRow } from '@/lib/types'
 import { useDashboardStream } from '@/lib/useDashboardStream'
-import { useBranchOptions } from '@/pages/options'
+import { useBranchOptions, useCategoryOptions } from '@/pages/options'
 
 function Notes({ row }: { row: DailyRow }) {
   const notes = row.day.ruleMissing ? [row.day.ruleMissing] : reviewNotes(row.day)
@@ -38,10 +38,12 @@ export function AttendancePage() {
   useDashboardStream()
   const branchOptions = useBranchOptions()
   const [date, setDate] = useState(localDateIso())
+  const categoryOptions = useCategoryOptions()
   const [branchId, setBranchId] = useState('')
-  const params = new URLSearchParams({ date, ...(branchId ? { branchId } : {}) })
+  const [categoryId, setCategoryId] = useState('')
+  const params = new URLSearchParams({ date, ...(branchId ? { branchId } : {}), ...(categoryId ? { categoryId } : {}) })
   const { data, error, isPending } = useQuery({
-    queryKey: ['/api/attendance', 'daily', date, branchId],
+    queryKey: ['/api/attendance', 'daily', date, branchId, categoryId],
     queryFn: () => api<DailyAttendance>(`/api/attendance/daily?${params}`),
     enabled: Boolean(date),
   })
@@ -76,6 +78,19 @@ export function AttendancePage() {
           <select id="cabang" className={selectClass} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
             <option value="">Semua cabang</option>
             {branchOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex min-w-48 flex-col gap-1.5">
+          <Label htmlFor="kategori" className="font-semibold">
+            Kategori
+          </Label>
+          <select id="kategori" className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+            <option value="">Semua kategori</option>
+            {categoryOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

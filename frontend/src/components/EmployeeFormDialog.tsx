@@ -314,6 +314,14 @@ export function EmployeeFormDialog({ form, isOwner }: { form: CrudForm<Employee>
                   Aktif
                 </label>
               </div>
+              {/* K-137: akun login mengikuti status karyawan; dialog tidak tahu apakah akunnya ada. */}
+              {editing.active !== (values.active === true) && (
+                <p className="text-xs text-muted-foreground md:col-span-2" role="status">
+                  {editing.active
+                    ? 'Akun login karyawan ini (bila ada) juga akan dinonaktifkan.'
+                    : 'Akun login karyawan ini (bila ada) juga akan diaktifkan kembali.'}
+                </p>
+              )}
             </Section>
           )}
 
