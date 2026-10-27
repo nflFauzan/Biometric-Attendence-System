@@ -58,7 +58,7 @@ public class DashboardService {
 	@Transactional(readOnly = true)
 	public DashboardSummary summary(LocalDate requested) {
 		LocalDate date = requested == null ? attendance.today() : requested;
-		List<DailyRow> rows = attendance.daily(date, null).rows();
+		List<DailyRow> rows = attendance.daily(date, null, null).rows();
 
 		Map<Long, List<DailyRow>> byBranch = rows.stream()
 			.sorted(Comparator.comparing(DailyRow::branchName))

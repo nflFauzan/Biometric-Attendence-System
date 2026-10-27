@@ -109,6 +109,10 @@ public class EmployeeService {
 		audit.record("UPDATE", ENTITY, id, snapshot(before, extrasBefore),
 				snapshot(after, sortedExtraIds(employee)));
 		linkUnmatchedScans(employee, before.devicePin());
+		// K-137: akun login ikut nonaktif/aktif bersama karyawannya, di transaksi yang sama.
+		if (before.active() != after.active()) {
+			accounts.followEmployeeStatus(id, after.active());
+		}
 		return after;
 	}
 

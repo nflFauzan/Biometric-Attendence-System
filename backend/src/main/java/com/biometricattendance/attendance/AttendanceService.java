@@ -75,10 +75,14 @@ public class AttendanceService {
 		return workRules.today();
 	}
 
-	/** Rekap semua karyawan aktif (opsional satu cabang) pada satu tanggal. */
+	/** Rekap semua karyawan aktif (opsional satu cabang dan/atau satu kategori) pada satu tanggal. */
 	@Transactional(readOnly = true)
-	public DailyAttendanceResponse daily(LocalDate date, Long branchId) {
-		List<Employee> list = employees.search(branchId, true, null);
+	public DailyAttendanceResponse daily(LocalDate date, Long branchId, Long categoryId) {
+		// Sekitar 25 karyawan: penyaringan kategori di memori sudah cukup.
+		List<Employee> list = employees.search(branchId, true, null)
+			.stream()
+			.filter(e -> categoryId == null || e.getCategory().getId().equals(categoryId))
+			.toList();
 		Map<Long, List<DayRecord>> days = compute(list, date, date);
 		List<DailyRow> rows = list.stream()
 			.map(e -> new DailyRow(e.getId(), e.getEmployeeNumber(), e.getFullName(), e.getDevicePin(),

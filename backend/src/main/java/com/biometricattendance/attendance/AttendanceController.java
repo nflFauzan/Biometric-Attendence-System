@@ -53,8 +53,8 @@ public class AttendanceController {
 
 	@GetMapping("/daily")
 	DailyAttendanceResponse daily(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-			@RequestParam(required = false) Long branchId) {
-		return attendance.daily(date == null ? attendance.today() : date, branchId);
+			@RequestParam(required = false) Long branchId, @RequestParam(required = false) Long categoryId) {
+		return attendance.daily(date == null ? attendance.today() : date, branchId, categoryId);
 	}
 
 	/** Tanpa rentang: 7 hari terakhir sampai hari ini. */

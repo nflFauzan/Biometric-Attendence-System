@@ -12,7 +12,9 @@ public final class AuthDtos {
 	private AuthDtos() {
 	}
 
-	public record LoginRequest(@NotBlank(message = "Username wajib diisi") String username,
+	/** Username dibatasi seperti kolom user_accounts.username, agar kunci di batas login (K-138) tetap kecil. */
+	public record LoginRequest(
+			@NotBlank(message = "Username wajib diisi") @Size(max = 50, message = "Username maksimal 50 karakter") String username,
 			@NotBlank(message = "Password wajib diisi") String password) {
 	}
 

@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
@@ -35,13 +36,16 @@ public class AuthController {
 	private final AuthenticationManager authenticationManager;
 	private final SecurityContextRepository securityContextRepository;
 	private final AuthService authService;
+	private final LoginAttemptLimiter loginAttempts;
 	private final SecurityContextHolderStrategy contextHolder = SecurityContextHolder.getContextHolderStrategy();
 
 	public AuthController(AuthenticationManager authenticationManager,
-			SecurityContextRepository securityContextRepository, AuthService authService) {
+			SecurityContextRepository securityContextRepository, AuthService authService,
+			LoginAttemptLimiter loginAttempts) {
 		this.authenticationManager = authenticationManager;
 		this.securityContextRepository = securityContextRepository;
 		this.authService = authService;
+		this.loginAttempts = loginAttempts;
 	}
 
 	/** Memastikan cookie XSRF-TOKEN terkirim sebelum frontend melakukan POST pertama. */
@@ -53,8 +57,19 @@ public class AuthController {
 	@PostMapping("/login")
 	MeResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse) {
-		Authentication authentication = authenticationManager.authenticate(UsernamePasswordAuthenticationToken
-			.unauthenticated(request.username().trim().toLowerCase(Locale.ROOT), request.password()));
+		String username = request.username().trim().toLowerCase(Locale.ROOT);
+		loginAttempts.checkAllowed(username);
+		Authentication authentication;
+		try {
+			authentication = authenticationManager
+				.authenticate(UsernamePasswordAuthenticationToken.unauthenticated(username, request.password()));
+		}
+		catch (AuthenticationException ex) {
+			// K-138: dihitung lalu dilempar ulang, jadi respons 401 yang sudah ada tidak berubah.
+			loginAttempts.recordFailure(username);
+			throw ex;
+		}
+		loginAttempts.recordSuccess(username);
 		if (httpRequest.getSession(false) != null) {
 			httpRequest.changeSessionId();
 		}

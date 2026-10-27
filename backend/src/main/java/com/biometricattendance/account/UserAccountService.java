@@ -95,6 +95,33 @@ public class UserAccountService {
 		return after;
 	}
 
+	/**
+	 * K-137: status akun mengikuti karyawan yang terhubung saat karyawan dinonaktifkan atau diaktifkan
+	 * kembali. Dipanggil dari transaksi {@code EmployeeService.update}; karyawan tanpa akun diabaikan.
+	 */
+	@Transactional
+	public void followEmployeeStatus(Long employeeId, boolean active) {
+		UserAccount account = repository.findByEmployeeId(employeeId).orElse(null);
+		if (account == null || account.isActive() == active) {
+			return;
+		}
+		// Aturan yang sama dengan menu Akun: Finance & Accounting hanya mengelola akun role EMPLOYEE.
+		requireCanManage(account.getRole());
+		if (!active && account.getUsername().equals(CurrentUser.username())) {
+			throw ApiException.badRequest("Tidak bisa menonaktifkan akun sendiri");
+		}
+		if (!active && account.getRole() == Role.OWNER && repository.countByRoleAndActiveTrue(Role.OWNER) <= 1) {
+			throw ApiException.badRequest("Harus ada minimal satu Owner yang aktif");
+		}
+		UserResponse before = UserResponse.from(account);
+		account.setActive(active);
+		UserResponse after = UserResponse.from(repository.save(account));
+		audit.record("UPDATE", ENTITY, account.getId(), before, after);
+		if (!active) {
+			sessions.revokeAll(account.getUsername());
+		}
+	}
+
 	@Transactional
 	public void resetPassword(Long id, ResetPasswordRequest request) {
 		UserAccount account = find(id);
