@@ -23,9 +23,10 @@ export function AttendanceEmployeePage() {
   useDashboardStream()
   const { id } = useParams()
   const [search] = useSearchParams()
-  const initialTo = search.get('tanggal') ?? localDateIso()
+  // `from`/`to` datang dari daftar Perlu Ditinjau; `tanggal` dari Absensi Harian (7 hari sampai tanggal itu).
+  const initialTo = search.get('to') ?? search.get('tanggal') ?? localDateIso()
   const [to, setTo] = useState(initialTo)
-  const [from, setFrom] = useState(addDays(initialTo, -6))
+  const [from, setFrom] = useState(search.get('from') ?? addDays(initialTo, -6))
   const [correcting, setCorrecting] = useState<DayRecord | null>(null)
   const queryClient = useQueryClient()
   const today = localDateIso()

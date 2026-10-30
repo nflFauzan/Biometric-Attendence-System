@@ -1,4 +1,5 @@
 import { apiBlob } from '@/lib/api'
+import { saveBlob } from '@/lib/download'
 import { leaveApiBase, letterNumber, type LeaveMode } from '@/lib/leave'
 import type { LeaveRequest } from '@/lib/types'
 
@@ -7,20 +8,11 @@ export function downloadLetter(mode: LeaveMode, id: number): Promise<Blob> {
   return apiBlob(`${leaveApiBase(mode)}/${id}/letter.pdf`)
 }
 
+/** Tetap diekspor dari sini agar pemakai lama tidak berubah. */
+export { saveBlob }
+
 export function letterFileName(request: Pick<LeaveRequest, 'id'>): string {
   return `${letterNumber(request.id)}.pdf`
-}
-
-/** Simpan Blob lewat tautan sementara; dipakai saat berbagi file tidak didukung browser. */
-export function saveBlob(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = fileName
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
 export async function saveLetter(mode: LeaveMode, request: Pick<LeaveRequest, 'id'>): Promise<void> {

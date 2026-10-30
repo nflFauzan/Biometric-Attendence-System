@@ -25,9 +25,12 @@ import { LeaveTypesPage } from '@/pages/LeaveTypesPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MyAttendancePage } from '@/pages/MyAttendancePage'
 import { MyLeavePage } from '@/pages/MyLeavePage'
+import { OvertimePage } from '@/pages/OvertimePage'
 import { HomePage } from '@/pages/HomePage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { HeldScansPage } from '@/pages/HeldScansPage'
+import { ReportsPage } from '@/pages/ReportsPage'
+import { ReviewQueuePage } from '@/pages/ReviewQueuePage'
 import { UnmatchedScansPage } from '@/pages/UnmatchedScansPage'
 import { VerifyLetterPage } from '@/pages/VerifyLetterPage'
 import { UsersPage } from '@/pages/UsersPage'
@@ -95,6 +98,9 @@ function App() {
         <Route index element={managers(<DashboardPage />)} />
         <Route path="absensi" element={managers(<AttendancePage />)} />
         <Route path="absensi/karyawan/:id" element={managers(<AttendanceEmployeePage />)} />
+        <Route path="absensi/perlu-ditinjau" element={managers(<ReviewQueuePage />)} />
+        <Route path="absensi/lembur" element={managers(<OvertimePage />)} />
+        <Route path="laporan" element={managers(<ReportsPage />)} />
         <Route path="absensi/scan-tak-dikenal" element={managers(<UnmatchedScansPage />)} />
         <Route path="absensi/scan-tertahan" element={managers(<HeldScansPage />)} />
         <Route path="izin" element={managers(<LeaveRequestsPage />)} />

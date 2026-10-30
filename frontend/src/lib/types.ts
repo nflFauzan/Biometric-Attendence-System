@@ -354,6 +354,40 @@ export interface DailyResult {
   flags: CalculationFlag[]
 }
 
+/** Satu baris daftar Perlu Ditinjau (FR-REV-001). */
+export interface ReviewItem {
+  employeeId: number
+  employeeNumber: string
+  fullName: string
+  branchName: string
+  categoryName: string | null
+  date: string
+  status: AttendanceStatus | null
+  flags: CalculationFlag[]
+  ruleMissing: boolean
+  reasons: string[]
+}
+
+/** Status validasi lembur, dihitung server saat dibaca (K-140). */
+export type OvertimeStatus = 'BELUM_DIVALIDASI' | 'TERVALIDASI' | 'PERLU_VALIDASI_ULANG'
+
+/** Satu hari lembur satu karyawan (FR-REV-003). Durasi dalam detik, tanpa pembulatan. */
+export interface OvertimeRow {
+  employeeId: number
+  fullName: string
+  branchName: string
+  categoryName: string | null
+  date: string
+  checkOut: string | null
+  candidateSeconds: number
+  /** null = belum divalidasi; 0 = ditolak. */
+  approvedSeconds: number | null
+  note: string | null
+  validatedByName: string | null
+  validatedAt: string | null
+  status: OvertimeStatus
+}
+
 export interface DailyPreview {
   rule: EffectiveRule
   timezone: string
@@ -650,4 +684,46 @@ export interface TeamMember {
   from: string
   to: string
   days: TeamDay[]
+}
+
+export type ReportSlug = 'rekap-absensi' | 'rekap-lembur' | 'detail-absensi'
+
+export interface ReportDay {
+  date: string
+  dayName: string
+  /** null untuk hari di luar masa kerja. */
+  status: string | null
+  checkIn: string | null
+  checkOut: string | null
+  regularHours: number
+  validatedOvertimeHours: number
+  scanTimes: string[]
+  mark: string
+}
+
+export interface ReportTotals {
+  countingDays: number
+  leaveDays: number
+  absentDays: number
+  countingHours: number
+  validatedOvertimeHours: number
+}
+
+export interface ReportEmployee {
+  employeeNumber: string
+  fullName: string
+  branchName: string
+  categoryName: string | null
+  days: ReportDay[]
+  totals: ReportTotals
+}
+
+/** Model laporan dari GET /api/reports/{slug}; Excel/PDF dibuat dari model yang sama. */
+export interface ReportModel {
+  type: string
+  title: string
+  periodLabel: string
+  filterLabels: string[]
+  dates: string[]
+  employees: ReportEmployee[]
 }
