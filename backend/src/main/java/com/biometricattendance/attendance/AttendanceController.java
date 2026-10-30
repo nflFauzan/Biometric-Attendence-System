@@ -23,6 +23,7 @@ import com.biometricattendance.attendance.AttendanceDtos.CorrectionResponse;
 import com.biometricattendance.attendance.AttendanceDtos.DailyAttendanceResponse;
 import com.biometricattendance.attendance.AttendanceDtos.EmployeeAttendanceResponse;
 import com.biometricattendance.attendance.AttendanceDtos.HeldScanResponse;
+import com.biometricattendance.attendance.AttendanceDtos.ReviewItem;
 import com.biometricattendance.attendance.AttendanceDtos.ReviewRequest;
 import com.biometricattendance.attendance.AttendanceDtos.ReviewStatus;
 import com.biometricattendance.attendance.AttendanceDtos.ScanResponse;
@@ -39,14 +40,16 @@ public class AttendanceController {
 	private final AttendanceService attendance;
 	private final CorrectionService corrections;
 	private final HeldScanService heldScans;
+	private final ReviewQueueService reviewQueue;
 	private final AttendanceScanRepository scans;
 	private final ZoneId companyZone;
 
 	public AttendanceController(AttendanceService attendance, CorrectionService corrections,
-			HeldScanService heldScans, AttendanceScanRepository scans, @Value("${app.company-timezone}") String companyZone) {
+			HeldScanService heldScans, ReviewQueueService reviewQueue, AttendanceScanRepository scans, @Value("${app.company-timezone}") String companyZone) {
 		this.attendance = attendance;
 		this.corrections = corrections;
 		this.heldScans = heldScans;
+		this.reviewQueue = reviewQueue;
 		this.scans = scans;
 		this.companyZone = ZoneId.of(companyZone);
 	}
@@ -90,6 +93,16 @@ public class AttendanceController {
 			@RequestParam(required = false) ReviewStatus status) {
 		LocalDate end = to == null ? attendance.today() : to;
 		return heldScans.list(from == null ? end.minusDays(6) : from, end, status);
+	}
+
+	/** Hari yang perlu keputusan manusia (FR-REV-001). Tanpa rentang: dari tanggal 1 bulan berjalan sampai hari ini. */
+	@GetMapping("/review-queue")
+	public List<ReviewItem> reviewQueue(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+			@RequestParam(required = false) Long branchId, @RequestParam(required = false) Long categoryId) {
+		LocalDate end = to == null ? attendance.today() : to;
+		return reviewQueue.list(from == null ? end.withDayOfMonth(1) : from, end, branchId, categoryId);
 	}
 
 	@PostMapping("/held-scans/review")

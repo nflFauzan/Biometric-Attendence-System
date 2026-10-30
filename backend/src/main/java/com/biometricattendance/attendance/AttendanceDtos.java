@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 
 import com.biometricattendance.calculation.CalculationDtos.DailyResultResponse;
+import com.biometricattendance.calculation.DailyResult.AttendanceStatus;
+import com.biometricattendance.calculation.DailyResult.Flag;
 import com.biometricattendance.leave.LeaveRequest;
 import com.biometricattendance.leave.LeaveStatus;
 
@@ -89,6 +91,28 @@ public final class AttendanceDtos {
 	/** @param leave izin/cuti disetujui (diutamakan) atau menunggu yang mencakup tanggal ini, atau null */
 	public record DayRecord(LocalDate date, DailyResultResponse result, String ruleMissing, List<ScanResponse> scans,
 			CorrectionResponse correction, Set<ScanFlag> scanFlags, LeaveInfo leave) {
+	}
+
+	/**
+	 * Rekap per hari satu karyawan dalam rentang multi-karyawan (daftar perlu ditinjau, validasi lembur, laporan).
+	 * {@code days} selalu berisi setiap tanggal kalender; {@code startDate} (tanggal masuk) dan {@code endDate}
+	 * (tanggal keluar) boleh null, dan pemakai menentukan sendiri hari di luar masa kerja.
+	 */
+	public record EmployeeDays(Long employeeId, String employeeNumber, String fullName, Long branchId,
+			String branchName, Long categoryId, String categoryName, List<DayRecord> days, LocalDate startDate,
+			LocalDate endDate, boolean active) {
+
+		/** Tanggal berada dalam masa kerja (batas yang null diabaikan). */
+		public boolean employed(LocalDate date) {
+			return (startDate == null || !date.isBefore(startDate)) && (endDate == null || !date.isAfter(endDate));
+		}
+
+	}
+
+	/** Satu baris daftar "Perlu Ditinjau" (FR-REV-001): satu karyawan pada satu tanggal beserta alasannya. */
+	public record ReviewItem(Long employeeId, String employeeNumber, String fullName, String branchName,
+			String categoryName, LocalDate date, AttendanceStatus status, Set<Flag> flags, boolean ruleMissing,
+			List<String> reasons) {
 	}
 
 	/** Izin/cuti yang mencakup satu tanggal rekap (K-076). */

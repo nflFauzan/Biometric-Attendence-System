@@ -6,11 +6,13 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import com.biometricattendance.attendance.AttendanceDtos.DailyAttendanceResponse
 import com.biometricattendance.attendance.AttendanceDtos.DailyRow;
 import com.biometricattendance.attendance.AttendanceDtos.DayRecord;
 import com.biometricattendance.attendance.AttendanceDtos.EmployeeAttendanceResponse;
+import com.biometricattendance.attendance.AttendanceDtos.EmployeeDays;
 import com.biometricattendance.attendance.AttendanceDtos.LeaveInfo;
 import com.biometricattendance.attendance.AttendanceDtos.ReviewStatus;
 import com.biometricattendance.attendance.AttendanceDtos.ScanResponse;
@@ -29,6 +32,7 @@ import com.biometricattendance.calculation.DailyAttendanceCalculator;
 import com.biometricattendance.calculation.DailyInput;
 import com.biometricattendance.calculation.DailyInput.LeaveState;
 import com.biometricattendance.calculation.DailyResult.Flag;
+import com.biometricattendance.calculation.EffectiveRule;
 import com.biometricattendance.calculation.RuleNotConfiguredException;
 import com.biometricattendance.common.ApiException;
 import com.biometricattendance.employee.Employee;
@@ -89,6 +93,30 @@ public class AttendanceService {
 					e.getBranch().getId(), e.getBranch().getName(), e.getCategory().getName(), days.get(e.getId()).get(0)))
 			.toList();
 		return new DailyAttendanceResponse(date, branchId, rows);
+	}
+
+	/**
+	 * Rekap per hari untuk banyak karyawan dalam satu rentang. Karyawan: yang aktif, ditambah yang nonaktif dengan
+	 * tanggal keluar kosong atau tidak sebelum {@code from}. Filter null diabaikan. Urut nama cabang lalu nama karyawan.
+	 */
+	@Transactional(readOnly = true)
+	public List<EmployeeDays> range(LocalDate from, LocalDate to, Long branchId, Long categoryId, Long employeeId) {
+		requireRange(from, to);
+		// Sekitar 25 karyawan: penyaringan di memori sudah cukup (sama seperti daily).
+		List<Employee> list = employees.search(branchId, null, null)
+			.stream()
+			.filter(e -> e.isActive() || e.getEndDate() == null || !e.getEndDate().isBefore(from))
+			.filter(e -> categoryId == null || e.getCategory().getId().equals(categoryId))
+			.filter(e -> employeeId == null || e.getId().equals(employeeId))
+			.sorted(Comparator.comparing((Employee e) -> e.getBranch().getName())
+				.thenComparing(Employee::getFullName))
+			.toList();
+		Map<Long, List<DayRecord>> days = compute(list, from, to);
+		return list.stream()
+			.map(e -> new EmployeeDays(e.getId(), e.getEmployeeNumber(), e.getFullName(), e.getBranch().getId(),
+					e.getBranch().getName(), e.getCategory().getId(), e.getCategory().getName(), days.get(e.getId()),
+					e.getJoinDate(), e.getEndDate(), e.isActive()))
+			.toList();
 	}
 
 	/** Rekap per hari untuk satu karyawan, beserta riwayat koreksi termasuk yang sudah digantikan. */
@@ -160,6 +188,8 @@ public class AttendanceService {
 			ZoneId zone = ZoneId.of(e.getBranch().getTimezone());
 			List<AttendanceScan> all = scansByEmployee.getOrDefault(e.getId(), List.of());
 			List<LeaveRequest> employeeLeaves = leavesByEmployee.getOrDefault(e.getId(), List.of());
+			// Versi aturan dibaca sekali per karyawan, lalu dipakai untuk setiap tanggal (bukan satu query per hari).
+			Function<LocalDate, EffectiveRule> rules = workRules.resolverFor(e);
 			List<DayRecord> days = new ArrayList<>();
 			for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
 				Instant start = date.atStartOfDay(zone).toInstant();
@@ -167,7 +197,7 @@ public class AttendanceService {
 				List<AttendanceScan> dayScans = all.stream()
 					.filter(s -> !s.getScannedAt().isBefore(start) && s.getScannedAt().isBefore(end))
 					.toList();
-				days.add(calculate(e, date, zone, dayScans, activeCorrections.get(key(e.getId(), date)),
+				days.add(calculate(rules, date, zone, dayScans, activeCorrections.get(key(e.getId(), date)),
 						holidayDates.contains(date), leaveOn(employeeLeaves, date), reviewStatus));
 			}
 			result.put(e.getId(), days);
@@ -175,7 +205,7 @@ public class AttendanceService {
 		return result;
 	}
 
-	private DayRecord calculate(Employee employee, LocalDate date, ZoneId zone, List<AttendanceScan> dayScans,
+	private DayRecord calculate(Function<LocalDate, EffectiveRule> rules, LocalDate date, ZoneId zone, List<AttendanceScan> dayScans,
 			AttendanceCorrection correction, boolean holiday, LeaveRequest leave,
 			Map<Long, ReviewStatus> reviewStatus) {
 		List<ScanResponse> scanResponses = dayScans.stream()
@@ -208,7 +238,7 @@ public class AttendanceService {
 		try {
 			result = DailyResultResponse.from(DailyAttendanceCalculator.calculate(new DailyInput(date, zone,
 					counted.stream().map(AttendanceScan::getScannedAt).toList(), input,
-					workRules.resolve(employee, date), holiday, leaveState(leave))));
+					rules.apply(date), holiday, leaveState(leave))));
 		}
 		catch (RuleNotConfiguredException ex) {
 			ruleMissing = ex.getMessage();
