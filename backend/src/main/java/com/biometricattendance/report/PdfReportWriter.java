@@ -189,7 +189,8 @@ public class PdfReportWriter {
 		int nTotals = last ? totalHeaders.length : 0;
 		float pageWidth = PageSize.A4.getHeight() - 2 * MARGIN_SIDE;
 		float fixed = sum(FIXED_WIDTHS);
-		float totalsEach = type == ReportType.REKAP_ABSENSI ? 38f : 40f;
+		float totalsEach = (type == ReportType.GAJI_BULANAN || type == ReportType.UPAH_MINGGUAN) ? 36f
+				: (type == ReportType.REKAP_ABSENSI ? 38f : 40f);
 		float dateW = n == 0 ? 0f : Math.min((pageWidth - fixed - nTotals * totalsEach) / n, 48f);
 		float[] widths = new float[FIXED_WIDTHS.length + n + nTotals];
 		System.arraycopy(FIXED_WIDTHS, 0, widths, 0, FIXED_WIDTHS.length);
@@ -250,6 +251,25 @@ public class PdfReportWriter {
 						t.addCell(cell(hours(tot.validatedOvertimeHours()), bf, Element.ALIGN_RIGHT, null));
 					case DETAIL_ABSENSI -> {
 					}
+					case UPAH_MINGGUAN -> {
+						var fin = e.financial();
+						t.addCell(cell(String.valueOf(tot.countingDays()), bf, Element.ALIGN_CENTER, null));
+						t.addCell(cell(rupiah(fin != null ? fin.dailyWage() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.grossDailyWage() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.overtimeWage() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.loanDeduction() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.netWage() : null), ctx.font(ctx.strong(), 6f), Element.ALIGN_RIGHT, null));
+					}
+					case GAJI_BULANAN -> {
+						var fin = e.financial();
+						t.addCell(cell(String.valueOf(tot.countingDays()), bf, Element.ALIGN_CENTER, null));
+						t.addCell(cell(rupiah(fin != null ? fin.dailyWage() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.onsiteWage() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.baseSalary() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.overtimeWage() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.loanDeduction() : null), bf, Element.ALIGN_RIGHT, null));
+						t.addCell(cell(rupiah(fin != null ? fin.netWage() : null), ctx.font(ctx.strong(), 6f), Element.ALIGN_RIGHT, null));
+					}
 				}
 			}
 		}
@@ -289,7 +309,16 @@ public class PdfReportWriter {
 					"Lembur tervalidasi" };
 			case REKAP_LEMBUR -> new String[] { "Total lembur" };
 			case DETAIL_ABSENSI -> new String[0];
+			case UPAH_MINGGUAN -> new String[] { "Hari", "Upah Harian", "Total Upah", "Lembur", "Kasbon", "Sisa Upah" };
+			case GAJI_BULANAN -> new String[] { "Hari", "Wages", "Onsite", "Gaji Pokok", "Lembur", "Piutang", "Total Gaji" };
 		};
+	}
+
+	private static String rupiah(BigDecimal v) {
+		if (v == null) {
+			return "0";
+		}
+		return String.format(Locale.GERMANY, "%,d", v.setScale(0, RoundingMode.HALF_UP).longValueExact());
 	}
 
 	/** Jam desimal 2 angka dengan koma (7,50); hanya format tampilan. */
