@@ -62,6 +62,10 @@ public class SecurityConfig {
 				.requestMatchers("/api/holidays/**", "/api/calculation/**").hasAnyRole(OWNER, HR_FINANCE)
 				// Fase 3: rekap, koreksi (K-059), dan dashboard real-time. Absensi mandiri karyawan (ATT-021) belum.
 				.requestMatchers("/api/attendance/**", "/api/dashboard/**").hasAnyRole(OWNER, HR_FINANCE)
+				// Validasi lembur (FR-REV-003, K-140): Owner dan Finance & Accounting.
+				.requestMatchers("/api/overtime/**").hasAnyRole(OWNER, HR_FINANCE)
+				// Laporan absensi dan ekspor Excel/PDF (FR-RPT, K-105): Owner dan Finance & Accounting.
+				.requestMatchers("/api/reports/**").hasAnyRole(OWNER, HR_FINANCE)
 				// Fase 4: jenis izin dibaca semua pengguna (untuk form pengajuan), diubah hanya Owner (K-070).
 				// Pengajuan milik sendiri lewat /api/me/leave-requests (di atas: authenticated, kepemilikan dicek service).
 				.requestMatchers(HttpMethod.GET, "/api/leave-types/**").authenticated()
