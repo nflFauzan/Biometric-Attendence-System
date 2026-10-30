@@ -107,7 +107,7 @@ export function CalculationPreviewPage() {
         ['Keterlambatan', formatDuration(r.lateSeconds)],
         ['Jam kerja normal', formatDuration(r.regularWorkSeconds)],
         ['Pulang lebih awal', formatDuration(r.earlyLeaveSeconds)],
-        ['Kandidat lembur', formatDuration(r.overtimeCandidateSeconds)],
+        ['Jam lembur', formatDuration(r.overtimeCandidateSeconds)],
         ['Total kehadiran', formatDuration(r.totalPresenceSeconds)],
       ]
     : []
@@ -228,7 +228,7 @@ export function CalculationPreviewPage() {
               )}
               <p className="flex gap-2 px-5 text-xs text-muted-foreground">
                 <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                Durasi tidak dibulatkan. Kandidat lembur belum diverifikasi dan belum dinominalkan. Zona waktu:{' '}
+                Durasi tidak dibulatkan. Jam lembur otomatis terhitung dari jam kerja aktual. Zona waktu:{' '}
                 {result.timezone}.
               </p>
             </div>

@@ -31,7 +31,7 @@ function Notes({ row }: { row: DailyRow }) {
   )
 }
 
-const HEADERS = ['Karyawan', 'Cabang', 'Masuk', 'Pulang', 'Terlambat', 'Jam normal', 'Kandidat lembur', 'Status', 'Catatan']
+const HEADERS = ['Karyawan', 'Cabang', 'Masuk', 'Pulang', 'Terlambat', 'Jam normal', 'Jam lembur', 'Status', 'Catatan']
 
 /** Rekap absensi semua karyawan aktif untuk satu tanggal, dihitung dari scan asli + koreksi (K-058). */
 export function AttendancePage() {
@@ -169,7 +169,7 @@ export function AttendancePage() {
                       </dd>
                       <dt className="text-muted-foreground">Terlambat</dt>
                       <dd>{formatDuration(result?.lateSeconds)}</dd>
-                      <dt className="text-muted-foreground">Kandidat lembur</dt>
+                      <dt className="text-muted-foreground">Jam lembur</dt>
                       <dd>{formatDuration(result?.overtimeCandidateSeconds)}</dd>
                     </dl>
                     <Notes row={row} />

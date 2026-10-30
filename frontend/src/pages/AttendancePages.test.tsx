@@ -156,6 +156,7 @@ describe('Halaman absensi Fase 3', () => {
     expect((await screen.findAllByText('Budi Santoso')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('Tidak lengkap').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Aturan belum diatur: jam masuk').length).toBeGreaterThan(0)
+    expect(screen.getByRole('columnheader', { name: 'Jam lembur' })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Budi Santoso' })[0]).toHaveAttribute(
       'href',
       `/absensi/karyawan/12?tanggal=${date}`,

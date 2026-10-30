@@ -118,7 +118,7 @@ describe('CalculationPreviewPage', () => {
 
     expect(await screen.findByText('Lengkap')).toBeInTheDocument()
     expect(screen.getByText('Jam kerja normal').nextSibling).toHaveTextContent('2 jam')
-    expect(screen.getByText('Kandidat lembur').nextSibling).toHaveTextContent('1 jam')
+    expect(screen.getByText('Jam lembur').nextSibling).toHaveTextContent('1 jam')
     expect(screen.getByText(/Jam istirahat belum diatur/)).toBeInTheDocument()
 
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')

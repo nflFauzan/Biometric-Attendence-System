@@ -127,7 +127,7 @@ export function AttendanceEmployeePage() {
                   <dd className="tabular-nums">{formatDuration(day.result?.regularWorkSeconds)}</dd>
                 </div>
                 <div>
-                  <dt className="label-caps text-muted-foreground">Kandidat lembur</dt>
+                  <dt className="label-caps text-muted-foreground">Jam lembur</dt>
                   <dd className="tabular-nums">{formatDuration(day.result?.overtimeCandidateSeconds)}</dd>
                 </div>
               </dl>
