@@ -42,7 +42,7 @@
 - Consumes: `Employee` entity dari `com.biometricattendance.employee`
 - Produces: `EmployeeLoanRepository` dan `LoanRepaymentRepository` untuk digunakan `LoanService`
 
-- [ ] **Step 1: Tulis tes repository kasbon yang memverifikasi relasi dan status**
+- [x] **Step 1: Tulis tes repository kasbon yang memverifikasi relasi dan status**
 
 ```java
 @Test
@@ -59,21 +59,21 @@ void testCreateLoanAndRepayment() {
 }
 ```
 
-- [ ] **Step 2: Jalankan tes untuk memastikan gagal sebelum kode dibuat**
+- [x] **Step 2: Jalankan tes untuk memastikan gagal sebelum kode dibuat**
 
 Run: `cd backend; ./mvnw test -Dtest=LoanRepositoryTests`  
 Expected: FAIL dengan class/file not found
 
-- [ ] **Step 3: Tulis migrasi V19 dan implementasi entitas JPA serta repositori**
+- [x] **Step 3: Tulis migrasi V19 dan implementasi entitas JPA serta repositori**
 
 Buat migrasi `V19__kasbon_dan_pinjaman.sql` dengan constraint foreign key ke `employees` dan unique check `loan_number`. Implementasikan `EmployeeLoan` dan `LoanRepayment` dengan audit timestamp.
 
-- [ ] **Step 4: Jalankan tes untuk memverifikasi berhasil**
+- [x] **Step 4: Jalankan tes untuk memverifikasi berhasil**
 
 Run: `cd backend; ./mvnw test -Dtest=LoanRepositoryTests`  
 Expected: PASS
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```bash
 git add backend/src/main/resources/db/migration/V19__kasbon_dan_pinjaman.sql backend/src/main/java/com/biometricattendance/loan/ backend/src/test/java/com/biometricattendance/loan/
@@ -95,7 +95,7 @@ git commit -m "feat(loan): tambahkan skema database dan entitas JPA buku kasbon 
 - Consumes: `EmployeeLoanRepository`, `LoanRepaymentRepository`, `AuditService`
 - Produces: `LoanService.getActiveInstallments(List<Long> employeeIds, LocalDate date)` dan API `/api/loans`
 
-- [ ] **Step 1: Tulis unit test untuk logika pemotongan cicilan dan batasan 1 pinjaman aktif**
+- [x] **Step 1: Tulis unit test untuk logika pemotongan cicilan dan batasan 1 pinjaman aktif**
 
 ```java
 @Test
@@ -106,21 +106,21 @@ void testDeductInstallmentUpdatesRemainingAndMarksLunas() {
 }
 ```
 
-- [ ] **Step 2: Jalankan tes untuk memverifikasi gagal**
+- [x] **Step 2: Jalankan tes untuk memverifikasi gagal**
 
 Run: `cd backend; ./mvnw test -Dtest=LoanServiceTests`  
 Expected: FAIL
 
-- [ ] **Step 3: Implementasikan DTO, LoanService, LoanController, dan proteksi URL SecurityConfig**
+- [x] **Step 3: Implementasikan DTO, LoanService, LoanController, dan proteksi URL SecurityConfig**
 
 Daftarkan endpoint `/api/loans/**` dengan hak akses `hasAnyRole('OWNER', 'HR_FINANCE')`. Tambahkan method `applyPeriodDeductions` yang idempoten.
 
-- [ ] **Step 4: Jalankan tes untuk memverifikasi lulus**
+- [x] **Step 4: Jalankan tes untuk memverifikasi lulus**
 
 Run: `cd backend; ./mvnw test -Dtest=LoanServiceTests`  
 Expected: PASS
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Commit Task 2**
 
 ```bash
 git add backend/src/main/java/com/biometricattendance/loan/ backend/src/main/java/com/biometricattendance/config/SecurityConfig.java backend/src/test/java/com/biometricattendance/loan/
@@ -141,7 +141,7 @@ git commit -m "feat(loan): implementasikan business logic kasbon dan REST API te
 - Consumes: `LoanService`, `WorkRuleRepository`, `AttendanceService`
 - Produces: `ReportModel` yang diperkaya kolom: `dailyWage`, `grossWage`, `overtimeWage`, `loanDeduction`, `netWage`, `baseSalary`, `onsiteWage`
 
-- [ ] **Step 1: Tulis unit test perhitungan formula AS-1 (Upah Mingguan) dan AS-5 (Gaji Bulanan)**
+- [x] **Step 1: Tulis unit test perhitungan formula AS-1 (Upah Mingguan) dan AS-5 (Gaji Bulanan)**
 
 ```java
 @Test
@@ -155,21 +155,21 @@ void testMonthlySalaryCalculationMatchesAS5() {
 }
 ```
 
-- [ ] **Step 2: Jalankan tes untuk memverifikasi gagal**
+- [x] **Step 2: Jalankan tes untuk memverifikasi gagal**
 
 Run: `cd backend; ./mvnw test -Dtest=ReportServiceFinancialTests`  
 Expected: FAIL
 
-- [ ] **Step 3: Implementasikan penambahan tipe laporan dan agregasi nilai finansial di ReportService**
+- [x] **Step 3: Implementasikan penambahan tipe laporan dan agregasi nilai finansial di ReportService**
 
 Tambahkan `UPAH_MINGGUAN` dan `GAJI_BULANAN` ke `ReportType`. Lengkapi `ReportDtos` dengan field rupiah dan agregasi per cabang Takka 1, Takka 2, Takka Cilong, dan Cash.
 
-- [ ] **Step 4: Jalankan tes untuk memverifikasi lulus**
+- [x] **Step 4: Jalankan tes untuk memverifikasi lulus**
 
 Run: `cd backend; ./mvnw test -Dtest=ReportServiceFinancialTests`  
 Expected: PASS
 
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 5: Commit Task 3**
 
 ```bash
 git add backend/src/main/java/com/biometricattendance/report/ backend/src/test/java/com/biometricattendance/report/
@@ -189,7 +189,7 @@ git commit -m "feat(report): tambahkan tipe upah mingguan dan gaji bulanan denga
 - Consumes: `ReportModel` dari Task 3
 - Produces: `byte[] write(ReportModel model)` menghasilkan berkas `.xlsx` dan `.pdf` multi-sheet
 
-- [ ] **Step 1: Tulis tes pembentukan workbook Excel dan PDF dengan lembar pendukung**
+- [x] **Step 1: Tulis tes pembentukan workbook Excel dan PDF dengan lembar pendukung**
 
 ```java
 @Test
@@ -201,21 +201,21 @@ void testWeeklyWageExcelContainsAS1AndAS2Sheets() {
 }
 ```
 
-- [ ] **Step 2: Jalankan tes untuk memverifikasi gagal**
+- [x] **Step 2: Jalankan tes untuk memverifikasi gagal**
 
 Run: `cd backend; ./mvnw test -Dtest=ReportExportWritersTests`  
 Expected: FAIL
 
-- [ ] **Step 3: Implementasikan layout Apache POI dan OpenPDF untuk AS-1 s/d AS-7**
+- [x] **Step 3: Implementasikan layout Apache POI dan OpenPDF untuk AS-1 s/d AS-7**
 
 Tulis renderer `weeklyWageSheet`, `weeklyOvertimeSheet`, `monthlySalarySheet`, `monthlyOvertimeSheet`, dan `storeSubmissionSheet`. Lengkapi dengan kop TAKKA STEEL, tabel ringkasan tunai cabang, dan kolom tanda tangan.
 
-- [ ] **Step 4: Jalankan tes untuk memverifikasi lulus**
+- [x] **Step 4: Jalankan tes untuk memverifikasi lulus**
 
 Run: `cd backend; ./mvnw test -Dtest=ReportExportWritersTests`  
 Expected: PASS
 
-- [ ] **Step 5: Commit Task 4**
+- [x] **Step 5: Commit Task 4**
 
 ```bash
 git add backend/src/main/java/com/biometricattendance/report/ backend/src/test/java/com/biometricattendance/report/
@@ -236,7 +236,7 @@ git commit -m "feat(report): implementasikan ekspor Excel multi-sheet dan PDF be
 - Consumes: `/api/loans` API dari backend Task 2
 - Produces: Komponen `<LoansPage />` terdaftar di rute `/kasbon`
 
-- [ ] **Step 1: Tulis frontend unit test untuk halaman Kasbon (render daftar, dialog tambah)**
+- [x] **Step 1: Tulis frontend unit test untuk halaman Kasbon (render daftar, dialog tambah)**
 
 ```tsx
 it('menampilkan daftar kasbon karyawan dan sisa pinjaman', async () => {
@@ -245,21 +245,21 @@ it('menampilkan daftar kasbon karyawan dan sisa pinjaman', async () => {
 });
 ```
 
-- [ ] **Step 2: Jalankan test untuk memverifikasi gagal**
+- [x] **Step 2: Jalankan test untuk memverifikasi gagal**
 
 Run: `cd frontend; npx vitest run src/pages/LoansPage.test.tsx --pool=threads`  
 Expected: FAIL
 
-- [ ] **Step 3: Implementasikan `LoansPage.tsx` dan daftarkan ke navigation & routes**
+- [x] **Step 3: Implementasikan `LoansPage.tsx` dan daftarkan ke navigation & routes**
 
 Gunakan styling modern (Tailwind + shadcn UI), tabel daftar kasbon, status badge (`AKTIF`, `LUNAS`), dan dialog form pinjaman baru.
 
-- [ ] **Step 4: Jalankan test untuk memverifikasi lulus**
+- [x] **Step 4: Jalankan test untuk memverifikasi lulus**
 
 Run: `cd frontend; npx vitest run src/pages/LoansPage.test.tsx src/navigation.test.ts --pool=threads`  
 Expected: PASS
 
-- [ ] **Step 5: Commit Task 5**
+- [x] **Step 5: Commit Task 5**
 
 ```bash
 git add frontend/src/pages/LoansPage.tsx frontend/src/pages/LoansPage.test.tsx frontend/src/navigation.ts frontend/src/App.tsx
@@ -279,7 +279,7 @@ git commit -m "feat(ui): tambahkan halaman manajemen kasbon dan rute navigasi op
 - Consumes: Tipe laporan `upah-mingguan` dan `gaji-bulanan`, endpoint `/api/loans/apply-period-deductions`
 - Produces: Pratinjau tabel upah rupiah di web, tombol shortcut periode, tombol tutup buku
 
-- [ ] **Step 1: Tulis unit test untuk pratinjau tabel upah mingguan dan bulanan**
+- [x] **Step 1: Tulis unit test untuk pratinjau tabel upah mingguan dan bulanan**
 
 ```tsx
 it('menampilkan kolom sisa upah rupiah pada laporan upah mingguan', async () => {
@@ -289,21 +289,21 @@ it('menampilkan kolom sisa upah rupiah pada laporan upah mingguan', async () => 
 });
 ```
 
-- [ ] **Step 2: Jalankan test untuk memverifikasi gagal**
+- [x] **Step 2: Jalankan test untuk memverifikasi gagal**
 
 Run: `cd frontend; npx vitest run src/pages/ReportsPage.test.tsx --pool=threads`  
 Expected: FAIL
 
-- [ ] **Step 3: Implementasikan ekstensi ReportsPage dengan shortcut periode Sabtu–Jumat dan tombol aksi Tutup Buku**
+- [x] **Step 3: Implementasikan ekstensi ReportsPage dengan shortcut periode Sabtu–Jumat dan tombol aksi Tutup Buku**
 
 Tambahkan tombol filter cepat *"Sabtu–Jumat Minggu Ini"*, kolom tampilan upah, lembur rupiah, potongan kasbon, dan tombol *"Terapkan Potongan Kasbon"*.
 
-- [ ] **Step 4: Jalankan test untuk memverifikasi lulus**
+- [x] **Step 4: Jalankan test untuk memverifikasi lulus**
 
 Run: `cd frontend; npx vitest run src/pages/ReportsPage.test.tsx --pool=threads`  
 Expected: PASS
 
-- [ ] **Step 5: Commit Task 6**
+- [x] **Step 5: Commit Task 6**
 
 ```bash
 git add frontend/src/pages/ReportsPage.tsx frontend/src/pages/ReportsPage.test.tsx frontend/src/lib/types.ts
@@ -317,21 +317,21 @@ git commit -m "feat(ui): perbarui halaman laporan dengan format penggajian rupia
 **Files:**
 - Test: Script verifikasi E2E / pengujian unduhan berkas nyata
 
-- [ ] **Step 1: Jalankan seluruh suite pengujian backend**
+- [x] **Step 1: Jalankan seluruh suite pengujian backend**
 
 Run: `cd backend; ./mvnw test`  
 Expected: BUILD SUCCESS (semua unit test, integration test, dan security test pass)
 
-- [ ] **Step 2: Jalankan seluruh suite pengujian frontend**
+- [x] **Step 2: Jalankan seluruh suite pengujian frontend**
 
 Run: `cd frontend; npm run test`  
 Expected: Semua test pass tanpa error
 
-- [ ] **Step 3: Uji ekspor Excel nyata dan verifikasi rumus angka**
+- [x] **Step 3: Uji ekspor Excel nyata dan verifikasi rumus angka**
 
 Unduh berkas `upah-mingguan.xlsx` dan `gaji-bulanan.xlsx` via API test, verifikasi bahwa sel tabel dan total cocok dengan data rapat 8 Oktober 2026.
 
-- [ ] **Step 4: Commit dokumentasi penyelesaian**
+- [x] **Step 4: Commit dokumentasi penyelesaian**
 
 ```bash
 git add docs/

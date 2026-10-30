@@ -38,7 +38,7 @@ class FingerprintDepartureTests extends RakitanFixtures {
 			.isEqualTo("DELETE_EMPLOYEE");
 		assertThat(removedAt(employee)).isNotNull();
 		assertThat(jdbc.queryForObject("select count(*) from audit_logs where action = 'FINGERPRINT_DELETED'"
-				+ " and actor_username = 'hr-absensi' and before_data like ?", Integer.class,
+				+ " and actor_username = 'owner-absensi' and before_data like ?", Integer.class,
 				"%\"deviceId\":" + a.id() + ",%")).isEqualTo(1);
 	}
 
