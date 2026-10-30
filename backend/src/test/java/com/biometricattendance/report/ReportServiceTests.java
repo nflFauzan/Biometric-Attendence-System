@@ -65,7 +65,7 @@ class ReportServiceTests extends AttendanceFixtures {
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"items\":[{\"employeeId\":" + s.employee() + ",\"workDate\":\"" + date
 					+ "\",\"approvedMinutes\":" + minutes + ",\"expectedCandidateSeconds\":" + candidateSeconds
-					+ "}]}"))
+					+ ",\"note\":\"Alasan validasi\"}]}"))
 			.andExpect(status().isOk());
 	}
 
@@ -123,6 +123,7 @@ class ReportServiceTests extends AttendanceFixtures {
 		scans(s, "2026-10-05", "08:00:00", "19:00:00");
 		scans(s, "2026-10-06", "08:00:00", "19:00:00");
 		validateOvertime(s, "2026-10-05", 120, 7200);
+		validateOvertime(s, "2026-10-06", 0, 7200);
 
 		ReportEmployee e = build(s).employees().get(0);
 

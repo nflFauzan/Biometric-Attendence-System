@@ -16,12 +16,36 @@ public final class ReportDtos {
 	public record ReportFilter(LocalDate from, LocalDate to, Long branchId, Long categoryId, Long employeeId) {
 	}
 
-	public record ReportModel(ReportType type, String title, String periodLabel, List<String> filterLabels,
-			List<LocalDate> dates, List<ReportEmployee> employees) {
+	public record BranchSummary(String branchName, BigDecimal totalAmount) {
 	}
 
-	public record ReportEmployee(String employeeNumber, String fullName, String branchName, String categoryName,
-			List<ReportDay> days, ReportTotals totals) {
+	public record ReportFinancial(
+			BigDecimal dailyWage,
+			BigDecimal grossDailyWage,
+			BigDecimal overtimeRate,
+			BigDecimal overtimeWage,
+			BigDecimal loanDeduction,
+			BigDecimal netWage,
+			BigDecimal baseSalary,
+			BigDecimal onsiteWage) {
+	}
+
+	public record ReportModel(ReportType type, String title, String periodLabel, List<String> filterLabels,
+			List<LocalDate> dates, List<ReportEmployee> employees, List<BranchSummary> branchSummaries) {
+
+		public ReportModel(ReportType type, String title, String periodLabel, List<String> filterLabels,
+				List<LocalDate> dates, List<ReportEmployee> employees) {
+			this(type, title, periodLabel, filterLabels, dates, employees, List.of());
+		}
+	}
+
+	public record ReportEmployee(Long employeeId, String employeeNumber, String fullName, String branchName,
+			String categoryName, List<ReportDay> days, ReportTotals totals, ReportFinancial financial) {
+
+		public ReportEmployee(String employeeNumber, String fullName, String branchName, String categoryName,
+				List<ReportDay> days, ReportTotals totals) {
+			this(null, employeeNumber, fullName, branchName, categoryName, days, totals, null);
+		}
 	}
 
 	/**

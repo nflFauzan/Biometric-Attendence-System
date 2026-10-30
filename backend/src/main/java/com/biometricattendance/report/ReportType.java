@@ -3,12 +3,14 @@ package com.biometricattendance.report;
 import java.util.Arrays;
 import java.util.Optional;
 
-/** Jenis laporan absensi yang bisa diekspor; slug dipakai di URL, judul di layar dan di dalam file. */
+/** Jenis laporan absensi dan penggajian yang bisa diekspor; slug dipakai di URL, judul di layar dan di dalam file. */
 public enum ReportType {
 
 	REKAP_ABSENSI("rekap-absensi", "Rekap Absensi"),
 	REKAP_LEMBUR("rekap-lembur", "Rekap Lembur"),
-	DETAIL_ABSENSI("detail-absensi", "Detail Absensi");
+	DETAIL_ABSENSI("detail-absensi", "Detail Absensi"),
+	UPAH_MINGGUAN("upah-mingguan", "Laporan Upah Mingguan (Supir/Kenek)"),
+	GAJI_BULANAN("gaji-bulanan", "Laporan Gaji Bulanan (Staf)");
 
 	private final String slug;
 

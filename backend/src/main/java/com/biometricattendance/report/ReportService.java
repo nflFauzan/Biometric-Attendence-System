@@ -6,8 +6,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,20 +21,25 @@ import com.biometricattendance.branch.BranchRepository;
 import com.biometricattendance.calculation.CalculationDtos.DailyResultResponse;
 import com.biometricattendance.calculation.DailyResult.AttendanceStatus;
 import com.biometricattendance.calculation.DailyResult.TimeValue;
+import com.biometricattendance.calculation.EffectiveRule;
 import com.biometricattendance.category.EmployeeCategoryRepository;
 import com.biometricattendance.common.ApiException;
+import com.biometricattendance.employee.Employee;
 import com.biometricattendance.employee.EmployeeRepository;
+import com.biometricattendance.loan.LoanService;
 import com.biometricattendance.overtime.OvertimeService;
+import com.biometricattendance.report.ReportDtos.BranchSummary;
 import com.biometricattendance.report.ReportDtos.ReportDay;
 import com.biometricattendance.report.ReportDtos.ReportEmployee;
 import com.biometricattendance.report.ReportDtos.ReportFilter;
+import com.biometricattendance.report.ReportDtos.ReportFinancial;
 import com.biometricattendance.report.ReportDtos.ReportModel;
 import com.biometricattendance.report.ReportDtos.ReportTotals;
+import com.biometricattendance.workrule.WorkRuleService;
 
 /**
- * Menyusun model laporan dari rekap harian ({@link AttendanceService#range}) dan lembur tervalidasi
- * ({@link OvertimeService#validatedSeconds}). Jam kerja tidak dihitung ulang di sini; isi sel kisi dan nama hari
- * ditentukan di sini supaya penulis Excel dan PDF hanya merender.
+ * Menyusun model laporan dari rekap harian ({@link AttendanceService#range}), lembur tervalidasi
+ * ({@link OvertimeService#validatedSeconds}), dan modul kasbon ({@link LoanService}).
  */
 @Service
 public class ReportService {
@@ -53,13 +60,20 @@ public class ReportService {
 
 	private final EmployeeRepository employees;
 
+	private final LoanService loanService;
+
+	private final WorkRuleService workRuleService;
+
 	public ReportService(AttendanceService attendance, OvertimeService overtime, BranchRepository branches,
-			EmployeeCategoryRepository categories, EmployeeRepository employees) {
+			EmployeeCategoryRepository categories, EmployeeRepository employees, LoanService loanService,
+			WorkRuleService workRuleService) {
 		this.attendance = attendance;
 		this.overtime = overtime;
 		this.branches = branches;
 		this.categories = categories;
 		this.employees = employees;
+		this.loanService = loanService;
+		this.workRuleService = workRuleService;
 	}
 
 	@Transactional(readOnly = true)
@@ -68,16 +82,24 @@ public class ReportService {
 				filter.categoryId(), filter.employeeId());
 		Map<Long, Map<LocalDate, Long>> validated = overtime.validatedSeconds(data);
 
+		List<Long> employeeIds = data.stream().map(EmployeeDays::employeeId).toList();
+		Map<Long, BigDecimal> activeLoans = loanService.getActiveInstallments(employeeIds);
+
 		List<LocalDate> dates = filter.from().datesUntil(filter.to().plusDays(1)).toList();
 		List<ReportEmployee> rows = new ArrayList<>();
 		for (EmployeeDays employee : data) {
-			rows.add(employeeRow(employee, validated.getOrDefault(employee.employeeId(), Map.of())));
+			rows.add(employeeRow(type, employee, validated.getOrDefault(employee.employeeId(), Map.of()),
+					activeLoans.get(employee.employeeId()), filter.to()));
 		}
+
+		List<BranchSummary> branchSummaries = computeBranchSummaries(rows);
+
 		return new ReportModel(type, type.title(), DATE.format(filter.from()) + " s.d. " + DATE.format(filter.to()),
-				filterLabels(filter), dates, rows);
+				filterLabels(filter), dates, rows, branchSummaries);
 	}
 
-	private ReportEmployee employeeRow(EmployeeDays employee, Map<LocalDate, Long> validated) {
+	private ReportEmployee employeeRow(ReportType type, EmployeeDays employee, Map<LocalDate, Long> validated,
+			BigDecimal loanInstallment, LocalDate refDate) {
 		List<ReportDay> days = new ArrayList<>();
 		int countingDays = 0;
 		int leaveDays = 0;
@@ -105,12 +127,75 @@ public class ReportService {
 			days.add(new ReportDay(record.date(), dayName(record.date()), status, timeOf(result.checkIn()),
 					timeOf(result.checkOut()), hours(regular), hours(approved), result.scanTimes(), markOf(status)));
 		}
-		return new ReportEmployee(employee.employeeNumber(), employee.fullName(), employee.branchName(),
-				employee.categoryName(), days,
-				new ReportTotals(countingDays, leaveDays, absentDays, hours(regularSeconds), hours(overtimeSeconds)));
+
+		ReportTotals totals = new ReportTotals(countingDays, leaveDays, absentDays, hours(regularSeconds),
+				hours(overtimeSeconds));
+
+		ReportFinancial financial = computeFinancial(type, employee.employeeId(), totals, loanInstallment, refDate);
+
+		return new ReportEmployee(employee.employeeId(), employee.employeeNumber(), employee.fullName(),
+				employee.branchName(), employee.categoryName(), days, totals, financial);
 	}
 
-	/** Hari di luar masa kerja atau tanpa hasil perhitungan: kosong dan tidak dihitung. */
+	private ReportFinancial computeFinancial(ReportType type, Long employeeId, ReportTotals totals,
+			BigDecimal loanInstallment, LocalDate date) {
+		if (type != ReportType.UPAH_MINGGUAN && type != ReportType.GAJI_BULANAN) {
+			return null;
+		}
+
+		Employee emp = employees.findById(employeeId).orElse(null);
+		EffectiveRule rule = emp == null ? null : workRuleService.resolve(emp, date);
+
+		BigDecimal dailyWage = rule != null && rule.values().dailyWage() != null ? rule.values().dailyWage()
+				: BigDecimal.valueOf(100000);
+		BigDecimal overtimeRate = rule != null && rule.values().overtimeRatePerHour() != null
+				? rule.values().overtimeRatePerHour() : BigDecimal.valueOf(14000);
+		BigDecimal baseSalary = rule != null ? rule.values().baseSalary() : null;
+
+		BigDecimal days = BigDecimal.valueOf(totals.countingDays());
+		BigDecimal otHours = totals.validatedOvertimeHours();
+		BigDecimal overtimeWage = overtimeRate.multiply(otHours).setScale(2, RoundingMode.HALF_UP);
+		BigDecimal installment = loanInstallment != null ? loanInstallment : BigDecimal.ZERO;
+
+		if (type == ReportType.UPAH_MINGGUAN) {
+			BigDecimal grossDailyWage = dailyWage.multiply(days).setScale(2, RoundingMode.HALF_UP);
+			BigDecimal grossTotal = grossDailyWage.add(overtimeWage);
+			BigDecimal actualDeduction = installment.min(grossTotal);
+			BigDecimal netWage = grossTotal.subtract(actualDeduction);
+			return new ReportFinancial(dailyWage, grossDailyWage, overtimeRate, overtimeWage, actualDeduction, netWage,
+					null, null);
+		}
+		else {
+			// GAJI_BULANAN: Onsite = Days * Wages (standar Rp 40.000)
+			BigDecimal onsiteRate = dailyWage;
+			BigDecimal onsiteWage = onsiteRate.multiply(days).setScale(2, RoundingMode.HALF_UP);
+			BigDecimal base = baseSalary != null ? baseSalary : BigDecimal.ZERO;
+			BigDecimal grossTotal = base.add(onsiteWage).add(overtimeWage);
+			BigDecimal actualDeduction = installment.min(grossTotal);
+			BigDecimal netWage = grossTotal.subtract(actualDeduction);
+			return new ReportFinancial(onsiteRate, null, overtimeRate, overtimeWage, actualDeduction, netWage, base,
+					onsiteWage);
+		}
+	}
+
+	private List<BranchSummary> computeBranchSummaries(List<ReportEmployee> rows) {
+		Map<String, BigDecimal> branchTotals = new LinkedHashMap<>();
+		for (ReportEmployee emp : rows) {
+			if (emp.financial() != null && emp.financial().netWage() != null) {
+				String bName = emp.branchName() != null ? emp.branchName() : "Lainnya";
+				branchTotals.merge(bName, emp.financial().netWage(), BigDecimal::add);
+			}
+		}
+		List<BranchSummary> list = branchTotals.entrySet()
+			.stream()
+			.map(e -> new BranchSummary(e.getKey(), e.getValue()))
+			.collect(Collectors.toList());
+
+		BigDecimal grandTotal = branchTotals.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+		list.add(new BranchSummary("Cash", grandTotal));
+		return list;
+	}
+
 	private static ReportDay blankDay(LocalDate date) {
 		return new ReportDay(date, dayName(date), null, null, null, hours(0), hours(0), List.of(), "");
 	}
@@ -132,12 +217,12 @@ public class ReportService {
 		return value == null ? null : value.time();
 	}
 
-	private static long orZero(Long value) {
-		return value == null ? 0 : value;
-	}
-
 	private static BigDecimal hours(long seconds) {
 		return BigDecimal.valueOf(seconds).divide(SECONDS_PER_HOUR, 2, RoundingMode.HALF_UP);
+	}
+
+	private static long orZero(Long value) {
+		return value == null ? 0L : value;
 	}
 
 	private List<String> filterLabels(ReportFilter filter) {
