@@ -46,6 +46,14 @@ describe('menu per role', () => {
     expect(labels('EMPLOYEE')).not.toContain('Validasi Lembur')
   })
 
+  it('Owner dan Finance & Accounting punya tepat 4 menu operasional di bottom nav HP', () => {
+    for (const role of ['OWNER', 'HR_FINANCE'] as const) {
+      const mobileItems = menuFor(role).filter((item) => item.mobile)
+      expect(mobileItems.map((item) => item.path)).toEqual(['/', '/absensi', '/izin', '/laporan'])
+      expect(mobileItems.map((item) => item.label)).toEqual(['Dashboard', 'Absensi Harian', 'Izin & Cuti', 'Laporan'])
+    }
+  })
+
   it('Owner dan Finance & Accounting melihat menu Laporan, karyawan tidak', () => {
     expect(labels('OWNER')).toContain('Laporan')
     expect(labels('HR_FINANCE')).toContain('Laporan')
