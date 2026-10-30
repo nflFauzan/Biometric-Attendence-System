@@ -47,7 +47,7 @@ export function LoansPage() {
       totalAmount: number
       installmentAmount: number
       notes?: string
-    }) => api.post<EmployeeLoan>('/api/loans', body),
+    }) => api<EmployeeLoan>('/api/loans', { method: 'POST', body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/loans'] })
       setIsCreateOpen(false)

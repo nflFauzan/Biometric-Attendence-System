@@ -35,6 +35,7 @@ const model = (overrides: Partial<ReportModel> = {}): ReportModel => ({
   dates: ['2026-10-05'],
   employees: [
     {
+      employeeId: 10,
       employeeNumber: 'K-001',
       fullName: 'Budi Santoso',
       branchName: 'Pusat',
@@ -53,22 +54,30 @@ const model = (overrides: Partial<ReportModel> = {}): ReportModel => ({
         },
       ],
       totals: { countingDays: 20, leaveDays: 1, absentDays: 2, countingHours: 150.5, validatedOvertimeHours: 3 },
+      financial: {
+        dailyWage: 100000,
+        grossDailyWage: 2000000,
+        overtimeRate: 14000,
+        overtimeWage: 42000,
+        loanDeduction: 100000,
+        netWage: 1942000,
+        baseSalary: null,
+        onsiteWage: null,
+      },
     },
   ],
   ...overrides,
 })
 
-describe('Halaman Laporan', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals()
-    saveBlob.mockReset()
-  })
-
-  const to = localDateIso()
-  const from = `${to.slice(0, 8)}01`
+describe('ReportsPage', () => {
+  const today = localDateIso()
+  const from = `${today.slice(0, 8)}01`
+  const to = today
   const query = `from=${from}&to=${to}`
+
   const common = {
     'GET /api/auth/me': () => ({ status: 200, body: hr }),
+    'GET /api/auth/csrf': () => ({ status: 204 }),
     'GET /api/branches': () => ({ status: 200, body: [] }),
     'GET /api/employees': () => ({ status: 200, body: [] }),
     'GET /api/employee-categories': () => ({ status: 200, body: [{ id: 3, name: 'Supir' }] }),
@@ -122,6 +131,88 @@ describe('Halaman Laporan', () => {
     await screen.findByText('Budi Santoso')
     fireEvent.change(screen.getByLabelText('Jenis laporan'), { target: { value: 'rekap-lembur' } })
     await waitFor(() => expect(screen.getByText('Lembur tervalidasi (jam)')).toBeInTheDocument())
+  })
+
+  it('memuat laporan upah mingguan dan menjalankan aksi tutup buku kasbon', async () => {
+    const fetchFn = mockFetch({
+      ...common,
+      [`GET /api/reports/rekap-absensi?${query}`]: () => ({ status: 200, body: model() }),
+      [`GET /api/reports/upah-mingguan?${query}`]: () => ({
+        status: 200,
+        body: model({
+          type: 'UPAH_MINGGUAN',
+          title: 'Laporan Upah Mingguan',
+          periodLabel: '03-10-2026 s.d. 09-10-2026',
+        }),
+      }),
+      'POST /api/loans/apply-period-deductions': () => ({
+        status: 200,
+        body: { processedCount: 1, totalDeducted: 100000, message: 'Berhasil' },
+      }),
+    })
+
+    renderAt('/laporan')
+    await screen.findByText('Budi Santoso')
+    fireEvent.change(screen.getByLabelText('Jenis laporan'), { target: { value: 'upah-mingguan' } })
+
+    expect(await screen.findByText('Total Upah')).toBeInTheDocument()
+    expect(screen.getByText('Sisa Upah')).toBeInTheDocument()
+    expect(screen.getByText('Rp1.942.000')).toBeInTheDocument()
+
+    const applyBtn = await screen.findByRole('button', { name: /terapkan potongan kasbon/i })
+    expect(applyBtn).toBeInTheDocument()
+    fireEvent.click(applyBtn)
+
+    await waitFor(() => {
+      expect(fetchFn).toHaveBeenCalledWith(
+        '/api/loans/apply-period-deductions',
+        expect.objectContaining({ method: 'POST' }),
+      )
+    })
+  })
+
+  it('memuat laporan gaji bulanan dengan kolom onsite dan gaji pokok', async () => {
+    mockFetch({
+      ...common,
+      [`GET /api/reports/rekap-absensi?${query}`]: () => ({ status: 200, body: model() }),
+      [`GET /api/reports/gaji-bulanan?${query}`]: () => ({
+        status: 200,
+        body: model({
+          type: 'GAJI_BULANAN',
+          title: 'Laporan Gaji Bulanan',
+          employees: [
+            {
+              employeeId: 20,
+              employeeNumber: 'STF-001',
+              fullName: 'Siti Admin',
+              branchName: 'Toko Takka 2',
+              categoryName: 'Finance',
+              days: [],
+              totals: { countingDays: 25, leaveDays: 0, absentDays: 0, countingHours: 200, validatedOvertimeHours: 0 },
+              financial: {
+                dailyWage: 40000,
+                grossDailyWage: null,
+                overtimeRate: 14000,
+                overtimeWage: 0,
+                loanDeduction: 50000,
+                netWage: 3950000,
+                baseSalary: 3000000,
+                onsiteWage: 1000000,
+              },
+            },
+          ],
+        }),
+      }),
+    })
+
+    renderAt('/laporan')
+    await screen.findByText('Budi Santoso')
+    fireEvent.change(screen.getByLabelText('Jenis laporan'), { target: { value: 'gaji-bulanan' } })
+
+    expect(await screen.findByText('Siti Admin')).toBeInTheDocument()
+    expect(screen.getByText('Onsite')).toBeInTheDocument()
+    expect(screen.getByText('Gaji Pokok')).toBeInTheDocument()
+    expect(screen.getByText('Rp3.950.000')).toBeInTheDocument()
   })
 
   it('data kosong menampilkan pesan kosong', async () => {

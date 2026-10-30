@@ -686,7 +686,12 @@ export interface TeamMember {
   days: TeamDay[]
 }
 
-export type ReportSlug = 'rekap-absensi' | 'rekap-lembur' | 'detail-absensi'
+export type ReportSlug =
+  | 'rekap-absensi'
+  | 'rekap-lembur'
+  | 'detail-absensi'
+  | 'upah-mingguan'
+  | 'gaji-bulanan'
 
 export interface ReportDay {
   date: string
