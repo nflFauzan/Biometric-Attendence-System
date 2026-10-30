@@ -30,6 +30,28 @@ describe('menu per role', () => {
     }
   })
 
+  it('Owner dan Finance & Accounting punya Perlu Ditinjau tepat setelah Absensi Harian', () => {
+    for (const role of ['OWNER', 'HR_FINANCE'] as const) {
+      const all = labels(role)
+      expect(all[all.indexOf('Absensi Harian') + 1]).toBe('Perlu Ditinjau')
+    }
+    expect(labels('EMPLOYEE')).not.toContain('Perlu Ditinjau')
+  })
+
+  it('Owner dan Finance & Accounting punya Validasi Lembur tepat setelah Perlu Ditinjau (K-140)', () => {
+    for (const role of ['OWNER', 'HR_FINANCE'] as const) {
+      const all = labels(role)
+      expect(all[all.indexOf('Perlu Ditinjau') + 1]).toBe('Validasi Lembur')
+    }
+    expect(labels('EMPLOYEE')).not.toContain('Validasi Lembur')
+  })
+
+  it('Owner dan Finance & Accounting melihat menu Laporan, karyawan tidak', () => {
+    expect(labels('OWNER')).toContain('Laporan')
+    expect(labels('HR_FINANCE')).toContain('Laporan')
+    expect(labels('EMPLOYEE')).not.toContain('Laporan')
+  })
+
   it('Karyawan punya tepat 4 menu berurutan, semuanya tampil di bottom nav', () => {
     const items = menuFor('EMPLOYEE')
     expect(items.map((item) => item.path)).toEqual(['/beranda', '/izin-saya', '/absensi-saya', '/profil'])

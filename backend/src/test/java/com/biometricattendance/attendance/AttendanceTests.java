@@ -1,6 +1,7 @@
 package com.biometricattendance.attendance;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
@@ -17,10 +18,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.biometricattendance.AttendanceFixtures;
+import com.biometricattendance.attendance.AttendanceDtos.EmployeeDays;
+import com.biometricattendance.common.ApiException;
 
 /**
  * Rekap harian dari scan asli (K-058) dan koreksi absensi (K-059, K-066, TC-08). Tanggal uji 2026-10-05
@@ -29,6 +33,9 @@ import com.biometricattendance.AttendanceFixtures;
 class AttendanceTests extends AttendanceFixtures {
 
 	private static final String DATE = "2026-10-05";
+
+	@Autowired
+	private AttendanceService attendance;
 
 	private record Setup(long branch, long employee, String pin, String sn, long device) {
 	}
@@ -211,6 +218,58 @@ class AttendanceTests extends AttendanceFixtures {
 			.param("categoryId", "999999").with(HR))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.rows", hasSize(0)));
+	}
+
+	/** Rekap rentang multi-karyawan: filter cabang, satu entri per tanggal untuk tiap karyawan. */
+	@Test
+	void rangeReturnsDaysForEveryEmployeeInFilter() throws Exception {
+		long branchA = createBranch();
+		long branchB = createBranch();
+		long a = createEmployee(branchA, uniquePin());
+		createEmployee(branchB, uniquePin());
+
+		List<EmployeeDays> result = attendance.range(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-11"),
+				branchA, null, null);
+
+		assertThat(result).hasSize(1);
+		assertThat(result.get(0).employeeId()).isEqualTo(a);
+		assertThat(result.get(0).branchId()).isEqualTo(branchA);
+		assertThat(result.get(0).days()).hasSize(7);
+		assertThat(result.get(0).days().get(0).date()).isEqualTo(LocalDate.parse("2026-10-05"));
+
+		assertThat(attendance.range(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-05"), branchA, null, a + 100000))
+			.isEmpty();
+	}
+
+	@Test
+	void rangeIncludesEmployeeDeactivatedInsideRange() throws Exception {
+		long branch = createBranch();
+		long gone = createEmployee(branch, uniquePin());
+		long old = createEmployee(branch, uniquePin());
+		jdbc.update("update employees set active = false, end_date = ? where id = ?", LocalDate.parse("2026-10-08"), gone);
+		jdbc.update("update employees set active = false, end_date = ? where id = ?", LocalDate.parse("2026-09-01"), old);
+
+		List<EmployeeDays> result = attendance.range(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-11"),
+				branch, null, null);
+
+		assertThat(result).extracting(EmployeeDays::employeeId).containsExactly(gone);
+		// Masa kerja ikut dikirim; days tetap berisi setiap tanggal kalender, pemakai yang menyaring.
+		assertThat(result.get(0).endDate()).isEqualTo(LocalDate.parse("2026-10-08"));
+		assertThat(result.get(0).startDate()).isEqualTo(LocalDate.parse("2026-01-05"));
+		assertThat(result.get(0).active()).isFalse();
+		assertThat(result.get(0).days()).hasSize(7);
+		assertThat(result.get(0).employed(LocalDate.parse("2026-10-08"))).isTrue();
+		assertThat(result.get(0).employed(LocalDate.parse("2026-10-09"))).isFalse();
+	}
+
+	@Test
+	void rangeRejectsTooLongOrReversedRange() {
+		assertThatThrownBy(() -> attendance.range(LocalDate.parse("2026-01-01"), LocalDate.parse("2026-12-31"), null, null,
+				null))
+			.isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus().value()).isEqualTo(400));
+		assertThatThrownBy(() -> attendance.range(LocalDate.parse("2026-10-06"), LocalDate.parse("2026-10-05"), null, null,
+				null))
+			.isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getStatus().value()).isEqualTo(400));
 	}
 
 	private ResultActions daily(long branch) throws Exception {

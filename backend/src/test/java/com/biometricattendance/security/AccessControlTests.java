@@ -174,11 +174,16 @@ class AccessControlTests extends IntegrationTest {
 	private static final String HELD_REVIEW = "{\"scanIds\":[" + MISSING + "],\"decision\":\"DITERIMA\","
 			+ "\"reason\":\"Uji hak akses\"}";
 
-	/** Fase 3: rekap, koreksi (K-059), dan dashboard hanya untuk Owner dan HR/Finance. */
+	private static final String OVERTIME_VALIDATE = "{\"items\":[{\"employeeId\":" + MISSING
+			+ ",\"workDate\":\"2026-10-05\",\"approvedMinutes\":0,\"expectedCandidateSeconds\":0,"
+			+ "\"note\":\"Uji hak akses\"}]}";
+
+	/** Fase 3: rekap, koreksi (K-059), validasi lembur (K-140), dan dashboard hanya untuk Owner dan HR/Finance. */
 	static Stream<Arguments> phase3ManagerEndpoints() {
 		return Stream.of(Arguments.of(HttpMethod.GET, "/api/attendance/employees/" + MISSING, null),
 				Arguments.of(HttpMethod.POST, "/api/attendance/corrections", CORRECTION),
-				Arguments.of(HttpMethod.POST, "/api/attendance/held-scans/review", HELD_REVIEW));
+				Arguments.of(HttpMethod.POST, "/api/attendance/held-scans/review", HELD_REVIEW),
+				Arguments.of(HttpMethod.POST, "/api/overtime/validations", OVERTIME_VALIDATE));
 	}
 
 	@ParameterizedTest(name = "{0} {1}")
@@ -190,8 +195,21 @@ class AccessControlTests extends IntegrationTest {
 	@ParameterizedTest
 	@ValueSource(strings = { "/api/attendance/daily?date=2026-10-05", "/api/attendance/unmatched-scans",
 			"/api/attendance/held-scans?from=2026-10-05&to=2026-10-05",
+			"/api/attendance/review-queue?from=2026-10-05&to=2026-10-05",
+			"/api/overtime?from=2026-10-05&to=2026-10-05",
 			"/api/dashboard/summary?date=2026-10-05", "/api/devices/unregistered-attempts" })
 	void phase3ReadsForOwnerAndHrFinanceOnly(String url) throws Exception {
+		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "/api/reports/rekap-absensi?from=2026-10-05&to=2026-10-09",
+			"/api/reports/rekap-absensi.xlsx?from=2026-10-05&to=2026-10-09",
+			"/api/reports/rekap-absensi.pdf?from=2026-10-05&to=2026-10-09" })
+	void reportsAreForOwnerAndHrFinanceOnly(String url) throws Exception {
 		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());
 		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
 		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());

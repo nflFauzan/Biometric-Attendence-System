@@ -247,6 +247,33 @@ describe('Halaman absensi Fase 3', () => {
     expect(await screen.findByText('Dikoreksi oleh hr: “Lupa scan pulang”')).toBeInTheDocument()
   })
 
+  it('halaman karyawan membaca rentang from dan to dari alamat (tautan Perlu Ditinjau)', async () => {
+    const fetchFn = mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/attendance/employees/12?from=2026-10-03&to=2026-10-05': () => ({
+        status: 200,
+        body: {
+          employeeId: 12,
+          employeeNumber: 'K-012',
+          fullName: 'Budi Santoso',
+          branchName: 'Pusat',
+          timezone: 'Asia/Jakarta',
+          devicePin: '9001',
+          from: '2026-10-03',
+          to: '2026-10-05',
+          days: [day()],
+          corrections: [],
+        } satisfies EmployeeAttendance,
+      }),
+    })
+    renderAt('/absensi/karyawan/12?from=2026-10-03&to=2026-10-05')
+
+    await screen.findByRole('button', { name: 'Koreksi 5 Okt 2026' })
+    expect(
+      fetchFn.mock.calls.some(([url]) => url === '/api/attendance/employees/12?from=2026-10-03&to=2026-10-05'),
+    ).toBe(true)
+  })
+
   it('halaman mesin menampilkan status koneksi dan mesin yang belum terdaftar', async () => {
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
