@@ -148,4 +148,20 @@ describe('App', () => {
     const bottomNav = screen.getByRole('navigation', { name: 'Menu bawah' })
     expect(within(bottomNav).getByRole('link', { name: 'Profil' })).toBeInTheDocument()
   })
+
+  it('menu Lainnya di mobile mengelompokkan menu dalam kartu seksi', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: me('OWNER') }),
+      'GET /api/employees': () => ({ status: 200, body: [] }),
+      'GET /api/branches': () => ({ status: 200, body: [] }),
+      'GET /api/devices': () => ({ status: 200, body: [] }),
+    })
+    renderApp('/')
+    const moreBtn = await screen.findByRole('button', { name: 'Lainnya' })
+    fireEvent.click(moreBtn)
+    const dialog = await screen.findByRole('dialog', { name: 'Menu lainnya' })
+    expect(within(dialog).getByText('Akun & Sesi')).toBeInTheDocument()
+    expect(within(dialog).getByText('Master data')).toBeInTheDocument()
+    expect(within(dialog).getByText('Pengaturan')).toBeInTheDocument()
+  })
 })

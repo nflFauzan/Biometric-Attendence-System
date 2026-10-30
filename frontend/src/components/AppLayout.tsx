@@ -157,42 +157,63 @@ export function AppLayout() {
               <p className="text-sm text-muted-foreground">{ROLE_LABELS[me.role]}</p>
             </div>
           </div>
-          <ul className="flex flex-col">
-            {menu
-              .filter((item) => !item.mobile)
-              .map((item) => (
-                <li key={item.path}>
-                  <NavLink
-                    to={item.path}
-                    onClick={() => setMoreOpen(false)}
-                    className="flex h-12 items-center gap-3 rounded-md px-2 text-[15px] hover:bg-accent"
+          <div className="flex max-h-[65vh] flex-col gap-3.5 overflow-y-auto pr-1">
+            {MENU_GROUPS.map((group) => {
+              const items = menu.filter((item) => !item.mobile && item.group === group)
+              if (items.length === 0) return null
+              return (
+                <div key={group} className="flex flex-col gap-1 rounded-xl border bg-card/60 p-2.5">
+                  <p className="px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{group}</p>
+                  <ul className="flex flex-col gap-0.5">
+                    {items.map((item) => (
+                      <li key={item.path}>
+                        <NavLink
+                          to={item.path}
+                          onClick={() => setMoreOpen(false)}
+                          className="flex h-11 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-colors hover:bg-accent"
+                        >
+                          <div className="grid size-8 place-items-center rounded-md bg-primary/10 text-primary">
+                            <item.icon className="size-4" />
+                          </div>
+                          <span>{item.label}</span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+
+            <div className="flex flex-col gap-1 rounded-xl border bg-card/60 p-2.5">
+              <p className="px-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Akun & Sesi</p>
+              <ul className="flex flex-col gap-0.5">
+                <li>
+                  <button
+                    type="button"
+                    onClick={goChangePassword}
+                    className="flex h-11 w-full items-center gap-3 rounded-lg px-2 text-sm font-medium transition-colors hover:bg-accent"
                   >
-                    <item.icon className="size-5 text-primary" />
-                    {item.label}
-                  </NavLink>
+                    <div className="grid size-8 place-items-center rounded-md bg-primary/10 text-primary">
+                      <KeyRound className="size-4" />
+                    </div>
+                    <span>Ganti password</span>
+                  </button>
                 </li>
-              ))}
-            <li className="mt-2 border-t pt-2">
-              <button
-                type="button"
-                onClick={goChangePassword}
-                className="flex h-12 w-full items-center gap-3 rounded-md px-2 text-[15px] hover:bg-accent"
-              >
-                <KeyRound className="size-5 text-primary" />
-                Ganti password
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex h-12 w-full items-center gap-3 rounded-md px-2 text-[15px] text-danger hover:bg-danger-bg"
-              >
-                <LogOut className="size-5" />
-                Keluar
-              </button>
-            </li>
-          </ul>
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex h-11 w-full items-center gap-3 rounded-lg px-2 text-sm font-medium text-danger transition-colors hover:bg-danger-bg"
+                  >
+                    <div className="grid size-8 place-items-center rounded-md bg-danger/10 text-danger">
+                      <LogOut className="size-4" />
+                    </div>
+                    <span>Keluar</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
