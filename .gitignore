@@ -58,3 +58,6 @@ uploads/
 
 # Data karyawan dari client (data pribadi: alamat, tanggal lahir, nomor HP)
 docs/Template_Pengisian_Data_Karyawan*.xlsx
+
+# Superpowers workflow artifacts
+.superpowers/
