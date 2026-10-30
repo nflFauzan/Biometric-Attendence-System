@@ -66,6 +66,8 @@ public class SecurityConfig {
 				.requestMatchers("/api/overtime/**").hasAnyRole(OWNER, HR_FINANCE)
 				// Laporan absensi dan ekspor Excel/PDF (FR-RPT, K-105): Owner dan Finance & Accounting.
 				.requestMatchers("/api/reports/**").hasAnyRole(OWNER, HR_FINANCE)
+				// Kasbon dan pinjaman karyawan (K-024, K-037): Owner dan Finance & Accounting.
+				.requestMatchers("/api/loans/**").hasAnyRole(OWNER, HR_FINANCE)
 				// Fase 4: jenis izin dibaca semua pengguna (untuk form pengajuan), diubah hanya Owner (K-070).
 				// Pengajuan milik sendiri lewat /api/me/leave-requests (di atas: authenticated, kepemilikan dicek service).
 				.requestMatchers(HttpMethod.GET, "/api/leave-types/**").authenticated()
