@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { DatePicker } from '@/components/DatePickers'
+import { AttendanceSubNav } from '@/components/AttendanceSubNav'
 import { PageHeader } from '@/components/PageHeader'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'

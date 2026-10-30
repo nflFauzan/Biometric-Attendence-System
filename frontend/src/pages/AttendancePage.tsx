@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { DatePicker } from '@/components/DatePickers'
 import { selectClass } from '@/components/FormDialog'
+import { AttendanceSubNav } from '@/components/AttendanceSubNav'
 import { PageHeader } from '@/components/PageHeader'
 import { TimeCell } from '@/components/TimeCell'
 import { Badge } from '@/components/ui/badge'
@@ -63,6 +64,8 @@ export function AttendancePage() {
         title="Absensi Harian"
         description="Jam masuk = scan pertama, jam pulang = scan terakhir. Koreksi dilakukan dari detail karyawan."
       />
+
+      <AttendanceSubNav />
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">

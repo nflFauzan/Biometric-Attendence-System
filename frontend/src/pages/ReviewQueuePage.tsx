@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import { DatePicker } from '@/components/DatePickers'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { selectClass } from '@/components/FormDialog'
+import { AttendanceSubNav } from '@/components/AttendanceSubNav'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -44,6 +45,8 @@ export function ReviewQueuePage() {
         title="Perlu Ditinjau"
         description="Hari yang perlu keputusan sebelum dipakai untuk penggajian. Buka rinciannya untuk mengoreksi jam; hari keluar dari daftar setelah masalahnya selesai."
       />
+
+      <AttendanceSubNav />
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">

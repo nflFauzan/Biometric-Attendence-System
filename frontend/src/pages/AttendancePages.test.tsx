@@ -88,6 +88,25 @@ const device: Device = {
 }
 
 describe('Halaman absensi Fase 3', () => {
+  it('menampilkan sub-navigasi tab terpadu untuk absensi dan masalah scan', async () => {
+    const date = localDateIso()
+    const daily: DailyAttendance = { date, branchId: null, rows: [] }
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/branches': () => ({ status: 200, body: [] }),
+      [`GET /api/attendance/daily?date=${date}`]: () => ({ status: 200, body: daily }),
+    })
+    renderAt('/absensi')
+
+    const subNav = await screen.findByRole('navigation', { name: 'Sub menu absensi' })
+    expect(subNav).toBeInTheDocument()
+    expect(within(subNav).getByRole('link', { name: 'Absensi Harian' })).toHaveAttribute('href', '/absensi')
+    expect(within(subNav).getByRole('link', { name: 'Perlu Ditinjau' })).toHaveAttribute('href', '/absensi/perlu-ditinjau')
+    expect(within(subNav).getByRole('link', { name: 'Scan Tertahan' })).toHaveAttribute('href', '/absensi/scan-tertahan')
+    expect(within(subNav).getByRole('link', { name: 'Scan Tak Dikenal' })).toHaveAttribute('href', '/absensi/scan-tak-dikenal')
+    expect(within(subNav).getByRole('link', { name: 'Validasi Lembur' })).toHaveAttribute('href', '/absensi/lembur')
+  })
+
   afterEach(() => vi.unstubAllGlobals())
 
   it('dashboard menampilkan kehadiran hari ini, scan terbaru, dan status mesin', async () => {

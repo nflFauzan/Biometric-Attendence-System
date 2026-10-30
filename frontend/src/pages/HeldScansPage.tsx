@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { DatePicker } from '@/components/DatePickers'
 import { fieldClass, selectClass } from '@/components/FormDialog'
+import { AttendanceSubNav } from '@/components/AttendanceSubNav'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -66,6 +67,8 @@ export function HeldScansPage() {
         title="Scan Tertahan"
         description="Scan karyawan di cabang yang tidak diizinkan. Scan tetap tersimpan dan belum masuk rekap sampai ditinjau."
       />
+
+      <AttendanceSubNav />
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">

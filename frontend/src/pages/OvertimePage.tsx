@@ -5,6 +5,7 @@ import type { Tone } from '@/lib/attendance'
 import { DatePicker } from '@/components/DatePickers'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { fieldClass, selectClass } from '@/components/FormDialog'
+import { AttendanceSubNav } from '@/components/AttendanceSubNav'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -130,6 +131,8 @@ export function OvertimePage() {
         title="Validasi Lembur"
         description="Kandidat lembur dari rekap absensi. Setujui seluruhnya, kurangi, atau tolak dengan 0 menit; catatan wajib bila dikurangi atau ditolak. Lembur dihitung apa adanya, tanpa pembulatan."
       />
+
+      <AttendanceSubNav />
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">
