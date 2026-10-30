@@ -43,7 +43,11 @@ public final class WorkRuleDtos {
 					message = "Jeda minimum maksimal 240 menit") Integer minScanGapMinutes) {
 
 		RuleValues values() {
-			return new RuleValues(workStart, workEnd, breakStart, breakEnd, lateToleranceMinutes, overtimeStart,
+			Integer tolerance = lateToleranceMinutes;
+			if (scope == RuleLevel.GLOBAL && tolerance == null) {
+				tolerance = 0;
+			}
+			return new RuleValues(workStart, workEnd, breakStart, breakEnd, tolerance, overtimeStart,
 					workDays, dailyWage, overtimeRatePerHour, baseSalary, minScanGapMinutes);
 		}
 

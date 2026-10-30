@@ -90,7 +90,7 @@ const FIELDS: FieldDef[] = [
   { name: 'workEnd', label: 'Jam pulang', type: 'time' },
   { name: 'breakStart', label: 'Mulai istirahat', type: 'time' },
   { name: 'breakEnd', label: 'Selesai istirahat', type: 'time', hint: 'Isi keduanya atau kosongkan keduanya.' },
-  { name: 'lateToleranceMinutes', label: 'Toleransi terlambat (menit)', type: 'number' },
+  { name: 'lateToleranceMinutes', label: 'Toleransi terlambat (menit)', type: 'number', placeholder: 'Bawaan 0 menit (tanpa toleransi)' },
   { name: 'overtimeStart', label: 'Lembur mulai dihitung setelah', type: 'time' },
   {
     name: 'workDays',
@@ -147,7 +147,7 @@ function toBody(v: FormValues, scope: RuleLevel, targetId: string) {
     workEnd: emptyToNull(v.workEnd),
     breakStart: emptyToNull(v.breakStart),
     breakEnd: emptyToNull(v.breakEnd),
-    lateToleranceMinutes: tolerance === null ? null : Number(tolerance),
+    lateToleranceMinutes: tolerance === null ? (scope === 'GLOBAL' ? 0 : null) : Number(tolerance),
     overtimeStart: emptyToNull(v.overtimeStart),
     workDays: workDays.length ? workDays : null,
     // Nominal dikirim sebagai teks agar tidak kehilangan presisi; backend memakai BigDecimal.

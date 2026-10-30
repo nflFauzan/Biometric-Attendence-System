@@ -122,10 +122,16 @@ public class OvertimeService {
 				if (!employee.employed(day.date())) {
 					continue;
 				}
+				long candidate = candidateOf(day);
 				OvertimeValidation validation = existing.get(key(employee.employeeId(), day.date()));
-				if (statusOf(validation, candidateOf(day)) == OvertimeStatus.TERVALIDASI) {
+				if (validation != null) {
+					if (statusOf(validation, candidate) == OvertimeStatus.TERVALIDASI) {
+						result.computeIfAbsent(employee.employeeId(), id -> new LinkedHashMap<>())
+							.put(day.date(), validation.getApprovedSeconds());
+					}
+				} else if (candidate > 0) {
 					result.computeIfAbsent(employee.employeeId(), id -> new LinkedHashMap<>())
-						.put(day.date(), validation.getApprovedSeconds());
+						.put(day.date(), candidate);
 				}
 			}
 		}
