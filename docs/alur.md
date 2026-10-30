@@ -290,6 +290,8 @@ flowchart TD
     J --> K["Masukkan ke draf payroll terkait"]
 ```
 
+**Status implementasi (K-140, 2026-10-28):** langkah "HR/Finance memeriksa" dan "Konfirmasi durasi" sudah diimplementasikan di menu **Validasi Lembur** (`/absensi/lembur`). Kandidat diambil dari rekap harian; Owner atau Finance & Accounting menyetujui seluruhnya, mengurangi, atau menolak (0 menit) dengan catatan wajib bila dikurangi/ditolak, tanpa pembulatan. Koreksi jam tetap lewat koreksi absensi (K-059); bila koreksi mengubah kandidat, lembur berstatus "Perlu validasi ulang" dan belum dihitung. Langkah nominal/tarif dan draf payroll belum (menunggu Fase 5).
+
 ### 9.2 Ketentuan
 
 1. Durasi lembur awal dihitung dari waktu setelah pukul 17.00.

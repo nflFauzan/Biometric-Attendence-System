@@ -497,16 +497,71 @@ Alat rakitan dipasang di satu cabang dulu, dan dua cabang lain belum memakai sis
 
 **Sebagian dijawab 2026-10-26:** semua karyawan di ketiga cabang dibuatkan akun web (K-133). Cabang yang dipasang lebih dulu dan penanda rekap untuk cabang tanpa alat masih terbuka.
 
+## 7e. Daftar Perlu Ditinjau dan Validasi Lembur (ditemukan 2026-10-30)
+
+### Q-047. Karyawan yang belum pulang hari ini di daftar Perlu Ditinjau
+
+Selama jam kerja, karyawan yang sudah scan masuk tetapi belum scan pulang hari ini muncul di daftar Perlu Ditinjau dengan alasan "Tidak lengkap", karena rentang bawaan halaman berakhir hari ini (K-139). Padahal hari mereka belum selesai, sehingga daftar terisi baris yang belum perlu ditindaklanjuti.
+
+Pilihan yang perlu diputuskan:
+
+- baris hari ini yang alasannya hanya "Tidak lengkap" tidak ditampilkan;
+- tanggal akhir bawaan diubah menjadi kemarin;
+- baris hari ini tetap tampil tetapi diberi label "Belum pulang", bukan "Tidak lengkap".
+
+Sementara belum diputuskan, perilaku tidak diubah: baris hari ini tetap tampil sebagai "Tidak lengkap".
+
+**Dampak:** kegunaan daftar Perlu Ditinjau bagi HR selama jam kerja (FR-REV-001).
+
+### Q-048. Menolak kandidat lembur di bawah 1 menit
+
+Validasi lembur memakai satuan menit penuh: isian sama dengan menit penuh kandidat (floor kandidat/60) berarti setuju seluruhnya dan kandidat disimpan apa adanya (K-140). Untuk kandidat di bawah 60 detik, menit penuhnya 0, sehingga isian 0 menit dibaca sebagai setuju seluruhnya, bukan ditolak; catatan "ditolak" yang diketik ikut diabaikan. Akibatnya kandidat di bawah 1 menit tidak bisa ditolak. Kalkulator juga tidak punya batas minimal lembur (K-026), jadi kandidat beberapa detik tetap muncul. Terkait pembulatan dan presisi lembur (Q-008, Q-040).
+
+Pilihan yang perlu diputuskan:
+
+- batas minimal lembur di Pengaturan Aturan, sehingga kandidat di bawah batas tidak muncul sama sekali;
+- untuk kandidat di bawah 60 detik, isian 0 menit disertai catatan dibaca sebagai penolakan;
+- tanda "tolak" yang eksplisit pada validasi, terpisah dari jumlah menit.
+
+Sementara belum diputuskan, aturan tidak diubah. Halaman Validasi Lembur menampilkan kandidat seperti ini sebagai "< 1 menit" dengan keterangan bahwa kandidat di bawah 1 menit hanya bisa disetujui seluruhnya.
+
+**Dampak:** lembur yang sah untuk laporan dan payroll (FR-REV-003).
+
+## 7f. Laporan Absensi dan Ekspor Excel/PDF (ditemukan 2026-10-30)
+
+### Q-049. Definisi counting days dan counting hours (FR-RPT-005)
+
+Spesifikasi HLX-TKS-ATT-REQ-001 v0.6 §6.6 (FR-RPT-005) mewajibkan kolom minimum laporan mencakup *counting days* dan *counting hours*, namun definisinya belum ditetapkan oleh client.
+
+Pilihan yang diusulkan dan sementara diterapkan (K-141):
+- **counting days:** jumlah hari berstatus `LENGKAP`. Hari `TIDAK_LENGKAP` baru dihitung bila sudah dikoreksi; hari `IZIN` tidak dihitung tetapi disediakan kolom terpisah ("Izin"); hari `TIDAK_HADIR` tidak dihitung.
+- **counting hours:** akumulasi `regularWorkSeconds` (jam kerja normal setelah dipotong istirahat). Lembur tervalidasi ditampilkan di kolom tersendiri dan tidak digabung ke counting hours.
+
+Perlu konfirmasi client:
+- Apakah hari cuti/izin berbayar (mis. cuti tahunan atau izin sakit dengan surat) dihitung ke dalam counting days untuk keperluan kehadiran atau perhitungan upah tertentu?
+- Apakah counting hours memiliki toleransi atau pembulatan sebelum masuk penggajian?
+
+**Dampak:** keakuratan angka rekapitulasi kehadiran dan integrasi ke perhitungan payroll Fase 5.
+
+### Q-050. Format dan tata letak persis file Excel AS-IS client (K-105)
+
+Format laporan ekspor Excel dan PDF saat ini (`rekap-absensi`, `rekap-lembur`, `detail-absensi`) disusun berdasarkan dokumen scan/foto AS-IS (AS-1, AS-2, AS-4, AS-5, AS-6). File berkas asli (.xlsx) dari client belum diterima, sehingga formula sel, penamaan sheet, dan tata letak kolom persisnya masih merupakan pendekatan rekayasa ulang (K-105, K-141).
+
+Perlu konfirmasi/penyerahan dari client:
+- File template Excel (.xlsx) asli yang selama ini digunakan oleh HR/Finance client.
+
+**Dampak:** kesesuaian visual 100% dengan proses pelaporan internal client saat masa transisi ke sistem baru.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
 
 | Prioritas | ID | Alasan |
 |---|---|---|
-| P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033, Q-038, Q-039, Q-040, Q-043, Q-044 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
+| P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033, Q-038, Q-039, Q-040, Q-043, Q-044, Q-048, Q-049 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
 | P0 — Sebelum Fase 3 (uji X401) | Q-029 (sebagian terjawab 2026-10-12), Q-031, Q-032 | Menentukan format adapter ZK-Push dan pemetaan PIN karyawan. |
 | P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030, Q-034, Q-035, Q-036, Q-037 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
-| P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028, Q-041, Q-042, Q-045, Q-046 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
+| P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028, Q-041, Q-042, Q-045, Q-046, Q-047, Q-050 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
 | P1 — Sebelum rilis produksi | Q-023 | Menentukan tata kelola data biometrik dan kontrol aksesnya. |
 | P2 — Sebelum UI final | Q-024, Q-025 | Menyelesaikan identitas visual dan nama aplikasi. |
 

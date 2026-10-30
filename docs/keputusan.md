@@ -146,6 +146,9 @@ Tanggal menggunakan format `YYYY-MM-DD`.
 | K-136 | 2026-10-26 | Form karyawan dibagi per bagian: PIN mesin dan akun tampil sebagai ringkasan, data pribadi dilipat, pilihan sedikit berupa tombol berjejer | Disetujui pengguna 2026-10-26 ("langsung kerjakan"); hanya tampilan, kontrak API tetap |
 | K-137 | 2026-10-27 | Akun login ikut nonaktif saat karyawannya dinonaktifkan dan ikut aktif saat karyawan diaktifkan kembali | Disepakati pengguna 2026-10-27 (FR-EMP-005, AC-LV-02); alternatif "pengaktifan manual" tidak dipilih |
 | K-138 | 2026-10-27 | Batas percobaan login: 5 kali gagal berturut-turut per username → dikunci 15 menit (429), disimpan di memori | Disepakati pengguna 2026-10-27 (NFR-SEC-004); nilai bisa diubah lewat properti |
+| K-139 | 2026-10-28 | Daftar "Perlu Ditinjau" (`GET /api/attendance/review-queue`, menu Absensi) dihitung dari rekap harian yang ada, tanpa tabel baru dan tanpa tombol "tandai sudah ditinjau" | Kriteria disetujui pengguna (plan Daftar Perlu Ditinjau, konfirmasi no. 1–2); FR-REV-001 |
+| K-140 | 2026-10-28 | Validasi lembur (`/api/overtime`, menu Validasi Lembur, tabel V18 `overtime_validations`): Owner dan Finance & Accounting menyetujui kandidat lembur dalam menit (0 = ditolak), catatan wajib bila dikurangi/ditolak, tanpa pembulatan; status dihitung saat dibaca, berubahnya kandidat → `PERLU_VALIDASI_ULANG` | Aturan disetujui pengguna (plan Daftar Perlu Ditinjau dan Validasi Lembur, konfirmasi no. 3–4); FR-REV-003; Q-008 tetap terbuka |
+| K-141 | 2026-10-30 | Laporan absensi dan ekspor Excel/PDF (`/api/reports/**`, menu Laporan): tiga jenis laporan (Rekap Absensi, Rekap Lembur, Detail Absensi); Apache POI 5.4.1 dan OpenPDF; counting days (hari LENGKAP) dan counting hours (jam kerja normal); audit EXPORT; tata letak menunggu file Excel AS-IS client | Disetujui pengguna (plan Laporan dan Ekspor Absensi, konfirmasi no. 1–4); FR-RPT-001–003, 005–007; merinci K-105; Q-049 & Q-050 |
 
 ---
 
@@ -617,8 +620,8 @@ Ketujuh dokumen ini memperluas laporan baseline di K-042. Form Lemburan tulis ta
 
 - **Urutan.** Laporan yang hanya butuh data absensi (detail absensi dan kisi kehadiran) bisa dibuat sebelum Fase 5. Laporan upah, gaji, dan pengajuan dana dibuat bersama atau setelah Fase 5.
 - **Yang belum diputuskan:**
-  - Library ekspor, diputuskan saat rencana ekspor dibuat (PRD menyebut Apache POI untuk Excel).
-  - Tata letak persisnya, menunggu file Excel asli dari client.
+  - ~~Library ekspor, diputuskan saat rencana ekspor dibuat (PRD menyebut Apache POI untuk Excel).~~ **Disepakati di K-141:** Apache POI 5.4.1 (`poi-ooxml`) untuk Excel dan OpenPDF 2.4.0 untuk PDF.
+  - Tata letak persisnya, menunggu file Excel asli dari client (Q-050).
   - Setiap indikasi aturan di dokumen AS-IS, yang tetap berstatus belum dikonfirmasi (Q-038–Q-044).
 - **Audit.** Setiap ekspor dicatat di audit log, sesuai rencana Fase 6 dan AUD-009.
 
@@ -816,6 +819,7 @@ Client mengirim template "Data Karyawan" berisi 28 karyawan (Takka 1: 4, Takka 2
   - Password sementara `<nama>-<ID>-takka` (contoh `eni-006-takka`; semula `<nama>-<ID>`), wajib diganti saat login pertama, dan hanya ditampilkan sekali di jendela pesan setelah akun dibuat atau direset. Dengan akhiran `-takka`, password selalu minimal 8 karakter, sehingga username boleh pendek (`eni@takka.id`).
   - Risiko yang diterima pengguna: password awal mudah ditebak rekan kerja, sehingga sebaiknya dibagikan tepat sebelum akun dipakai.
   - Role dari data client: 001 Owner; 003 dan 005 Finance & Accounting; lainnya Karyawan. Akun Owner bawaan dari environment tetap dipertahankan sebagai akun teknis tim pengembang. Owner (001) ikut dihitung absensi dan gajinya.
+- **K-132 Label "Finance & Accounting".** Semua teks yang dilihat pengguna (menu, pesan error, notifikasi, label tahap izin, dan surat PDF) memakai "Finance & Accounting" menggantikan "HR/Finance" dan "HR". Kode role `HR_FINANCE` dan tahap `HR` di API tidak berubah, sehingga data lama tetap valid.
 - **K-133 Tambah karyawan sekaligus akun, dengan pesan WA.**
   - Form Tambah Karyawan punya centang "Buatkan akun login" (tercentang bawaan). Username, password sementara, dan PIN mesin terisi usulan dari nama dan No. karyawan, mengikuti ketikan selama belum diubah manual. Role selain Karyawan hanya bisa dipilih Owner.
   - `POST /api/employees` menerima `account: {username, password, role}` opsional. Karyawan dan akun dibuat dalam satu transaksi lewat `UserAccountService`; bila akun gagal (mis. username sudah dipakai, 409), karyawan juga tidak tersimpan. Password tidak pernah dikembalikan dan tidak masuk audit log.
@@ -846,7 +850,46 @@ Client mengirim template "Data Karyawan" berisi 28 karyawan (Takka 1: 4, Takka 2
   - Saat kunci mulai berlaku dicatat di audit (`LOGIN_LOCKED`, entitas `AUTH`, aktor = username yang dicoba).
   - Disimpan di memori satu proses seperti K-116: kunci hilang saat server di-restart. Penyerang bisa sengaja mengunci akun orang lain selama 15 menit; diterima karena jumlah pengguna kecil.
 
-- **K-132 Label "Finance & Accounting".** Semua teks yang dilihat pengguna (menu, pesan error, notifikasi, label tahap izin, dan surat PDF) memakai "Finance & Accounting" menggantikan "HR/Finance" dan "HR". Kode role `HR_FINANCE` dan tahap `HR` di API tidak berubah, sehingga data lama tetap valid.
+### Daftar Perlu Ditinjau (K-139, 2026-10-28)
+
+- **K-139 Daftar Perlu Ditinjau** (`attendance/ReviewQueueService`, halaman `/absensi/perlu-ditinjau`, FR-REV-001).
+  - Sebuah hari karyawan masuk daftar bila status `TIDAK_LENGKAP`; atau ada penanda `URUTAN_TIDAK_WAJAR`, `HADIR_SAAT_IZIN`, `PERLU_TINJAUAN_HARI_LIBUR`, atau `ADA_SCAN_TERTAHAN`; atau aturan kerja belum diatur (`ruleMissing`). Alasan ditampilkan: "Tidak lengkap", "Urutan jam tidak wajar", "Hadir saat izin", "Hadir di hari libur", "Ada scan tertahan", "Aturan kerja belum diatur".
+  - `TIDAK_HADIR` dan `IZIN_MENUNGGU` tidak masuk daftar: tidak hadir adalah hasil normal, izin menunggu sudah punya antreannya sendiri.
+  - **Tidak memakai tabel dan tidak ada tombol "tandai sudah ditinjau".** Daftar disaring dari `AttendanceService.range(...)` (rekap yang sama dengan Absensi Harian), sehingga hari keluar dari daftar dengan sendirinya setelah koreksi jam (K-059) atau keputusan scan tertahan (K-103) mengubah hasil rekap. Tidak ada status ganda yang bisa tidak sinkron dengan rekap.
+  - Urutan: tanggal terbaru dulu, lalu nama. Periode bawaan: tanggal 1 bulan berjalan sampai hari ini; filter cabang dan kategori opsional; rentang dibatasi seperti rekap lain (400 bila tidak valid).
+  - Akses: Owner dan Finance & Accounting. Tautan "Tinjau" membuka `/absensi/karyawan/:id?from=&to=` (halaman koreksi yang ada, kini membaca `from`/`to`).
+
+### Validasi lembur (K-140, 2026-10-28)
+
+- **K-140 Validasi lembur** (paket `overtime`, halaman `/absensi/lembur`, FR-REV-003).
+  - **Sumber kandidat.** Kandidat lembur selalu diambil dari rekap harian yang sudah ada (`DailyResultResponse.overtimeCandidateSeconds`, lewat `AttendanceService.range`/`day`). Modul ini tidak menghitung lembur sendiri, sehingga aturan kerja yang berlaku pada tanggalnya tetap satu-satunya sumber.
+  - **Schema V18 `overtime_validations`:** satu baris per (karyawan, tanggal) (unique `ux_overtime_validations_day`), berisi `candidate_seconds` saat divalidasi, `approved_seconds` (CHECK 0 ≤ disetujui ≤ kandidat; 0 = ditolak), catatan, validator, waktu, dan `version` (`@Version`). Tidak ada kolom status.
+  - **Status dihitung saat dibaca:** `BELUM_DIVALIDASI` (belum ada baris), `TERVALIDASI` (`candidate_seconds` sama dengan kandidat sekarang), `PERLU_VALIDASI_ULANG` (berbeda, mis. setelah koreksi jam pulang). Hari yang perlu validasi ulang **tidak dihitung** sebagai lembur sah sampai divalidasi lagi.
+  - **Aturan (konfirmasi no. 3–4):** lembur disetujui diisi dalam menit, 0 sampai menit penuh kandidat (lebih → 400 "Lembur disetujui tidak boleh melebihi kandidat"); catatan wajib bila menit kurang dari menit penuh kandidat (400 "Catatan wajib bila lembur dikurangi atau ditolak"); tanggal tidak boleh di masa depan menurut zona waktu perusahaan (`app.company-timezone`, sama dengan "hari ini" absensi). Validasi boleh diubah lagi selama payroll belum ada.
+  - **Menit penuh = setuju seluruhnya.** Isian menit harus bilangan bulat (1.5 → 400 "Lembur disetujui harus bilangan bulat menit"); menit sama dengan floor(kandidat/60) berarti disetujui seluruhnya, disimpan sebesar kandidat apa adanya termasuk sisa detiknya dan tanpa catatan wajib (mis. kandidat 7237 detik, 120 menit → 7237 detik); kurang dari itu adalah pengurangan (menit × 60, catatan wajib); lebih dari itu → 400.
+  - **Tanpa pembulatan.** Durasi disimpan dalam detik apa adanya. Aturan pembulatan lembur masih menunggu jawaban client (Q-008 tetap terbuka).
+  - **API.** `GET /api/overtime?from=&to=&branchId=&categoryId=` (bawaan: tanggal 1 bulan berjalan sampai hari ini) memuat hari dengan kandidat > 0 atau yang sudah punya validasi. `POST /api/overtime/validations` menerima maksimal 200 item `{employeeId, workDate, approvedMinutes, expectedCandidateSeconds, note}` dan diproses atomik: satu item gagal → semua batal. `expectedCandidateSeconds` yang tidak sama dengan kandidat sekarang → 409 "Kandidat lembur sudah berubah sejak halaman dimuat; muat ulang halaman" agar pengguna tidak menyetujui angka usang. Pemeriksaan tambahan (400): hari yang sama dua kali dalam satu permintaan, dan hari tanpa kandidat yang belum pernah divalidasi. Dua validator bersamaan pada hari yang sama → satu sukses, satu 409 "Lembur ini baru saja divalidasi pengguna lain; muat ulang halaman" (unique atau `@Version`).
+  - **Audit.** Setiap item dicatat `OVERTIME_VALIDATE` (entitas `OVERTIME_VALIDATION`) dengan nilai sebelum dan sesudah, di transaksi yang sama.
+  - **Untuk laporan:** `OvertimeService.validatedSeconds(List<EmployeeDays>)` hanya mengembalikan hari berstatus `TERVALIDASI` dengan `approvedSeconds`.
+  - Akses: Owner dan Finance & Accounting (`/api/overtime/**`); Karyawan 403.
+
+### Laporan absensi dan ekspor Excel/PDF (K-141, 2026-10-30)
+
+- **K-141 Laporan absensi dan ekspor** (paket `report`, halaman `/laporan`, FR-RPT-001–003, 005–007, merinci K-105).
+  - **Tiga jenis laporan berbasis data absensi:**
+    1. `rekap-absensi` (Rekap Absensi): judul, periode, filter, tabel per karyawan dengan kisi kehadiran harian (`mark`), total hari lengkap, izin, tidak hadir, jam kerja normal, dan lembur tervalidasi. Di Excel dilengkapi sheet `Detail` (satu baris per hari per karyawan).
+    2. `rekap-lembur` (Rekap Lembur Tervalidasi): judul, periode, filter, tabel per karyawan dengan kisi lembur harian tervalidasi (jam desimal), dan total jam lembur tervalidasi. Hanya lembur yang sudah berstatus `TERVALIDASI` yang dimasukkan (FR-REV-003).
+    3. `detail-absensi` (Detail Absensi): jam-jam scan per tanggal untuk setiap karyawan (gaya AS-4).
+  - **Library & format:**
+    - Excel: Apache POI `poi-ooxml` 5.4.1 (.xlsx). Sel jam diformat sebagai numerik dua desimal (`0.00`), baris judul di-freeze.
+    - PDF: OpenPDF 2.4.0 (.pdf), layout A4 landscape dengan font yang di-embed (Poppins/Open Sans), pembagian halaman otomatis jika rentang hari > 31 hari.
+  - **Aturan bisnis perhitungan (konfirmasi no. 1, sementara Q-049 belum dijawab client):**
+    - **Counting days:** jumlah hari berstatus `LENGKAP`. Hari `TIDAK_LENGKAP` dan `TIDAK_HADIR` tidak dihitung. Hari `IZIN` tidak dihitung ke counting days, tetapi ditampilkan di kolom tersendiri ("Izin").
+    - **Counting hours:** jumlah jam kerja normal (`regularWorkSeconds` dari kalkulator, istirahat sudah dipotong). Lembur tervalidasi tidak ditambahkan ke counting hours, melainkan ditampilkan di kolom terpisah ("Lembur tervalidasi").
+  - **Filter & supir/kenek (FR-RPT-004, FR-RPT-007):** filter periode tanggal (maksimal 62 hari), cabang, kategori karyawan, dan nama karyawan. Laporan mingguan supir/kenek dipenuhi lewat kombinasi filter kategori dan rentang tanggal tanpa tombol mingguan paten (Q-006).
+  - **Audit:** Setiap pengunduhan berkas Excel atau PDF dicatat lewat `AuditService.record("EXPORT", "REPORT", slug, null, filterDetail)`. Pratinjau JSON tidak dicatat di audit log.
+  - **Tata letak:** Tata letak dan styling saat ini merupakan pendekatan terstruktur yang mendekati dokumen AS-IS (AS-1, AS-2, AS-4, AS-5, AS-6). Tata letak persis sel dan sheet masih menunggu penyerahan file Excel asli dari client (Q-050).
+  - **Akses:** Owner dan Finance & Accounting (`/api/reports/**`, menu Laporan di frontend); role Karyawan ditolak 403.
 
 ---
 
