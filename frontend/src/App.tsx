@@ -22,6 +22,7 @@ import { LeaveDetailPage } from '@/pages/LeaveDetailPage'
 import { LeaveRequestsPage } from '@/pages/LeaveRequestsPage'
 import { LeaveWizardPage } from '@/pages/LeaveWizardPage'
 import { LeaveTypesPage } from '@/pages/LeaveTypesPage'
+import { LoansPage } from '@/pages/LoansPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MyAttendancePage } from '@/pages/MyAttendancePage'
 import { MyLeavePage } from '@/pages/MyLeavePage'
@@ -101,6 +102,7 @@ function App() {
         <Route path="absensi/perlu-ditinjau" element={managers(<ReviewQueuePage />)} />
         <Route path="absensi/lembur" element={managers(<OvertimePage />)} />
         <Route path="laporan" element={managers(<ReportsPage />)} />
+        <Route path="kasbon" element={managers(<LoansPage />)} />
         <Route path="absensi/scan-tak-dikenal" element={managers(<UnmatchedScansPage />)} />
         <Route path="absensi/scan-tertahan" element={managers(<HeldScansPage />)} />
         <Route path="izin" element={managers(<LeaveRequestsPage />)} />

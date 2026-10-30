@@ -1,4 +1,5 @@
 import {
+  Banknote,
   Building2,
   Calculator,
   CalendarCheck,
@@ -52,6 +53,7 @@ export const MENU: MenuItem[] = [
   // Di HP diakses lewat lonceng notifikasi di header atau menu "Lainnya", agar bottom navigation tidak penuh.
   { path: '/izin', label: 'Izin & Cuti', roles: MANAGERS, icon: CalendarCheck, group: 'Operasional', mobile: true },
   { path: '/laporan', label: 'Laporan', roles: MANAGERS, icon: FileSpreadsheet, group: 'Operasional', mobile: true },
+  { path: '/kasbon', label: 'Kasbon & Piutang', roles: MANAGERS, icon: Banknote, group: 'Operasional' },
   { path: '/karyawan', label: 'Karyawan', roles: MANAGERS, icon: Users, group: 'Master data' },
   { path: '/cabang', label: 'Cabang', roles: MANAGERS, icon: Building2, group: 'Master data' },
   { path: '/kategori', label: 'Kategori Karyawan', roles: MANAGERS, icon: Tags, group: 'Master data' },

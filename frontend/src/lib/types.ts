@@ -709,13 +709,31 @@ export interface ReportTotals {
   validatedOvertimeHours: number
 }
 
+export interface ReportFinancial {
+  dailyWage: number | null
+  grossDailyWage: number | null
+  overtimeRate: number | null
+  overtimeWage: number | null
+  loanDeduction: number | null
+  netWage: number | null
+  baseSalary: number | null
+  onsiteWage: number | null
+}
+
+export interface BranchSummary {
+  branchName: string
+  totalAmount: number
+}
+
 export interface ReportEmployee {
+  employeeId?: number
   employeeNumber: string
   fullName: string
   branchName: string
   categoryName: string | null
   days: ReportDay[]
   totals: ReportTotals
+  financial?: ReportFinancial | null
 }
 
 /** Model laporan dari GET /api/reports/{slug}; Excel/PDF dibuat dari model yang sama. */
@@ -726,4 +744,32 @@ export interface ReportModel {
   filterLabels: string[]
   dates: string[]
   employees: ReportEmployee[]
+  branchSummaries?: BranchSummary[]
+}
+
+export interface LoanRepayment {
+  id: number
+  loanId: number
+  repaymentDate: string
+  amount: number
+  periodLabel: string
+  reportType: string
+  notes: string | null
+  createdAt: string
+}
+
+export interface EmployeeLoan {
+  id: number
+  employeeId: number
+  employeeName: string
+  branchName: string
+  loanNumber: string
+  loanDate: string
+  totalAmount: number
+  installmentAmount: number
+  remainingAmount: number
+  status: 'AKTIF' | 'LUNAS' | 'DIBATALKAN'
+  notes: string | null
+  createdAt: string
+  repayments: LoanRepayment[]
 }
