@@ -135,6 +135,9 @@ public class PdfReportWriter {
 		if (model.type() == ReportType.GAJI_BULANAN) {
 			return TakkaPdfPages.write(model);
 		}
+		if (model.type() == ReportType.UPAH_MINGGUAN) {
+			return TakkaWeeklyPdf.write(model);
+		}
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		Document document = new Document(PageSize.A4.rotate(), MARGIN_SIDE, MARGIN_SIDE, MARGIN_TOP, MARGIN_BOTTOM);
 		try {
@@ -192,7 +195,7 @@ public class PdfReportWriter {
 		int nTotals = last ? totalHeaders.length : 0;
 		float pageWidth = PageSize.A4.getHeight() - 2 * MARGIN_SIDE;
 		float fixed = sum(FIXED_WIDTHS);
-		float totalsEach = (type == ReportType.GAJI_BULANAN || type == ReportType.UPAH_MINGGUAN) ? 36f
+		float totalsEach = type == ReportType.GAJI_BULANAN ? 36f
 				: (type == ReportType.REKAP_ABSENSI ? 38f : 40f);
 		float dateW = n == 0 ? 0f : Math.min((pageWidth - fixed - nTotals * totalsEach) / n, 48f);
 		float[] widths = new float[FIXED_WIDTHS.length + n + nTotals];
@@ -254,15 +257,6 @@ public class PdfReportWriter {
 						t.addCell(cell(hours(tot.validatedOvertimeHours()), bf, Element.ALIGN_RIGHT, null));
 					case DETAIL_ABSENSI -> {
 					}
-					case UPAH_MINGGUAN -> {
-						var fin = e.financial();
-						t.addCell(cell(String.valueOf(tot.countingDays()), bf, Element.ALIGN_CENTER, null));
-						t.addCell(cell(rupiah(fin != null ? fin.dailyWage() : null), bf, Element.ALIGN_RIGHT, null));
-						t.addCell(cell(rupiah(fin != null ? fin.grossDailyWage() : null), bf, Element.ALIGN_RIGHT, null));
-						t.addCell(cell(rupiah(fin != null ? fin.overtimeWage() : null), bf, Element.ALIGN_RIGHT, null));
-						t.addCell(cell(rupiah(fin != null ? fin.loanDeduction() : null), bf, Element.ALIGN_RIGHT, null));
-						t.addCell(cell(rupiah(fin != null ? fin.netWage() : null), ctx.font(ctx.strong(), 6f), Element.ALIGN_RIGHT, null));
-					}
 					case GAJI_BULANAN -> {
 						var fin = e.financial();
 						t.addCell(cell(String.valueOf(tot.countingDays()), bf, Element.ALIGN_CENTER, null));
@@ -312,7 +306,7 @@ public class PdfReportWriter {
 					"Lembur tervalidasi" };
 			case REKAP_LEMBUR -> new String[] { "Total lembur" };
 			case DETAIL_ABSENSI -> new String[0];
-			case UPAH_MINGGUAN -> new String[] { "Hari", "Upah Harian", "Total Upah", "Lembur", "Kasbon", "Sisa Upah" };
+			case UPAH_MINGGUAN -> new String[0];
 			case GAJI_BULANAN -> new String[] { "Hari", "Wages", "Onsite", "Gaji Pokok", "Lembur", "Piutang", "Total Gaji" };
 		};
 	}

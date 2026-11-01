@@ -46,7 +46,75 @@ final class TakkaFormat {
 
 	static final String NO_DATA = "Tidak ada data pada rentang dan filter ini.";
 
+	/** Merah muda sel tidak masuk di AS-1, dinormalkan dari foto terhadap warna kertas. */
+	static final String WEEKLY_RED = "E17D98";
+
+	/** Merah tua angka jam lembur di AS-2. */
+	static final String WEEKLY_HOURS = "B0405E";
+
+	static final String WEEKLY_JOB = "Upah Supir dan Kenek";
+
+	static final String WEEKLY_LOCATION = "TOKO";
+
+	static final String WEEKLY_PERIOD_LABEL = "PERIODE           :";
+
+	static final String WEEKLY_WEEK_LABEL = "MINGGU            :";
+
+	private static final String[] MONTHS = { "JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS",
+			"SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER" };
+
 	private TakkaFormat() {
+	}
+
+	/** Huruf kolom hari AS-1/AS-2: S M S S R K J untuk Sabtu sampai Jumat. */
+	static String dayLetter(LocalDate date) {
+		return switch (date.getDayOfWeek()) {
+			case SATURDAY, MONDAY, TUESDAY -> "S";
+			case SUNDAY -> "M";
+			case WEDNESDAY -> "R";
+			case THURSDAY -> "K";
+			case FRIDAY -> "J";
+		};
+	}
+
+	/** "26 SEPTEMBER - 02 OKTOBER 2026"; tahun ditulis dua kali bila rentang melewati pergantian tahun. */
+	static String weeklyPeriod(List<LocalDate> dates) {
+		LocalDate from = dates.get(0);
+		LocalDate to = dates.get(dates.size() - 1);
+		String start = String.format(Locale.ROOT, "%02d %s", from.getDayOfMonth(), MONTHS[from.getMonthValue() - 1]);
+		if (from.getYear() != to.getYear()) {
+			start += " " + from.getYear();
+		}
+		return start + String.format(Locale.ROOT, " - %02d %s %d", to.getDayOfMonth(), MONTHS[to.getMonthValue() - 1],
+				to.getYear());
+	}
+
+	/** Minggu keberapa di bulan tanggal terakhir periode, seperti foto: berakhir awal Oktober menjadi "KE - 1". */
+	static String weeklyNumber(List<LocalDate> dates) {
+		return "KE - " + ((dates.get(dates.size() - 1).getDayOfMonth() - 1) / 7 + 1);
+	}
+
+	/** Tanda hari AS-1 menurut tanggal, karena periode mingguan bisa melewati dua bulan. */
+	static String mark(ReportEmployee employee, LocalDate date) {
+		ReportDay day = dayOn(employee, date);
+		if (day == null || day.status() == null) {
+			return "";
+		}
+		if (day.status() == AttendanceStatus.LENGKAP) {
+			return "V";
+		}
+		return day.status() == AttendanceStatus.TIDAK_LENGKAP ? "?" : "";
+	}
+
+	/** Jam lembur pada tanggal itu, null bila 0 atau tidak ada. */
+	static BigDecimal overtime(ReportEmployee employee, LocalDate date) {
+		ReportDay day = dayOn(employee, date);
+		BigDecimal hours = day == null ? null : day.validatedOvertimeHours();
+		return hours == null || hours.signum() == 0 ? null : hours;
+	}
+
+	private static ReportDay dayOn(ReportEmployee employee, LocalDate date) {
+		return employee.days().stream().filter(d -> d.date().equals(date)).findFirst().orElse(null);
 	}
 
 	/** Kolom merah: tanggal yang tidak ada di bulan itu atau hari libur. */

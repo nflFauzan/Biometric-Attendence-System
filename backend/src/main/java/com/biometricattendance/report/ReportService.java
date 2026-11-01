@@ -114,6 +114,12 @@ public class ReportService {
 					activeLoans.get(employee.employeeId()), filter.to()));
 		}
 
+		if (type == ReportType.UPAH_MINGGUAN) {
+			// Lembar "Upah Supir dan Kenek": karyawan bergaji pokok dibayar lewat laporan bulanan (K-143).
+			rows.removeIf(row -> row.financial() != null && row.financial().baseSalary() != null);
+			rows.sort(Comparator.comparing(ReportEmployee::employeeNumber));
+		}
+
 		List<BranchSummary> branchSummaries = computeBranchSummaries(rows);
 		String period = DATE.format(filter.from()) + " s.d. " + DATE.format(filter.to());
 		if (!monthly) {
@@ -223,7 +229,7 @@ public class ReportService {
 			BigDecimal actualDeduction = installment.min(grossTotal);
 			BigDecimal netWage = grossTotal.subtract(actualDeduction);
 			return new ReportFinancial(dailyWage, grossDailyWage, overtimeRate, overtimeWage, actualDeduction, netWage,
-					null, null);
+					baseSalary, null);
 		}
 		else {
 			// GAJI_BULANAN: Onsite = Days * Wages
