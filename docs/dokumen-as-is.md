@@ -94,7 +94,7 @@ Rumus berikut direkonstruksi dari angka di foto, dan totalnya cocok sampai ke ru
    - Departemen (OPS, PRC, FIN, MAR, SHIP).
    - Nama panggilan: AS-7 memakai nama pendek atau panggilan ("Om …"), sedangkan AS-5 memakai nama lengkap (Q-042).
 7. **Metode bayar.** Supir dan kenek dibayar tunai. Staf ditransfer, dengan admin bank 2.500 per orang yang **ditanggung perusahaan** (masuk AS-7, tidak dipotong dari gaji). Angka 2.500 juga ditulis tangan di kolom Input Piutang AS-5, tetapi tidak mengurangi total (Q-043).
-8. **Skema harian di lembar staf.** Beberapa baris AS-5 memiliki Wages 140.000–180.000 tanpa gaji pokok, mirip upah harian murni. Foto miring, sehingga barisnya tidak bisa dipastikan (Q-044).
+8. **Skema harian di lembar staf.** Beberapa baris AS-5 memiliki Wages 140.000–180.000 tanpa gaji pokok, mirip upah harian murni. Foto miring, sehingga barisnya tidak bisa dipastikan (Q-044). Total Wages tiga baris itu sama dengan 25 × Wages walau tercatat 26 hari (Q-051).
 9. **Kisi bulanan selalu 31 kolom.** Tanggal yang tidak ada (31 September) ikut diberi warna merah.
 
 ## 5. Daftar konfirmasi untuk client

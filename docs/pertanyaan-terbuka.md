@@ -552,13 +552,19 @@ Perlu konfirmasi/penyerahan dari client:
 
 **Dampak:** kesesuaian visual 100% dengan proses pelaporan internal client saat masa transisi ke sistem baru.
 
+### Q-051. Rumus Total Wages staf tanpa gaji pokok (memperluas Q-044)
+
+Tiga baris AS-5 tanpa gaji pokok tidak cocok dengan `Hari × Wages`: 26 × 140.000 tertulis 3.500.000, 26 × 180.000 tertulis 4.500.000, dan 26 × 160.000 tertulis 4.000.000. Ketiganya sama dengan 25 × Wages, atau mungkin gaji tetap bulanan. Satu baris juga memuat piutang 500.000 yang tampaknya tidak mengurangi total. Sistem sementara memakai `Hari × Wages` dan tidak menebak rumus lain.
+
+**Dampak:** nominal gaji baris tersebut berbeda dari dokumen client sampai dijawab.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
 
 | Prioritas | ID | Alasan |
 |---|---|---|
-| P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033, Q-038, Q-039, Q-040, Q-043, Q-044, Q-048, Q-049 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
+| P0 — Sebelum formula payroll dikunci | Q-002, Q-005, Q-006, Q-007, Q-008, Q-009, Q-010, Q-011, Q-013 (sisa), Q-014, Q-015, Q-033, Q-038, Q-039, Q-040, Q-043, Q-044, Q-048, Q-049, Q-051 | Menentukan akurasi nominal, periode, dan prosedur koreksi payroll. |
 | P0 — Sebelum Fase 3 (uji X401) | Q-029 (sebagian terjawab 2026-10-12), Q-031, Q-032 | Menentukan format adapter ZK-Push dan pemetaan PIN karyawan. |
 | P0 — Sebelum integrasi hardware | Q-018, Q-019, Q-020, Q-021, Q-022, Q-030, Q-034, Q-035, Q-036, Q-037 | Menentukan protokol, keamanan, sinkronisasi, dan keandalan data scan. |
 | P1 — Sebelum fitur absensi dan izin difinalisasi | Q-001, Q-003, Q-004, Q-016, Q-017, Q-026, Q-027, Q-028, Q-041, Q-042, Q-045, Q-046, Q-047, Q-050 | Menentukan perilaku absensi, proses koreksi, dan hak akses. |
