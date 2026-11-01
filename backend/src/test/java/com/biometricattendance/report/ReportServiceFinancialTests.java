@@ -71,6 +71,27 @@ class ReportServiceFinancialTests extends AttendanceFixtures {
 	}
 
 	@Test
+	void weeklyReportExcludesBaseSalaryStaffAndSortsByEmployeeNumber() throws Exception {
+		long branchId = createBranch();
+		long staff = createEmployee(branchId, uniquePin());
+		long first = createEmployee(branchId, uniquePin());
+		long second = createEmployee(branchId, uniquePin());
+		addFullRule(staff);
+		addFullRule(first);
+		addFullRule(second);
+		jdbc.update("update work_rules set base_salary = 3000000 where employee_id = ?", staff);
+		jdbc.update("update work_rules set daily_wage = 100000 where employee_id in (?, ?)", first, second);
+
+		ReportModel model = reportService.build(ReportType.UPAH_MINGGUAN,
+				new ReportFilter(LocalDate.of(2026, 10, 3), LocalDate.of(2026, 10, 9), branchId, null, null));
+
+		List<Long> ids = model.employees().stream().map(ReportEmployee::employeeId).toList();
+		assertThat(ids).containsExactlyInAnyOrder(first, second);
+		List<String> numbers = model.employees().stream().map(ReportEmployee::employeeNumber).toList();
+		assertThat(numbers).isSorted();
+	}
+
+	@Test
 	void testMonthlySalaryCalculationMatchesAS5() throws Exception {
 		long branchId = createBranch();
 		String pin = uniquePin();

@@ -118,9 +118,9 @@ class ReportExportWritersTests {
 		byte[] xlsx = excelWriter.write(buildWeeklyWageModel());
 		try (XSSFWorkbook wb = new XSSFWorkbook(new ByteArrayInputStream(xlsx))) {
 			assertThat(wb.getNumberOfSheets()).isGreaterThanOrEqualTo(2);
-			Sheet as1 = wb.getSheet("Rekap Upah");
+			Sheet as1 = wb.getSheet("Absensi");
 			assertThat(as1).isNotNull();
-			Sheet as2 = wb.getSheet("Rekap Lemburan");
+			Sheet as2 = wb.getSheet("Lemburan");
 			assertThat(as2).isNotNull();
 		}
 	}
