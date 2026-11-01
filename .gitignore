@@ -61,3 +61,6 @@ docs/Template_Pengisian_Data_Karyawan*.xlsx
 
 # Superpowers workflow artifacts
 .superpowers/
+
+# Catatan kredensial akun (lokal, jangan pernah di-commit)
+kredensial-akun.md

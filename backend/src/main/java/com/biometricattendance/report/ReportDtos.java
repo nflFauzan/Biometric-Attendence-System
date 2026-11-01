@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+import jakarta.validation.constraints.Size;
+
 import com.biometricattendance.calculation.DailyResult.AttendanceStatus;
 
 /** Model laporan yang sudah jadi: penulis Excel/PDF hanya merender, tanpa logika sendiri. */
@@ -30,8 +32,28 @@ public final class ReportDtos {
 			BigDecimal onsiteWage) {
 	}
 
+	public record ReportSettingRequest(@Size(max = 150, message = "Nama manager maksimal 150 karakter") String managerName,
+			@Size(max = 150, message = "Departemen maksimal 150 karakter") String departmentName) {
+	}
+
+	public record ReportSettingResponse(String managerName, String departmentName) {
+	}
+
+	/**
+	 * @param managerName isi kop "Manager Name" format klien, boleh null
+	 * @param departmentName isi kop "Department" format klien, boleh null
+	 * @param monthLabel isi kop "Month", misalnya "September 2026"; null untuk laporan non-bulanan
+	 * @param offDates tanggal libur untuk kolom merah di kisi format klien, urut naik
+	 */
 	public record ReportModel(ReportType type, String title, String periodLabel, List<String> filterLabels,
-			List<LocalDate> dates, List<ReportEmployee> employees, List<BranchSummary> branchSummaries) {
+			List<LocalDate> dates, List<ReportEmployee> employees, List<BranchSummary> branchSummaries,
+			String managerName, String departmentName, String monthLabel, List<LocalDate> offDates) {
+
+		public ReportModel(ReportType type, String title, String periodLabel, List<String> filterLabels,
+				List<LocalDate> dates, List<ReportEmployee> employees, List<BranchSummary> branchSummaries) {
+			this(type, title, periodLabel, filterLabels, dates, employees, branchSummaries, null, null, null,
+					List.of());
+		}
 
 		public ReportModel(ReportType type, String title, String periodLabel, List<String> filterLabels,
 				List<LocalDate> dates, List<ReportEmployee> employees) {

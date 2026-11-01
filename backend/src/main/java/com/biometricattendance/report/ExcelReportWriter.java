@@ -74,8 +74,8 @@ public class ExcelReportWriter {
 					weeklyOvertimeSheet(wb, st, model);
 				}
 				case GAJI_BULANAN -> {
-					monthlySalarySheet(wb, st, model);
-					monthlyOvertimeSheet(wb, st, model);
+					TakkaExcelSheets.salary(wb, model);
+					TakkaExcelSheets.overtime(wb, model);
 					storeSubmissionSheet(wb, st, model);
 				}
 			}
@@ -479,7 +479,7 @@ public class ExcelReportWriter {
 			hours(row, totalsAt, empHours, st.hours);
 
 			var fin = e.financial();
-			BigDecimal rate = fin != null && fin.overtimeRate() != null ? fin.overtimeRate() : BigDecimal.valueOf(14000);
+			BigDecimal rate = fin != null ? fin.overtimeRate() : null;
 			BigDecimal wage = fin != null && fin.overtimeWage() != null ? fin.overtimeWage() : BigDecimal.ZERO;
 			sumOvertimeWage = sumOvertimeWage.add(wage);
 
@@ -519,205 +519,6 @@ public class ExcelReportWriter {
 	}
 
 	// ---- GAJI_BULANAN (Format AS-5, AS-6 & AS-7) ----
-
-	private void monthlySalarySheet(XSSFWorkbook wb, Styles st, ReportModel m) {
-		XSSFSheet s = wb.createSheet("Gaji Staf");
-		titleBlockTakka(s, st, "DAFTAR GAJI STAF KANTOR", m);
-
-		Row h = s.createRow(HEADER_ROW);
-		header(h, st, 0, "NO");
-		header(h, st, 1, "NAMA");
-		header(h, st, 2, "JABATAN");
-		header(h, st, 3, "CABANG");
-		header(h, st, 4, "TOTAL DAYS");
-		header(h, st, 5, "WAGES");
-		header(h, st, 6, "ONSITE");
-		header(h, st, 7, "GAJI POKOK");
-		header(h, st, 8, "LEMBUR");
-		header(h, st, 9, "PIUTANG");
-		header(h, st, 10, "TOTAL GAJI");
-		header(h, st, 11, "TTD / KETERANGAN");
-
-		int r = HEADER_ROW + 1;
-		int idx = 1;
-		int sumDays = 0;
-		BigDecimal sumOnsite = BigDecimal.ZERO;
-		BigDecimal sumBase = BigDecimal.ZERO;
-		BigDecimal sumOvertime = BigDecimal.ZERO;
-		BigDecimal sumLoan = BigDecimal.ZERO;
-		BigDecimal sumNetWage = BigDecimal.ZERO;
-
-		for (ReportEmployee e : m.employees()) {
-			Row row = s.createRow(r++);
-			number(row, 0, idx++, st.integer);
-			text(row, 1, e.fullName(), st.text);
-			text(row, 2, e.categoryName(), st.text);
-			text(row, 3, e.branchName(), st.text);
-
-			int days = e.totals().countingDays();
-			sumDays += days;
-			number(row, 4, days, st.integer);
-
-			var fin = e.financial();
-			BigDecimal wages = fin != null && fin.dailyWage() != null ? fin.dailyWage() : BigDecimal.valueOf(40000);
-			BigDecimal onsite = fin != null && fin.onsiteWage() != null ? fin.onsiteWage() : BigDecimal.ZERO;
-			BigDecimal base = fin != null && fin.baseSalary() != null ? fin.baseSalary() : BigDecimal.ZERO;
-			BigDecimal overtime = fin != null && fin.overtimeWage() != null ? fin.overtimeWage() : BigDecimal.ZERO;
-			BigDecimal loan = fin != null && fin.loanDeduction() != null ? fin.loanDeduction() : BigDecimal.ZERO;
-			BigDecimal netWage = fin != null && fin.netWage() != null ? fin.netWage() : BigDecimal.ZERO;
-
-			sumOnsite = sumOnsite.add(onsite);
-			sumBase = sumBase.add(base);
-			sumOvertime = sumOvertime.add(overtime);
-			sumLoan = sumLoan.add(loan);
-			sumNetWage = sumNetWage.add(netWage);
-
-			rupiah(row, 5, wages, st.currency);
-			rupiah(row, 6, onsite, st.currency);
-			rupiah(row, 7, base, st.currency);
-			rupiah(row, 8, overtime, st.currency);
-			rupiah(row, 9, loan, st.currency);
-			rupiah(row, 10, netWage, st.boldCurrency);
-			text(row, 11, "", st.text);
-		}
-
-		if (m.employees().isEmpty()) {
-			text(s.createRow(r++), 0, NO_DATA, st.text);
-		}
-
-		// Total Row
-		Row totRow = s.createRow(r++);
-		text(totRow, 0, "TOTAL", st.totalLabel);
-		text(totRow, 1, "", st.totalLabel);
-		text(totRow, 2, "", st.totalLabel);
-		text(totRow, 3, "", st.totalLabel);
-		number(totRow, 4, sumDays, st.boldInteger);
-		text(totRow, 5, "", st.totalLabel);
-		rupiah(totRow, 6, sumOnsite, st.boldCurrency);
-		rupiah(totRow, 7, sumBase, st.boldCurrency);
-		rupiah(totRow, 8, sumOvertime, st.boldCurrency);
-		rupiah(totRow, 9, sumLoan, st.boldCurrency);
-		rupiah(totRow, 10, sumNetWage, st.boldCurrency);
-		text(totRow, 11, "", st.totalLabel);
-
-		// Tanda Tangan Dua Kolom (Accounting & Finance, Director)
-		r += 3;
-		Row sigHead = s.createRow(r++);
-		text(sigHead, 1, "Dibuat Oleh,", st.text);
-		text(sigHead, 7, "Disetujui Oleh,", st.text);
-
-		Row sigRole = s.createRow(r++);
-		text(sigRole, 1, "Accounting & Finance", st.boldText);
-		text(sigRole, 7, "Director", st.boldText);
-
-		r += 3;
-		Row sigName = s.createRow(r++);
-		text(sigName, 1, "( ................................ )", st.text);
-		text(sigName, 7, "( ................................ )", st.text);
-
-		s.setColumnWidth(0, 6 * 256);
-		s.setColumnWidth(1, 26 * 256);
-		s.setColumnWidth(2, 20 * 256);
-		s.setColumnWidth(3, 18 * 256);
-		s.setColumnWidth(4, 12 * 256);
-		s.setColumnWidth(5, 14 * 256);
-		s.setColumnWidth(6, 16 * 256);
-		s.setColumnWidth(7, 16 * 256);
-		s.setColumnWidth(8, 14 * 256);
-		s.setColumnWidth(9, 14 * 256);
-		s.setColumnWidth(10, 18 * 256);
-		s.setColumnWidth(11, 18 * 256);
-		s.createFreezePane(2, HEADER_ROW + 1);
-	}
-
-	private void monthlyOvertimeSheet(XSSFWorkbook wb, Styles st, ReportModel m) {
-		XSSFSheet s = wb.createSheet("Lembur Staf");
-		List<LocalDate> dates = m.dates();
-		int firstDate = 4;
-		int totalsAt = firstDate + dates.size();
-
-		titleBlockTakka(s, st, "REKAP LEMBUR STAF KANTOR", m);
-
-		Row h = s.createRow(HEADER_ROW);
-		header(h, st, 0, "NO");
-		header(h, st, 1, "NAMA");
-		header(h, st, 2, "JABATAN");
-		header(h, st, 3, "CABANG");
-		for (int i = 0; i < dates.size(); i++) {
-			LocalDate d = dates.get(i);
-			header(h, st, firstDate + i, String.valueOf(d.getDayOfMonth()));
-		}
-		header(h, st, totalsAt, "TOTAL JAM");
-		header(h, st, totalsAt + 1, "TARIF / JAM");
-		header(h, st, totalsAt + 2, "TOTAL LEMBUR");
-		header(h, st, totalsAt + 3, "TTD");
-
-		int r = HEADER_ROW + 1;
-		int idx = 1;
-		BigDecimal sumHours = BigDecimal.ZERO;
-		BigDecimal sumOvertimeWage = BigDecimal.ZERO;
-
-		for (ReportEmployee e : m.employees()) {
-			Row row = s.createRow(r++);
-			number(row, 0, idx++, st.integer);
-			text(row, 1, e.fullName(), st.text);
-			text(row, 2, e.categoryName(), st.text);
-			text(row, 3, e.branchName(), st.text);
-			for (int i = 0; i < dates.size(); i++) {
-				ReportDay d = i < e.days().size() ? e.days().get(i) : null;
-				BigDecimal ot = d == null ? null : d.validatedOvertimeHours();
-				if (ot == null || ot.compareTo(BigDecimal.ZERO) == 0) {
-					text(row, firstDate + i, "", st.text);
-				}
-				else {
-					hours(row, firstDate + i, ot, st.hours);
-				}
-			}
-			BigDecimal empHours = e.totals().validatedOvertimeHours();
-			sumHours = sumHours.add(empHours);
-			hours(row, totalsAt, empHours, st.hours);
-
-			var fin = e.financial();
-			BigDecimal rate = fin != null && fin.overtimeRate() != null ? fin.overtimeRate() : BigDecimal.valueOf(14000);
-			BigDecimal wage = fin != null && fin.overtimeWage() != null ? fin.overtimeWage() : BigDecimal.ZERO;
-			sumOvertimeWage = sumOvertimeWage.add(wage);
-
-			rupiah(row, totalsAt + 1, rate, st.currency);
-			rupiah(row, totalsAt + 2, wage, st.currency);
-			text(row, totalsAt + 3, "", st.text);
-		}
-
-		if (m.employees().isEmpty()) {
-			text(s.createRow(r++), 0, NO_DATA, st.text);
-		}
-
-		// Total Row
-		Row totRow = s.createRow(r++);
-		text(totRow, 0, "TOTAL", st.totalLabel);
-		text(totRow, 1, "", st.totalLabel);
-		text(totRow, 2, "", st.totalLabel);
-		text(totRow, 3, "", st.totalLabel);
-		for (int i = 0; i < dates.size(); i++) {
-			text(totRow, firstDate + i, "", st.totalLabel);
-		}
-		hours(totRow, totalsAt, sumHours, st.hours);
-		text(totRow, totalsAt + 1, "", st.totalLabel);
-		rupiah(totRow, totalsAt + 2, sumOvertimeWage, st.boldCurrency);
-		text(totRow, totalsAt + 3, "", st.totalLabel);
-
-		s.setColumnWidth(0, 6 * 256);
-		s.setColumnWidth(1, 26 * 256);
-		s.setColumnWidth(2, 20 * 256);
-		s.setColumnWidth(3, 16 * 256);
-		for (int i = 0; i < dates.size(); i++) {
-			s.setColumnWidth(firstDate + i, 5 * 256);
-		}
-		s.setColumnWidth(totalsAt, 14 * 256);
-		s.setColumnWidth(totalsAt + 1, 14 * 256);
-		s.setColumnWidth(totalsAt + 2, 16 * 256);
-		s.setColumnWidth(totalsAt + 3, 14 * 256);
-		s.createFreezePane(2, HEADER_ROW + 1);
-	}
 
 	private void storeSubmissionSheet(XSSFWorkbook wb, Styles st, ReportModel m) {
 		XSSFSheet s = wb.createSheet("Pengajuan Kas Toko");

@@ -132,6 +132,9 @@ public class PdfReportWriter {
 	}
 
 	public byte[] write(ReportModel model) {
+		if (model.type() == ReportType.GAJI_BULANAN) {
+			return TakkaPdfPages.write(model);
+		}
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		Document document = new Document(PageSize.A4.rotate(), MARGIN_SIDE, MARGIN_SIDE, MARGIN_TOP, MARGIN_BOTTOM);
 		try {

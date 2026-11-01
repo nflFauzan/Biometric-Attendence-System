@@ -11,14 +11,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
 
 import com.biometricattendance.audit.AuditService;
 import com.biometricattendance.common.ApiException;
 import com.biometricattendance.report.ReportDtos.ReportFilter;
 import com.biometricattendance.report.ReportDtos.ReportModel;
+import com.biometricattendance.report.ReportDtos.ReportSettingRequest;
+import com.biometricattendance.report.ReportDtos.ReportSettingResponse;
 
 /**
  * Laporan absensi: pratinjau JSON serta unduhan Excel/PDF untuk Owner dan Finance & Accounting. Hanya unduhan yang
@@ -39,11 +45,26 @@ public class ReportController {
 
 	private final AuditService audit;
 
-	public ReportController(ReportService reports, ExcelReportWriter excel, PdfReportWriter pdf, AuditService audit) {
+	private final ReportSettingService settings;
+
+	public ReportController(ReportService reports, ExcelReportWriter excel, PdfReportWriter pdf, AuditService audit,
+			ReportSettingService settings) {
+		this.settings = settings;
 		this.reports = reports;
 		this.excel = excel;
 		this.pdf = pdf;
 		this.audit = audit;
+	}
+
+	@GetMapping("/settings/{slug}")
+	public ReportSettingResponse setting(@PathVariable String slug) {
+		return settings.get(slug);
+	}
+
+	@PutMapping("/settings/{slug}")
+	public ReportSettingResponse saveSetting(@PathVariable String slug,
+			@Valid @RequestBody ReportSettingRequest request) {
+		return settings.save(slug, request);
 	}
 
 	@GetMapping("/{slug}")

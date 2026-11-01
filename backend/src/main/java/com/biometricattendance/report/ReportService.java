@@ -2,13 +2,19 @@ package com.biometricattendance.report;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -26,6 +32,8 @@ import com.biometricattendance.category.EmployeeCategoryRepository;
 import com.biometricattendance.common.ApiException;
 import com.biometricattendance.employee.Employee;
 import com.biometricattendance.employee.EmployeeRepository;
+import com.biometricattendance.holiday.Holiday;
+import com.biometricattendance.holiday.HolidayRepository;
 import com.biometricattendance.loan.LoanService;
 import com.biometricattendance.overtime.OvertimeService;
 import com.biometricattendance.report.ReportDtos.BranchSummary;
@@ -34,6 +42,7 @@ import com.biometricattendance.report.ReportDtos.ReportEmployee;
 import com.biometricattendance.report.ReportDtos.ReportFilter;
 import com.biometricattendance.report.ReportDtos.ReportFinancial;
 import com.biometricattendance.report.ReportDtos.ReportModel;
+import com.biometricattendance.report.ReportDtos.ReportSettingResponse;
 import com.biometricattendance.report.ReportDtos.ReportTotals;
 import com.biometricattendance.workrule.WorkRuleService;
 
@@ -46,7 +55,10 @@ public class ReportService {
 
 	private static final String[] DAY_NAMES = { "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu" };
 
-	private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+	private static final String[] MONTH_NAMES = { "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
+			"Agustus", "September", "Oktober", "November", "Desember" };
+
+	private static final DateTimeFormatter DATE =DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
 	private static final BigDecimal SECONDS_PER_HOUR = BigDecimal.valueOf(3600);
 
@@ -64,9 +76,15 @@ public class ReportService {
 
 	private final WorkRuleService workRuleService;
 
+	private final HolidayRepository holidays;
+
+	private final ReportSettingService settings;
+
 	public ReportService(AttendanceService attendance, OvertimeService overtime, BranchRepository branches,
 			EmployeeCategoryRepository categories, EmployeeRepository employees, LoanService loanService,
-			WorkRuleService workRuleService) {
+			WorkRuleService workRuleService, HolidayRepository holidays, ReportSettingService settings) {
+		this.holidays = holidays;
+		this.settings = settings;
 		this.attendance = attendance;
 		this.overtime = overtime;
 		this.branches = branches;
@@ -78,6 +96,10 @@ public class ReportService {
 
 	@Transactional(readOnly = true)
 	public ReportModel build(ReportType type, ReportFilter filter) {
+		boolean monthly = type == ReportType.GAJI_BULANAN;
+		if (monthly && (filter.from().getDayOfMonth() != 1 || !YearMonth.from(filter.from()).atEndOfMonth().equals(filter.to()))) {
+			throw ApiException.badRequest("Laporan gaji bulanan harus satu bulan penuh");
+		}
 		List<EmployeeDays> data = attendance.range(filter.from(), filter.to(), filter.branchId(),
 				filter.categoryId(), filter.employeeId());
 		Map<Long, Map<LocalDate, Long>> validated = overtime.validatedSeconds(data);
@@ -93,9 +115,48 @@ public class ReportService {
 		}
 
 		List<BranchSummary> branchSummaries = computeBranchSummaries(rows);
+		String period = DATE.format(filter.from()) + " s.d. " + DATE.format(filter.to());
+		if (!monthly) {
+			return new ReportModel(type, type.title(), period, filterLabels(filter), dates, rows, branchSummaries);
+		}
+		rows.sort(Comparator.comparing(ReportEmployee::employeeNumber));
+		ReportSettingResponse header = settings.get(type.slug());
+		return new ReportModel(type, type.title(), period, filterLabels(filter), dates, rows, branchSummaries,
+				header.managerName(), header.departmentName(), monthLabel(filter.from()), offDates(data, dates));
+	}
 
-		return new ReportModel(type, type.title(), DATE.format(filter.from()) + " s.d. " + DATE.format(filter.to()),
-				filterLabels(filter), dates, rows, branchSummaries);
+	private static String monthLabel(LocalDate date) {
+		return MONTH_NAMES[date.getMonthValue() - 1] + " " + date.getYear();
+	}
+
+	/** Tanggal yang tidak dipakai bekerja oleh karyawan mana pun di laporan, ditambah hari libur (K-142). */
+	private List<LocalDate> offDates(List<EmployeeDays> data, List<LocalDate> dates) {
+		Set<LocalDate> holidayDates = holidays
+			.findByHolidayDateBetweenOrderByHolidayDateAsc(dates.get(0), dates.get(dates.size() - 1))
+			.stream()
+			.map(Holiday::getHolidayDate)
+			.collect(Collectors.toSet());
+		List<Function<LocalDate, EffectiveRule>> resolvers = data.stream()
+			.map(d -> employees.findById(d.employeeId()).orElse(null))
+			.filter(Objects::nonNull)
+			.map(workRuleService::resolverFor)
+			.toList();
+		List<LocalDate> result = new ArrayList<>();
+		for (LocalDate date : dates) {
+			boolean anyRule = false;
+			boolean anyWorks = false;
+			for (Function<LocalDate, EffectiveRule> resolver : resolvers) {
+				Set<DayOfWeek> workDays = resolver.apply(date).values().workDays();
+				if (workDays != null) {
+					anyRule = true;
+					anyWorks |= workDays.contains(date.getDayOfWeek());
+				}
+			}
+			if (holidayDates.contains(date) || (anyRule && !anyWorks)) {
+				result.add(date);
+			}
+		}
+		return result;
 	}
 
 	private ReportEmployee employeeRow(ReportType type, EmployeeDays employee, Map<LocalDate, Long> validated,
@@ -146,19 +207,18 @@ public class ReportService {
 		Employee emp = employees.findById(employeeId).orElse(null);
 		EffectiveRule rule = emp == null ? null : workRuleService.resolve(emp, date);
 
-		BigDecimal dailyWage = rule != null && rule.values().dailyWage() != null ? rule.values().dailyWage()
-				: BigDecimal.valueOf(100000);
-		BigDecimal overtimeRate = rule != null && rule.values().overtimeRatePerHour() != null
-				? rule.values().overtimeRatePerHour() : BigDecimal.valueOf(14000);
+		// Nilai yang belum diatur tetap null; tidak ada nominal bawaan (aturan bisnis tidak di-hardcode).
+		BigDecimal dailyWage = rule != null ? rule.values().dailyWage() : null;
+		BigDecimal overtimeRate = rule != null ? rule.values().overtimeRatePerHour() : null;
 		BigDecimal baseSalary = rule != null ? rule.values().baseSalary() : null;
 
 		BigDecimal days = BigDecimal.valueOf(totals.countingDays());
 		BigDecimal otHours = totals.validatedOvertimeHours();
-		BigDecimal overtimeWage = overtimeRate.multiply(otHours).setScale(2, RoundingMode.HALF_UP);
+		BigDecimal overtimeWage = orZero(overtimeRate).multiply(otHours).setScale(2, RoundingMode.HALF_UP);
 		BigDecimal installment = loanInstallment != null ? loanInstallment : BigDecimal.ZERO;
 
 		if (type == ReportType.UPAH_MINGGUAN) {
-			BigDecimal grossDailyWage = dailyWage.multiply(days).setScale(2, RoundingMode.HALF_UP);
+			BigDecimal grossDailyWage = orZero(dailyWage).multiply(days).setScale(2, RoundingMode.HALF_UP);
 			BigDecimal grossTotal = grossDailyWage.add(overtimeWage);
 			BigDecimal actualDeduction = installment.min(grossTotal);
 			BigDecimal netWage = grossTotal.subtract(actualDeduction);
@@ -166,16 +226,18 @@ public class ReportService {
 					null, null);
 		}
 		else {
-			// GAJI_BULANAN: Onsite = Days * Wages (standar Rp 40.000)
-			BigDecimal onsiteRate = dailyWage;
-			BigDecimal onsiteWage = onsiteRate.multiply(days).setScale(2, RoundingMode.HALF_UP);
-			BigDecimal base = baseSalary != null ? baseSalary : BigDecimal.ZERO;
-			BigDecimal grossTotal = base.add(onsiteWage).add(overtimeWage);
+			// GAJI_BULANAN: Onsite = Days * Wages
+			BigDecimal onsiteWage = orZero(dailyWage).multiply(days).setScale(2, RoundingMode.HALF_UP);
+			BigDecimal grossTotal = orZero(baseSalary).add(onsiteWage).add(overtimeWage);
 			BigDecimal actualDeduction = installment.min(grossTotal);
 			BigDecimal netWage = grossTotal.subtract(actualDeduction);
-			return new ReportFinancial(onsiteRate, null, overtimeRate, overtimeWage, actualDeduction, netWage, base,
-					onsiteWage);
+			return new ReportFinancial(dailyWage, null, overtimeRate, overtimeWage, actualDeduction, netWage,
+					baseSalary, onsiteWage);
 		}
+	}
+
+	private static BigDecimal orZero(BigDecimal value) {
+		return value == null ? BigDecimal.ZERO : value;
 	}
 
 	private List<BranchSummary> computeBranchSummaries(List<ReportEmployee> rows) {
