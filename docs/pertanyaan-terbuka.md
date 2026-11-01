@@ -558,6 +558,12 @@ Tiga baris AS-5 tanpa gaji pokok tidak cocok dengan `Hari × Wages`: 26 × 140.0
 
 **Dampak:** nominal gaji baris tersebut berbeda dari dokumen client sampai dijawab.
 
+### Q-052. Periode dan nomor minggu di AS-1
+
+Foto AS-1 mencetak periode "26 September - 03 Oktober 2026" (8 hari, Sabtu sampai Sabtu), tetapi kolom harinya hanya 7 (Sabtu–Jumat). Apakah 3 Oktober adalah tanggal bayar, atau salah ketik dari 2 Oktober? Bagaimana menentukan "Minggu ke-1"? Sistem sementara mencetak tanggal awal dan akhir rentang yang dipilih, membuat satu kolom per tanggal, dan menghitung minggu dari tanggal terakhir: `(tanggal − 1) / 7 + 1`.
+
+**Dampak:** rentang Sabtu–Jumat 26 Sep–2 Okt tercetak "02 OKTOBER", berbeda satu hari dari foto. Rentang sampai 3 Okt tercetak sama, tetapi kolom harinya menjadi 8.
+
 ## 8. Prioritas Penyelesaian
 
 Urutan berikut merupakan rekomendasi prioritas untuk menutup pertanyaan, bukan keputusan bisnis baru.
