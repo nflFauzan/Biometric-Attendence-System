@@ -8,11 +8,12 @@ import { selectClass } from '@/components/FormDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, apiBlob } from '@/lib/api'
 import { saveBlob } from '@/lib/download'
 import { formatRupiah, localDateIso } from '@/lib/format'
-import type { ReportEmployee, ReportModel, ReportSlug } from '@/lib/types'
+import type { ReportEmployee, ReportModel, ReportSetting, ReportSlug } from '@/lib/types'
 import { useBranchOptions, useCategoryOptions, useEmployeeOptions } from '@/pages/options'
 
 const REPORTS: { slug: ReportSlug; label: string }[] = [
@@ -74,14 +75,73 @@ const COLUMNS: Record<ReportSlug, Column[]> = {
   ],
   'gaji-bulanan': [
     ...IDENTITY,
-    { header: 'Hari', cell: (e) => e.totals.countingDays, numeric: true },
+    { header: 'Total Days', cell: (e) => e.totals.countingDays, numeric: true },
     { header: 'Wages', cell: (e) => formatRupiah(e.financial?.dailyWage), numeric: true },
+    { header: 'Upah Lembur', cell: (e) => formatRupiah(e.financial?.overtimeWage), numeric: true },
+    { header: 'Input Piutang', cell: (e) => formatRupiah(e.financial?.loanDeduction), numeric: true },
     { header: 'Onsite', cell: (e) => formatRupiah(e.financial?.onsiteWage), numeric: true },
     { header: 'Gaji Pokok', cell: (e) => formatRupiah(e.financial?.baseSalary), numeric: true },
-    { header: 'Lembur', cell: (e) => formatRupiah(e.financial?.overtimeWage), numeric: true },
-    { header: 'Piutang', cell: (e) => formatRupiah(e.financial?.loanDeduction), numeric: true },
-    { header: 'Total Gaji', cell: (e) => formatRupiah(e.financial?.netWage), numeric: true },
+    { header: 'Total Wages', cell: (e) => formatRupiah(e.financial?.netWage), numeric: true },
   ],
+}
+
+/** Tanggal pertama dan terakhir dari bulan "YYYY-MM". */
+function monthBounds(month: string) {
+  const [year, monthNumber] = month.split('-').map(Number)
+  return { from: `${month}-01`, to: `${month}-${String(new Date(year, monthNumber, 0).getDate()).padStart(2, '0')}` }
+}
+
+/** Isi kop "Manager Name" dan "Department" pada file laporan format klien. */
+function ReportHeaderSettings({ slug }: { slug: ReportSlug }) {
+  const { data } = useQuery({
+    queryKey: ['/api/reports/settings', slug],
+    queryFn: () => api<ReportSetting>(`/api/reports/settings/${slug}`),
+  })
+  return data ? <ReportHeaderForm key={JSON.stringify(data)} slug={slug} initial={data} /> : null
+}
+
+function ReportHeaderForm({ slug, initial }: { slug: ReportSlug; initial: ReportSetting }) {
+  const queryClient = useQueryClient()
+  const [managerName, setManagerName] = useState(initial.managerName ?? '')
+  const [departmentName, setDepartmentName] = useState(initial.departmentName ?? '')
+  const save = useMutation({
+    mutationFn: () =>
+      api<ReportSetting>(`/api/reports/settings/${slug}`, { method: 'PUT', body: { managerName, departmentName } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reports/settings', slug] })
+    },
+  })
+  return (
+    <form
+      className="flex flex-wrap items-end gap-4 rounded-lg border p-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        save.mutate()
+      }}
+    >
+      <div className="flex min-w-64 flex-col gap-1.5">
+        <Label htmlFor="kop-manager" className="font-semibold">
+          Nama Manager
+        </Label>
+        <Input id="kop-manager" maxLength={150} value={managerName} onChange={(e) => setManagerName(e.target.value)} />
+      </div>
+      <div className="flex min-w-64 flex-col gap-1.5">
+        <Label htmlFor="kop-departemen" className="font-semibold">
+          Departemen
+        </Label>
+        <Input
+          id="kop-departemen"
+          maxLength={150}
+          value={departmentName}
+          onChange={(e) => setDepartmentName(e.target.value)}
+        />
+      </div>
+      <Button type="submit" variant="outline" disabled={save.isPending}>
+        Simpan Kop
+      </Button>
+      {save.error && <ErrorAlert message={save.error.message} />}
+    </form>
+  )
 }
 
 /**
@@ -94,8 +154,13 @@ export function ReportsPage() {
   const categoryOptions = useCategoryOptions()
   const employeeOptions = useEmployeeOptions()
   const [slug, setSlug] = useState<ReportSlug>('rekap-absensi')
-  const [to, setTo] = useState(localDateIso())
-  const [from, setFrom] = useState(`${localDateIso().slice(0, 8)}01`)
+  const [rangeTo, setTo] = useState(localDateIso())
+  const [rangeFrom, setFrom] = useState(`${localDateIso().slice(0, 8)}01`)
+  const [month, setMonth] = useState(localDateIso().slice(0, 7))
+  const isMonthly = slug === 'gaji-bulanan'
+  const monthRange = monthBounds(month)
+  const from = isMonthly ? monthRange.from : rangeFrom
+  const to = isMonthly ? monthRange.to : rangeTo
   const [branchId, setBranchId] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [employeeId, setEmployeeId] = useState('')
@@ -178,10 +243,13 @@ export function ReportsPage() {
     const last = new Date(y, m + 1, 0)
     setFrom(localDateIso(first))
     setTo(localDateIso(last))
+    setMonth(localDateIso(first).slice(0, 7))
   }
 
   const columns = COLUMNS[slug]
   const isFinancialReport = slug === 'upah-mingguan' || slug === 'gaji-bulanan'
+  // Potongan dihitung dari upah periode; sebelum periode selesai upahnya belum final dan labelnya akan terkunci.
+  const periodFinished = to <= localDateIso()
   const totalLoanDeduction =
     data?.employees.reduce((sum, e) => sum + (e.financial?.loanDeduction ?? 0), 0) ?? 0
 
@@ -195,12 +263,16 @@ export function ReportsPage() {
       {/* Shortcut Siklus Periode */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold text-muted-foreground">Filter Cepat:</span>
-        <Button size="sm" variant="outline" onClick={() => setWeeklyCycle(0)} className="h-7 text-xs">
-          Sabtu–Jumat Pekan Ini
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setWeeklyCycle(-1)} className="h-7 text-xs">
-          Pekan Lalu
-        </Button>
+        {!isMonthly && (
+          <>
+            <Button size="sm" variant="outline" onClick={() => setWeeklyCycle(0)} className="h-7 text-xs">
+              Sabtu–Jumat Pekan Ini
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setWeeklyCycle(-1)} className="h-7 text-xs">
+              Pekan Lalu
+            </Button>
+          </>
+        )}
         <Button size="sm" variant="outline" onClick={() => setMonthlyCycle(0)} className="h-7 text-xs">
           Bulan Ini
         </Button>
@@ -222,18 +294,35 @@ export function ReportsPage() {
             ))}
           </select>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="dari" className="font-semibold">
-            Dari
-          </Label>
-          <DatePicker id="dari" context="Dari tanggal" value={from} max={to || undefined} onChange={setFrom} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="sampai" className="font-semibold">
-            Sampai
-          </Label>
-          <DatePicker id="sampai" context="Sampai tanggal" value={to} min={from || undefined} onChange={setTo} />
-        </div>
+        {isMonthly ? (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="bulan" className="font-semibold">
+              Bulan
+            </Label>
+            <Input
+              id="bulan"
+              type="month"
+              className="w-44"
+              value={month}
+              onChange={(e) => e.target.value && setMonth(e.target.value)}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="dari" className="font-semibold">
+                Dari
+              </Label>
+              <DatePicker id="dari" context="Dari tanggal" value={from} max={to || undefined} onChange={setFrom} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="sampai" className="font-semibold">
+                Sampai
+              </Label>
+              <DatePicker id="sampai" context="Sampai tanggal" value={to} min={from || undefined} onChange={setTo} />
+            </div>
+          </>
+        )}
         <div className="flex min-w-44 flex-col gap-1.5">
           <Label htmlFor="cabang" className="font-semibold">
             Cabang
@@ -294,6 +383,8 @@ export function ReportsPage() {
         </div>
       </div>
 
+      {isMonthly && <ReportHeaderSettings slug={slug} />}
+
       {/* Aksi Khusus Finansial: Tutup Buku Potongan Kasbon */}
       {isFinancialReport && data && data.employees.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gold-300 bg-gold-50/50 p-4 dark:border-gold-900/50 dark:bg-gold-950/20">
@@ -304,13 +395,16 @@ export function ReportsPage() {
               <strong className="text-gold-700 dark:text-gold-400 font-semibold">
                 {formatRupiah(totalLoanDeduction)}
               </strong>
-              . Klik tombol untuk memotong saldo kasbon karyawan secara resmi.
+              .{' '}
+              {periodFinished
+                ? 'Klik tombol untuk memotong saldo kasbon karyawan secara resmi.'
+                : 'Potongan hanya bisa diterapkan setelah periode selesai.'}
             </p>
           </div>
           <Button
             size="sm"
             onClick={() => applyDeductions.mutate()}
-            disabled={applyDeductions.isPending || totalLoanDeduction === 0}
+            disabled={applyDeductions.isPending || totalLoanDeduction === 0 || !periodFinished}
             className="gap-2 bg-gold-600 text-white hover:bg-gold-700 dark:bg-gold-500 dark:hover:bg-gold-600"
           >
             {applyDeductions.isPending ? (

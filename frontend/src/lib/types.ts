@@ -778,3 +778,9 @@ export interface EmployeeLoan {
   createdAt: string
   repayments: LoanRepayment[]
 }
+
+/** Isi kop laporan format klien per jenis laporan. */
+export interface ReportSetting {
+  managerName: string | null
+  departmentName: string | null
+}
