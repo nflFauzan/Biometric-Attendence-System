@@ -171,11 +171,92 @@ describe('ReportsPage', () => {
     })
   })
 
+  const setting = {
+    'GET /api/reports/settings/gaji-bulanan': () => ({
+      status: 200,
+      body: { managerName: 'MANAGER SAMARAN', departmentName: 'DEPARTEMEN SAMARAN' },
+    }),
+  }
+  const lastDay = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0).getDate()
+  const monthQuery = `from=${from}&to=${today.slice(0, 8)}${String(lastDay).padStart(2, '0')}`
+
+  it('laporan gaji bulanan memakai pemilih bulan satu bulan penuh', async () => {
+    mockFetch({
+      ...common,
+      ...setting,
+      [`GET /api/reports/rekap-absensi?${query}`]: () => ({ status: 200, body: model() }),
+      [`GET /api/reports/gaji-bulanan?${monthQuery}`]: () => ({ status: 200, body: model({ employees: [] }) }),
+      'GET /api/reports/gaji-bulanan?from=2026-02-01&to=2026-02-28': () => ({
+        status: 200,
+        body: model({ periodLabel: 'PERIODE FEBRUARI', employees: [] }),
+      }),
+    })
+    renderAt('/laporan')
+    await screen.findByText('Budi Santoso')
+    fireEvent.change(screen.getByLabelText('Jenis laporan'), { target: { value: 'gaji-bulanan' } })
+
+    const bulan = await screen.findByLabelText('Bulan')
+    expect(screen.queryByText('Dari')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Pekan Lalu' })).not.toBeInTheDocument()
+    fireEvent.change(bulan, { target: { value: '2026-02' } })
+    expect(await screen.findByText(/PERIODE FEBRUARI/)).toBeInTheDocument()
+  })
+
+  it('potongan kasbon tidak bisa diterapkan sebelum periode selesai', async () => {
+    const future = '2099-01'
+    mockFetch({
+      ...common,
+      ...setting,
+      [`GET /api/reports/rekap-absensi?${query}`]: () => ({ status: 200, body: model() }),
+      [`GET /api/reports/gaji-bulanan?${monthQuery}`]: () => ({ status: 200, body: model({ employees: [] }) }),
+      [`GET /api/reports/gaji-bulanan?from=${future}-01&to=${future}-31`]: () => ({
+        status: 200,
+        body: model({
+          employees: [
+            {
+              ...model().employees[0],
+              financial: { ...model().employees[0].financial!, loanDeduction: 50000 },
+            },
+          ],
+        }),
+      }),
+    })
+    renderAt('/laporan')
+    await screen.findByText('Budi Santoso')
+    fireEvent.change(screen.getByLabelText('Jenis laporan'), { target: { value: 'gaji-bulanan' } })
+    fireEvent.change(await screen.findByLabelText('Bulan'), { target: { value: future } })
+    const button = await screen.findByRole('button', { name: 'Terapkan Potongan Kasbon' })
+    expect(button).toBeDisabled()
+    expect(screen.getByText(/setelah periode selesai/)).toBeInTheDocument()
+  })
+
+  it('kop laporan gaji dimuat dan disimpan', async () => {
+    const saved = vi.fn(() => ({ status: 200, body: { managerName: 'BARU', departmentName: 'DEPARTEMEN SAMARAN' } }))
+    mockFetch({
+      ...common,
+      ...setting,
+      [`GET /api/reports/rekap-absensi?${query}`]: () => ({ status: 200, body: model() }),
+      [`GET /api/reports/gaji-bulanan?${monthQuery}`]: () => ({ status: 200, body: model({ employees: [] }) }),
+      'PUT /api/reports/settings/gaji-bulanan': saved,
+    })
+    renderAt('/laporan')
+    await screen.findByText('Budi Santoso')
+    fireEvent.change(screen.getByLabelText('Jenis laporan'), { target: { value: 'gaji-bulanan' } })
+
+    const manager = await screen.findByLabelText('Nama Manager')
+    await waitFor(() => expect(manager).toHaveValue('MANAGER SAMARAN'))
+    expect(screen.getByLabelText('Departemen')).toHaveValue('DEPARTEMEN SAMARAN')
+    fireEvent.change(manager, { target: { value: 'BARU' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Simpan Kop' }))
+    await waitFor(() => expect(saved).toHaveBeenCalled())
+  })
+
   it('memuat laporan gaji bulanan dengan kolom onsite dan gaji pokok', async () => {
     mockFetch({
       ...common,
+      ...setting,
       [`GET /api/reports/rekap-absensi?${query}`]: () => ({ status: 200, body: model() }),
-      [`GET /api/reports/gaji-bulanan?${query}`]: () => ({
+      [`GET /api/reports/gaji-bulanan?${monthQuery}`]: () => ({
         status: 200,
         body: model({
           type: 'GAJI_BULANAN',
@@ -210,8 +291,9 @@ describe('ReportsPage', () => {
     fireEvent.change(screen.getByLabelText('Jenis laporan'), { target: { value: 'gaji-bulanan' } })
 
     expect(await screen.findByText('Siti Admin')).toBeInTheDocument()
-    expect(screen.getByText('Onsite')).toBeInTheDocument()
-    expect(screen.getByText('Gaji Pokok')).toBeInTheDocument()
+    for (const header of ['Total Days', 'Wages', 'Upah Lembur', 'Input Piutang', 'Onsite', 'Gaji Pokok', 'Total Wages']) {
+      expect(screen.getByText(header)).toBeInTheDocument()
+    }
     expect(screen.getByText('Rp3.950.000')).toBeInTheDocument()
   })
 

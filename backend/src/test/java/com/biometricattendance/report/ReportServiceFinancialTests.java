@@ -1,6 +1,7 @@
 package com.biometricattendance.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -12,11 +13,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.biometricattendance.AttendanceFixtures;
+import com.biometricattendance.common.ApiException;
 import com.biometricattendance.loan.LoanDtos.CreateLoanRequest;
 import com.biometricattendance.loan.LoanService;
 import com.biometricattendance.report.ReportDtos.ReportEmployee;
 import com.biometricattendance.report.ReportDtos.ReportFilter;
 import com.biometricattendance.report.ReportDtos.ReportModel;
+import com.biometricattendance.report.ReportDtos.ReportSettingRequest;
 
 class ReportServiceFinancialTests extends AttendanceFixtures {
 
@@ -25,6 +28,9 @@ class ReportServiceFinancialTests extends AttendanceFixtures {
 
 	@Autowired
 	private LoanService loanService;
+
+	@Autowired
+	private ReportSettingService settings;
 
 	@Test
 	void testWeeklyWageCalculationMatchesAS1() throws Exception {
@@ -94,6 +100,74 @@ class ReportServiceFinancialTests extends AttendanceFixtures {
 		assertThat(empRow.financial().baseSalary()).isEqualByComparingTo("3000000.00");
 		assertThat(empRow.financial().onsiteWage()).isEqualByComparingTo("40000.00");
 		assertThat(empRow.financial().netWage()).isEqualByComparingTo("3040000.00");
+	}
+
+	private static final LocalDate SEP_1 = LocalDate.of(2026, 9, 1);
+
+	private static final LocalDate SEP_30 = LocalDate.of(2026, 9, 30);
+
+	@Test
+	void monthlyReportRejectsPartialMonth() throws Exception {
+		long branchId = createBranch();
+		ReportFilter partial = new ReportFilter(SEP_1, LocalDate.of(2026, 9, 15), branchId, null, null);
+		assertThatThrownBy(() -> reportService.build(ReportType.GAJI_BULANAN, partial))
+			.isInstanceOf(ApiException.class)
+			.hasMessageContaining("Laporan gaji bulanan harus satu bulan penuh");
+	}
+
+	@Test
+	void monthlyReportCarriesHeader() throws Exception {
+		long branchId = createBranch();
+		settings.save("gaji-bulanan", new ReportSettingRequest("MANAGER SAMARAN", "DEPARTEMEN SAMARAN"));
+		ReportModel model = reportService.build(ReportType.GAJI_BULANAN,
+				new ReportFilter(SEP_1, SEP_30, branchId, null, null));
+		assertThat(model.managerName()).isEqualTo("MANAGER SAMARAN");
+		assertThat(model.departmentName()).isEqualTo("DEPARTEMEN SAMARAN");
+		assertThat(model.monthLabel()).isEqualTo("September 2026");
+	}
+
+	@Test
+	void offDatesFollowWorkRule() throws Exception {
+		long branchId = createBranch();
+		long empId = createEmployee(branchId, uniquePin());
+		addFullRule(empId);
+		jdbc.update("update work_rules set work_days = 'MON,TUE,WED,THU,FRI,SAT' where employee_id = ?", empId);
+		LocalDate holiday = LocalDate.of(2026, 9, 17);
+		jdbc.update("delete from holidays where holiday_date = ?", holiday);
+		jdbc.update("insert into holidays (holiday_date, name) values (?, 'Libur uji')", holiday);
+		try {
+			ReportModel model = reportService.build(ReportType.GAJI_BULANAN,
+					new ReportFilter(SEP_1, SEP_30, branchId, null, empId));
+			assertThat(model.offDates()).containsExactly(LocalDate.of(2026, 9, 6), LocalDate.of(2026, 9, 13),
+					holiday, LocalDate.of(2026, 9, 20), LocalDate.of(2026, 9, 27));
+		}
+		finally {
+			jdbc.update("delete from holidays where holiday_date = ?", holiday);
+		}
+	}
+
+	@Test
+	void missingRateIsNotInvented() throws Exception {
+		long branchId = createBranch();
+		long empId = createEmployee(branchId, uniquePin());
+		addFullRule(empId);
+		ReportModel model = reportService.build(ReportType.GAJI_BULANAN,
+				new ReportFilter(SEP_1, SEP_30, branchId, null, empId));
+		assertThat(model.employees().get(0).financial().overtimeRate()).isNull();
+		assertThat(model.employees().get(0).financial().dailyWage()).isNull();
+		assertThat(model.employees().get(0).financial().baseSalary()).isNull();
+		assertThat(model.employees().get(0).financial().overtimeWage()).isEqualByComparingTo("0");
+	}
+
+	@Test
+	void monthlyRowsSortedByEmployeeNumber() throws Exception {
+		long branchId = createBranch();
+		createEmployee(branchId, uniquePin());
+		createEmployee(branchId, uniquePin());
+		createEmployee(branchId, uniquePin());
+		ReportModel model = reportService.build(ReportType.GAJI_BULANAN,
+				new ReportFilter(SEP_1, SEP_30, branchId, null, null));
+		assertThat(model.employees()).extracting(ReportEmployee::employeeNumber).isSorted();
 	}
 
 }

@@ -216,7 +216,22 @@ class AccessControlTests extends IntegrationTest {
 		mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
 	}
 
-	private static final String LEAVE_SUBMIT = "{\"employeeId\":" + MISSING + ",\"leaveTypeId\":1,"
+	@Test
+	void reportSettingsAreForOwnerAndHrFinanceOnly() throws Exception {
+		String url = "/api/reports/settings/gaji-bulanan";
+		String body = "{\"managerName\":\"Uji\",\"departmentName\":\"Uji\"}";
+		mockMvc.perform(get(url).with(OWNER)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(HR_FINANCE)).andExpect(status().isOk());
+		mockMvc.perform(get(url).with(EMPLOYEE)).andExpect(status().isForbidden());
+		mockMvc.perform(put(url).with(OWNER).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isOk());
+		mockMvc.perform(put(url).with(HR_FINANCE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isOk());
+		mockMvc.perform(put(url).with(EMPLOYEE).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+			.andExpect(status().isForbidden());
+	}
+
+	private static final String LEAVE_SUBMIT ="{\"employeeId\":" + MISSING + ",\"leaveTypeId\":1,"
 			+ "\"startDate\":\"2026-10-05\",\"endDate\":\"2026-10-05\",\"reason\":\"Uji hak akses\"}";
 	private static final String LEAVE_TYPE = "{\"name\":\"Uji akses\",\"requiresDocument\":false,\"active\":true}";
 

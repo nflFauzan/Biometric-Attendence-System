@@ -100,9 +100,13 @@ class PdfReportWriterTests {
 			String t = text(writer.write(model(type, name, 3)));
 			// nama panjang bisa terlipat di sel sempit, jadi tiap kata diperiksa sendiri
 			for (String token : new String[] { "N'Diaye", "Sons", "José", "Émile", "Müller" }) {
-				assertThat(t).as(type.name() + " " + token).contains(token);
+				// format klien gaji bulanan menampilkan nama dalam huruf besar
+				assertThat(t).as(type.name() + " " + token).containsIgnoringCase(token);
 			}
-			assertThat(t).as(type.name()).contains("Siti").contains("&").contains("Finance");
+			assertThat(t).as(type.name()).containsIgnoringCase("Siti").contains("&");
+			if (type != ReportType.GAJI_BULANAN) {
+				assertThat(t).as(type.name()).contains("Finance");
+			}
 		}
 		byte[] pdf = writer.write(model(ReportType.REKAP_ABSENSI, name, 3));
 		assertThat(new String(pdf, java.nio.charset.StandardCharsets.ISO_8859_1)).contains("/FontFile2");
@@ -111,6 +115,9 @@ class PdfReportWriterTests {
 	@Test
 	void sixtyTwoDayRangeSplitsAcrossPages() throws Exception {
 		for (ReportType type : ReportType.values()) {
+			if (type == ReportType.GAJI_BULANAN) {
+				continue; // selalu satu bulan penuh (K-142), tidak pernah 62 hari
+			}
 			byte[] pdf = writer.write(model(type, "Budi Santoso", 62));
 			String t = text(pdf);
 			assertThat(pages(pdf)).as(type.name()).isGreaterThan(1);
@@ -206,7 +213,7 @@ class PdfReportWriterTests {
 		for (ReportType type : ReportType.values()) {
 			ReportModel m = new ReportModel(type, type.title(), "05-10-2026 s.d. 05-10-2026", null, List.of(D1),
 					List.of(e));
-			assertThat(text(writer.write(m))).contains("Ani");
+			assertThat(text(writer.write(m))).containsIgnoringCase("Ani");
 		}
 	}
 
