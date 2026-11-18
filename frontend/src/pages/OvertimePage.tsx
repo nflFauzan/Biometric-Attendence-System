@@ -2,19 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import type { Tone } from '@/lib/attendance'
-import { DatePicker } from '@/components/DatePickers'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
-import { fieldClass, selectClass } from '@/components/FormDialog'
-import { AttendanceSubNav } from '@/components/AttendanceSubNav'
-import { PageHeader } from '@/components/PageHeader'
+import { fieldClass } from '@/components/FormDialog'
+import { PeriodFilter, usePeriodFilter } from '@/components/PeriodFilter'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
-import { formatDate, formatDateTime, formatDuration, formatTime, localDateIso } from '@/lib/format'
+import { formatDate, formatDateTime, formatDuration, formatTime } from '@/lib/format'
 import type { OvertimeRow, OvertimeStatus } from '@/lib/types'
-import { useBranchOptions, useCategoryOptions } from '@/pages/options'
 
 /** Sama dengan batas backend (ValidationRequest). */
 const MAX_VALIDATE = 200
@@ -52,14 +48,9 @@ function defaultMinutes(row: OvertimeRow): string {
  * (0 menit). Catatan wajib bila dikurangi atau ditolak; tidak ada pembulatan. Bila rekap berubah setelah divalidasi
  * (mis. koreksi jam pulang), status menjadi "Perlu validasi ulang" dan lembur itu belum dihitung.
  */
-export function OvertimePage() {
+export function OvertimeTab() {
   const queryClient = useQueryClient()
-  const branchOptions = useBranchOptions()
-  const categoryOptions = useCategoryOptions()
-  const [to, setTo] = useState(localDateIso())
-  const [from, setFrom] = useState(`${localDateIso().slice(0, 8)}01`)
-  const [branchId, setBranchId] = useState('')
-  const [categoryId, setCategoryId] = useState('')
+  const { from, to, branchId = '', categoryId = '' } = usePeriodFilter()
   const [selected, setSelected] = useState<string[]>([])
   const [minutes, setMinutes] = useState<Record<string, string>>({})
   const [notes, setNotes] = useState<Record<string, string>>({})
@@ -127,52 +118,14 @@ export function OvertimePage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Validasi Lembur"
-        description="Kandidat lembur dari rekap absensi. Setujui seluruhnya, kurangi, atau tolak dengan 0 menit; catatan wajib bila dikurangi atau ditolak. Lembur dihitung apa adanya, tanpa pembulatan."
-      />
+      <p className="max-w-[70ch] text-sm text-muted-foreground">
+        Kandidat lembur dari rekap absensi. Setujui seluruhnya, kurangi, atau tolak dengan 0 menit; catatan wajib bila
+        dikurangi atau ditolak. Lembur dihitung apa adanya, tanpa pembulatan.
+      </p>
 
-      <AttendanceSubNav />
+      <PeriodFilter showCategory />
 
       <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="dari" className="font-semibold">
-            Dari
-          </Label>
-          <DatePicker id="dari" context="Dari tanggal" value={from} max={to || undefined} onChange={setFrom} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="sampai" className="font-semibold">
-            Sampai
-          </Label>
-          <DatePicker id="sampai" context="Sampai tanggal" value={to} min={from || undefined} onChange={setTo} />
-        </div>
-        <div className="flex min-w-48 flex-col gap-1.5">
-          <Label htmlFor="cabang" className="font-semibold">
-            Cabang
-          </Label>
-          <select id="cabang" className={selectClass} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            <option value="">Semua cabang</option>
-            {branchOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex min-w-48 flex-col gap-1.5">
-          <Label htmlFor="kategori" className="font-semibold">
-            Kategori
-          </Label>
-          <select id="kategori" className={selectClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">Semua kategori</option>
-            {categoryOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
         <Button disabled={chosen.length === 0 || tooMany || mutation.isPending} onClick={submit}>
           Validasi terpilih
         </Button>

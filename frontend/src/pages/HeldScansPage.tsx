@@ -2,10 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
-import { DatePicker } from '@/components/DatePickers'
 import { fieldClass, selectClass } from '@/components/FormDialog'
-import { AttendanceSubNav } from '@/components/AttendanceSubNav'
-import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -13,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api'
 import { REVIEW_STATUS_LABELS } from '@/lib/attendance'
-import { addDays, formatDateTime, formatLocalDateTime, localDateIso } from '@/lib/format'
+import { formatDateTime, formatLocalDateTime } from '@/lib/format'
 import type { HeldScan, ReviewStatus } from '@/lib/types'
 import { dialogSheetClass } from '@/lib/ui'
 
@@ -38,10 +35,8 @@ const STATUS_TONES: Record<ReviewStatus, 'warning' | 'success' | 'neutral'> = {
  * Scan dari karyawan di cabang yang tidak diizinkan (K-103). Scan tertahan tidak masuk rekap sampai
  * ditinjau: "Masukkan ke rekap" menghitungnya, "Abaikan" membiarkannya di luar rekap. Scan asli tidak berubah.
  */
-export function HeldScansPage() {
+export function HeldScansSection({ from, to }: { from: string; to: string }) {
   const queryClient = useQueryClient()
-  const [to, setTo] = useState(localDateIso())
-  const [from, setFrom] = useState(addDays(localDateIso(), -29))
   const [status, setStatus] = useState<StatusFilter>('BELUM_DITINJAU')
   const [selected, setSelected] = useState<number[]>([])
   const [pending, setPending] = useState<{ decision: Decision; ids: number[] } | null>(null)
@@ -63,32 +58,13 @@ export function HeldScansPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Scan Tertahan"
-        description="Scan karyawan di cabang yang tidak diizinkan. Scan tetap tersimpan dan belum masuk rekap sampai ditinjau."
-      />
-
-      <AttendanceSubNav />
-
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="dari" className="font-semibold">
-            Dari
-          </Label>
-          <DatePicker id="dari" context="Dari tanggal" value={from} max={to || undefined} onChange={setFrom} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="sampai" className="font-semibold">
-            Sampai
-          </Label>
-          <DatePicker id="sampai" context="Sampai tanggal" value={to} min={from || undefined} onChange={setTo} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="status" className="font-semibold">
+          <Label htmlFor="status-scan" className="font-semibold">
             Status
           </Label>
           <select
-            id="status"
+            id="status-scan"
             className={selectClass}
             value={status}
             onChange={(e) => {
@@ -208,6 +184,7 @@ export function HeldScansPage() {
             // Penerimaan mengubah rekap, jadi semua kueri absensi dan ringkasan dashboard dimuat ulang.
             void queryClient.invalidateQueries({ queryKey: ['/api/attendance'] })
             void queryClient.invalidateQueries({ queryKey: ['/api/dashboard/summary'] })
+            void queryClient.invalidateQueries({ queryKey: ['/api/overtime'] })
           }}
         />
       )}

@@ -1,12 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, PencilLine } from 'lucide-react'
+import { PencilLine } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { useSearchParams } from 'react-router'
 
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { DatePicker } from '@/components/DatePickers'
 import { FormDialog, type FormValues } from '@/components/FormDialog'
-import { PageHeader } from '@/components/PageHeader'
 import { TimeCell } from '@/components/TimeCell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,9 +18,8 @@ import type { DayRecord, EmployeeAttendance } from '@/lib/types'
 import { useDashboardStream } from '@/lib/useDashboardStream'
 
 /** Rekap per hari untuk satu karyawan, scan asli, dan koreksi dengan alasan wajib (K-059, TC-08). */
-export function AttendanceEmployeePage() {
+export function EmployeeAttendanceTab({ employeeId: id }: { employeeId: string }) {
   useDashboardStream()
-  const { id } = useParams()
   const [search] = useSearchParams()
   // `from`/`to` datang dari daftar Perlu Ditinjau; `tanggal` dari Absensi Harian (7 hari sampai tanggal itu).
   const initialTo = search.get('to') ?? search.get('tanggal') ?? localDateIso()
@@ -49,24 +47,19 @@ export function AttendanceEmployeePage() {
       },
     })
     await queryClient.invalidateQueries({ queryKey: ['/api/attendance'] })
+    // Koreksi bisa membuat lembur perlu divalidasi ulang (K-140); hitungan daftar cek ikut segar.
+    void queryClient.invalidateQueries({ queryKey: ['/api/overtime'] })
   }
 
   const days = data ? [...data.days].reverse() : []
 
   return (
     <div className="flex flex-col gap-5">
-      <Link to="/absensi" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Absensi harian
-      </Link>
-      <PageHeader
-        title={data ? data.fullName : 'Absensi karyawan'}
-        description={
-          data
-            ? `${data.employeeNumber} · ${data.branchName} · PIN mesin ${data.devicePin ?? 'belum diisi'} · zona ${data.timezone}`
-            : undefined
-        }
-      />
+      {data && (
+        <p className="text-sm text-muted-foreground">
+          PIN mesin {data.devicePin ?? 'belum diisi'}, zona waktu {data.timezone}. Klik Koreksi pada hari yang jamnya salah.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">

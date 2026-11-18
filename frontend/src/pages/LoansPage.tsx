@@ -1,9 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Banknote, CheckCircle2, History, Plus, Search } from 'lucide-react'
+import { Banknote, History, Plus, Search } from 'lucide-react'
 import { useState } from 'react'
 
-import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
-import { PageHeader } from '@/components/PageHeader'
+import { ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
-import { formatDateTime, formatDate, formatRupiah, localDateIso } from '@/lib/format'
+import { formatDate, formatRupiah, localDateIso } from '@/lib/format'
 import type { Employee, EmployeeLoan } from '@/lib/types'
 
 export function LoansPage() {
@@ -110,16 +109,15 @@ export function LoansPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Kasbon & Piutang Karyawan"
-        description="Pencatatan pinjaman karyawan, alokasi cicilan per periode, dan pemotongan otomatis pada laporan upah & gaji."
-        actions={
-          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
-            <Plus className="size-4" />
-            Tambah Kasbon
-          </Button>
-        }
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-[70ch] text-sm text-muted-foreground">
+          Catat kasbon karyawan dan cicilannya. Cicilan dipotong dari upah lewat tab Laporan saat tutup buku.
+        </p>
+        <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+          <Plus className="size-4" />
+          Tambah Kasbon
+        </Button>
+      </div>
 
       {/* Ringkasan */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -187,7 +185,7 @@ export function LoansPage() {
 
       {/* Error / Loading */}
       {error && <ErrorAlert message={error.message} />}
-      {isPending && <SkeletonLines rows={5} />}
+      {isPending && <SkeletonLines count={5} />}
 
       {/* Tabel */}
       {!isPending && !error && (

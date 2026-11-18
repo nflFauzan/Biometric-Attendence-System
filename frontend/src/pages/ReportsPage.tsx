@@ -1,17 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, Download, Loader2, Sparkles } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 
 import { DatePicker } from '@/components/DatePickers'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { selectClass } from '@/components/FormDialog'
-import { PageHeader } from '@/components/PageHeader'
-import { Badge } from '@/components/ui/badge'
+import { PeriodChecklist } from '@/components/PeriodChecklist'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, apiBlob } from '@/lib/api'
 import { saveBlob } from '@/lib/download'
+import { hasOutstanding, outstandingLabel, useFixCounts } from '@/lib/fixCounts'
 import { formatRupiah, localDateIso } from '@/lib/format'
 import type { ReportEmployee, ReportModel, ReportSetting, ReportSlug } from '@/lib/types'
 import { useBranchOptions, useCategoryOptions, useEmployeeOptions } from '@/pages/options'
@@ -153,18 +154,46 @@ export function ReportsPage() {
   const branchOptions = useBranchOptions()
   const categoryOptions = useCategoryOptions()
   const employeeOptions = useEmployeeOptions()
-  const [slug, setSlug] = useState<ReportSlug>('rekap-absensi')
-  const [rangeTo, setTo] = useState(localDateIso())
-  const [rangeFrom, setFrom] = useState(`${localDateIso().slice(0, 8)}01`)
-  const [month, setMonth] = useState(localDateIso().slice(0, 7))
+  // Pilihan laporan disimpan di alamat (K-145): kembali dari tautan daftar cek atau pindah tab tidak mengulang pilihan.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const defaults = { jenis: 'rekap-absensi', from: `${localDateIso().slice(0, 8)}01`, to: localDateIso(), bulan: localDateIso().slice(0, 7) }
+  const param = (key: keyof typeof defaults | 'branchId' | 'categoryId') =>
+    searchParams.get(key) ?? (key in defaults ? defaults[key as keyof typeof defaults] : '')
+  /** Satu penulisan untuk beberapa nilai sekaligus; nilai bawaan atau kosong dihapus dari alamat. */
+  const update = (patch: Partial<Record<keyof typeof defaults | 'branchId' | 'categoryId', string>>) =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        for (const [key, value] of Object.entries(patch)) {
+          if (!value || value === defaults[key as keyof typeof defaults]) next.delete(key)
+          else next.set(key, value)
+        }
+        return next
+      },
+      { replace: true },
+    )
+  const slug = (REPORTS.some((r) => r.slug === param('jenis')) ? param('jenis') : defaults.jenis) as ReportSlug
+  const setSlug = (value: ReportSlug) => update({ jenis: value })
+  const rangeFrom = param('from')
+  const rangeTo = param('to')
+  const setFrom = (value: string) => update({ from: value })
+  const setTo = (value: string) => update({ to: value })
+  const month = /^\d{4}-\d{2}$/.test(param('bulan')) ? param('bulan') : defaults.bulan
+  const setMonth = (value: string) => update({ bulan: value })
   const isMonthly = slug === 'gaji-bulanan'
   const monthRange = monthBounds(month)
   const from = isMonthly ? monthRange.from : rangeFrom
   const to = isMonthly ? monthRange.to : rangeTo
-  const [branchId, setBranchId] = useState('')
-  const [categoryId, setCategoryId] = useState('')
+  const branchId = param('branchId')
+  const categoryId = param('categoryId')
+  const setBranchId = (value: string) => update({ branchId: value })
+  const setCategoryId = (value: string) => update({ categoryId: value })
   const [employeeId, setEmployeeId] = useState('')
   const [deductionFeedback, setDeductionFeedback] = useState<string | null>(null)
+  // Daftar cek memakai periode yang sama dengan laporan, termasuk rentang bulan untuk gaji bulanan (K-145).
+  const fixFilter = { from, to, branchId: branchId || undefined, categoryId: categoryId || undefined }
+  const fixCounts = useFixCounts(fixFilter)
+  const outstanding = !fixCounts.isPending && hasOutstanding(fixCounts)
 
   const query = new URLSearchParams({
     from,
@@ -231,8 +260,7 @@ export function ReportsPage() {
     sat.setDate(today.getDate() - diffToSat + offsetWeeks * 7)
     const fri = new Date(sat)
     fri.setDate(sat.getDate() + 6)
-    setFrom(localDateIso(sat))
-    setTo(localDateIso(fri))
+    update({ from: localDateIso(sat), to: localDateIso(fri) })
   }
 
   function setMonthlyCycle(offsetMonths = 0) {
@@ -241,9 +269,7 @@ export function ReportsPage() {
     const m = today.getMonth() + offsetMonths
     const first = new Date(y, m, 1)
     const last = new Date(y, m + 1, 0)
-    setFrom(localDateIso(first))
-    setTo(localDateIso(last))
-    setMonth(localDateIso(first).slice(0, 7))
+    update({ from: localDateIso(first), to: localDateIso(last), bulan: localDateIso(first).slice(0, 7) })
   }
 
   const columns = COLUMNS[slug]
@@ -255,10 +281,9 @@ export function ReportsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Laporan"
-        description="Pratinjau laporan absensi dan kalkulasi upah/gaji per karyawan, unduh dokumen Excel/PDF fisik (AS-1 s/d AS-7), dan tutup buku potongan kasbon."
-      />
+      <p className="max-w-[70ch] text-sm text-muted-foreground">
+        Pilih jenis laporan dan periode, periksa pratinjaunya, lalu unduh Excel atau PDF (AS-1 s/d AS-7).
+      </p>
 
       {/* Shortcut Siklus Periode */}
       <div className="flex flex-wrap items-center gap-2">
@@ -363,7 +388,7 @@ export function ReportsPage() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button disabled={download.isPending || !from || !to} onClick={() => download.mutate('xlsx')}>
             {download.isPending && download.variables === 'xlsx' ? (
               <Loader2 className="animate-spin" aria-hidden />
@@ -380,8 +405,21 @@ export function ReportsPage() {
             )}
             Unduh PDF
           </Button>
+          {outstanding && (
+            <a
+              href="#daftar-cek"
+              className="flex items-center gap-1.5 rounded-sm text-sm font-semibold text-warning underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+              {fixCounts.total > 0
+                ? `Masih ada ${outstandingLabel(fixCounts)} hal belum beres`
+                : 'Daftar cek gagal dimuat sebagian'}
+            </a>
+          )}
         </div>
       </div>
+
+      <PeriodChecklist filter={fixFilter} counts={fixCounts} />
 
       {isMonthly && <ReportHeaderSettings slug={slug} />}
 

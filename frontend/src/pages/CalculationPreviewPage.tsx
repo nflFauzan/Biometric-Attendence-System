@@ -116,7 +116,7 @@ export function CalculationPreviewPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Simulasi Perhitungan"
-        description="Coba hitung rekap satu hari memakai aturan yang berlaku. Hasilnya tidak disimpan; scan asli dari mesin baru tersedia di Fase 3."
+        description="Coba hitung rekap satu hari memakai aturan yang berlaku untuk memeriksa pengaturan. Hasilnya tidak disimpan dan bukan laporan gaji; gaji dibuat di menu Gaji & Laporan."
       />
 
       <div className="grid gap-4 lg:grid-cols-5">

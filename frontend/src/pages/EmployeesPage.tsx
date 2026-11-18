@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router'
 
@@ -5,11 +6,13 @@ import { useAuth } from '@/auth/AuthContext'
 import { CredentialMessageDialog, type CredentialMessage } from '@/components/CredentialMessageDialog'
 import { ActiveBadge, CrudPage } from '@/components/CrudPage'
 import { EmployeeFormDialog } from '@/components/EmployeeFormDialog'
+import { Badge } from '@/components/ui/badge'
 import type { FormValues } from '@/components/FormDialog'
 import { textOf as text } from '@/lib/credentials'
 import { emptyToNull, toId } from '@/lib/form'
 import { formatDate } from '@/lib/format'
-import type { Employee } from '@/lib/types'
+import { api } from '@/lib/api'
+import type { Employee, UserAccount } from '@/lib/types'
 
 const hasAccount = (v: FormValues) => v.createAccount === true
 
@@ -17,6 +20,10 @@ export function EmployeesPage() {
   const { me } = useAuth()
   const [message, setMessage] = useState<CredentialMessage | null>(null)
   const isOwner = me?.role === 'OWNER'
+  const queryClient = useQueryClient()
+  // Status akun dicocokkan dari daftar akun (K-145), agar akun karyawan cukup diurus dari halaman Karyawan.
+  const accounts = useQuery({ queryKey: ['/api/users'], queryFn: () => api<UserAccount[]>('/api/users') })
+  const accountOf = (employee: Employee) => accounts.data?.find((user) => user.employeeId === employee.id)
 
   return (
     <>
@@ -41,6 +48,13 @@ export function EmployeesPage() {
           { header: 'Cabang', cell: (e) => e.branchName },
           { header: 'Kategori', cell: (e) => e.categoryName },
           { header: 'Tgl masuk', cell: (e) => formatDate(e.joinDate) },
+          {
+            header: 'Akun',
+            cell: (e) => {
+              if (!accounts.data) return '—'
+              return accountOf(e) ? <Badge variant="success">Punya akun</Badge> : <Badge variant="neutral">Belum</Badge>
+            },
+          },
           { header: 'Status', cell: (e) => <ActiveBadge active={e.active} />, role: 'status' },
         ]}
         // K-136: form berbagian; K-134: tanggal masuk diisi otomatis saat tambah dan tidak diubah lewat form.
@@ -102,6 +116,8 @@ export function EmployeesPage() {
         })}
         onSaved={(saved, editing, v) => {
           if (!editing && hasAccount(v)) {
+            // Kolom Akun membaca daftar akun; segarkan agar karyawan baru langsung tampil "Punya akun".
+            void queryClient.invalidateQueries({ queryKey: ['/api/users'] })
             setMessage({
               kind: 'created',
               name: saved.fullName,

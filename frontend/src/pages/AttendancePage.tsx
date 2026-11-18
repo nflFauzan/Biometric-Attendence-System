@@ -5,8 +5,6 @@ import { Link } from 'react-router'
 import { EmptyState, ErrorAlert, SkeletonLines } from '@/components/feedback'
 import { DatePicker } from '@/components/DatePickers'
 import { selectClass } from '@/components/FormDialog'
-import { AttendanceSubNav } from '@/components/AttendanceSubNav'
-import { PageHeader } from '@/components/PageHeader'
 import { TimeCell } from '@/components/TimeCell'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
@@ -35,7 +33,7 @@ function Notes({ row }: { row: DailyRow }) {
 const HEADERS = ['Karyawan', 'Cabang', 'Masuk', 'Pulang', 'Terlambat', 'Jam normal', 'Jam lembur', 'Status', 'Catatan']
 
 /** Rekap absensi semua karyawan aktif untuk satu tanggal, dihitung dari scan asli + koreksi (K-058). */
-export function AttendancePage() {
+export function AttendanceDailyTab() {
   useDashboardStream()
   const branchOptions = useBranchOptions()
   const [date, setDate] = useState(localDateIso())
@@ -51,7 +49,7 @@ export function AttendancePage() {
 
   const link = (row: DailyRow) => (
     <Link
-      to={`/absensi/karyawan/${row.employeeId}?tanggal=${date}`}
+      to={`/karyawan/${row.employeeId}?tab=absensi&tanggal=${date}`}
       className="text-steel-700 underline-offset-4 hover:underline dark:text-foreground"
     >
       {row.fullName}
@@ -60,12 +58,9 @@ export function AttendancePage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        title="Absensi Harian"
-        description="Jam masuk = scan pertama, jam pulang = scan terakhir. Koreksi dilakukan dari detail karyawan."
-      />
-
-      <AttendanceSubNav />
+      <p className="max-w-[70ch] text-sm text-muted-foreground">
+        Jam masuk = scan pertama, jam pulang = scan terakhir. Klik nama karyawan untuk melihat rinciannya atau mengoreksi jam.
+      </p>
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">
