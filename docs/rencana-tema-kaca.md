@@ -29,6 +29,13 @@ Sidebar memakai kaca berwarna steel yang lebih pekat agar identitas brand tetap 
 
 Opasitas kaca terang dinaikkan dari usulan awal (55%/75%) menjadi 70%/85% mengikuti panduan ui-ux-pro-max untuk kaca terang yang berisi teks; disetujui pengguna 2026-10-14.
 
+## 2.1 Pembaruan 21st.dev Adjustable Glassmorphism (2026-11-18)
+
+- **Arsitektur Floating Islands**: Kerangka aplikasi menggunakan panggung melayang .gw-workspace dengan bilah floating topbar rounded-20px dan floating stage rounded-27px.
+- **Ambient Room Wallpaper**: Latar belakang dinamis menggunakan gambar ruangan ambient (.gw-room) dengan peredup .gw-room-shade yang dapat diganti user di produksi via localStorage (takka_theme_bg).
+- **Pengatur Kaca Langsung**: Variabel token 21st.dev (--gw-blur, --gw-opacity, --gw-saturation, --gw-edge, --gw-tint) dapat disesuaikan realtime via modal Adjust Glass.
+- **Anti-Nested Blur**: Kaca di dalam panel kaca dinonaktifkan filternya (:where(.gw-glass) :is(.gw-glass)) untuk kestabilan performa GPU.
+
 ## 3. Kerangka responsif
 
 | Ukuran | Lebar | Kerangka |

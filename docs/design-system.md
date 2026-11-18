@@ -307,9 +307,12 @@ Strip hazard hanya dipakai untuk hal yang menunggu tindakan pengguna, agar tidak
 ### 6.9 Navigasi
 
 - **Sidebar desktop:** latar `steel-800`, motif garis vertikal tipis (opacity 6%) di bagian bawah, logo putih di atas. Item: ikon 20px + label Open Sans 14. Item aktif: latar `steel-700`, teks putih, garis kiri 3px `gold-500`. Hover: latar `steel-700/60%`.
-- Menu dikelompokkan: **Operasional** (Dashboard, Absensi, Izin & cuti), **Keuangan** (Penggajian, Laporan), **Master data** (Karyawan, Cabang, Kategori, Mesin, Akun), **Sistem** (Pengaturan Aturan, Audit log). Menu yang tidak boleh diakses role tidak ditampilkan.
+- Menu Owner/Finance (K-145) berupa satu daftar tanpa judul grup, urut menurut pekerjaan: **Beranda, Absensi, Izin & Cuti, Gaji & Laporan, Karyawan, Pengaturan**. Profil dibuka lewat tombol di header. Menu yang tidak boleh diakses role tidak ditampilkan; menu karyawan tidak berubah.
+- **Tab halaman** (`PageTabs`): sub halaman ditampilkan sebagai tab di bawah judul, disimpan di alamat `?tab=` agar bisa di-bookmark. Tab boleh membawa badge jumlah (kuning bila lebih dari 0). Pindah tab membawa periode (`from`, `to`, `branchId`, `categoryId`).
+- **Halaman Pengaturan:** kartu bergrup (Perusahaan; Aturan & gaji; Akses & keamanan), tiap kartu berisi ikon, judul, satu kalimat penjelasan, dan label "Hanya lihat" bila role tidak boleh mengubah. Sub halaman pengaturan punya tautan kembali "Pengaturan" di atasnya.
+- **Daftar cek periode** (`PeriodChecklist`): tiap baris berikon + teks (kuning = belum beres dengan tombol ke tab Absensi, hijau = beres, kuning "Gagal memuat ..." bila gagal). Hanya memperingatkan, tombol unduh tidak dinonaktifkan.
 - **Header:** putih, garis bawah 1px. Kiri: judul halaman + breadcrumb. Kanan: nama, role, menu akun (Ganti password, Keluar). Garis emas 2px di bagian paling atas aplikasi.
-- **Bottom navigation (HP):** putih, ikon 24px + label 11px, item aktif `steel-600` dengan titik emas di atas ikon.
+- **Bottom navigation (HP):** putih, ikon 24px + label 11px, item aktif `steel-600` dengan titik emas di atas ikon. Isinya Beranda, Absensi, Izin & Cuti, Gaji & Laporan; Karyawan, Pengaturan, dan Profil ada di "Lainnya".
 
 ### 6.9a Garis waktu status izin dan langkah form
 
