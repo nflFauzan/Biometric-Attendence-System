@@ -7,8 +7,9 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    # Hanya dari server itu sendiri (K-144): database tidak boleh terjangkau dari jaringan.
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -39,10 +40,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Backend tidak dipublikasikan ke jaringan (K-144): browser lewat nginx port WEB_PORT, mesin lewat nginx port
+    # DEVICE_PORT. Port 8080 hanya terbuka untuk server itu sendiri (diagnosis, Swagger saat OPENAPI_ENABLED=true).
     ports:
-      - "8080:8080"
-      # Port untuk mesin absensi (K-060): keypad mesin uji X401 tidak bisa mengetik angka 0.
-      - "${DEVICE_PORT:-8888}:8080"
+      - "127.0.0.1:8080:8080"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
       interval: 10s
@@ -58,6 +59,9 @@ services:
         condition: service_healthy
     ports:
       - "${WEB_PORT:-3000}:80"
+      # Port untuk mesin absensi (K-060: keypad mesin uji X401 tidak bisa mengetik angka 0). Nginx hanya meneruskan
+      # /device/ dan /iclock/ ke backend (K-144).
+      - "${DEVICE_PORT:-8888}:8888"
 
 volumes:
   db_data:
