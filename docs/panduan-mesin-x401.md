@@ -145,7 +145,7 @@ Kirim file log ke tim untuk dipakai menyusun adapter dan simulator di Fase 3.
 
 Adapter ZK-Push sudah tersedia (Fase 3). Langkah:
 
-1. Jalankan sistem: `docker compose up --build -d`. Backend mendengarkan di port `8080` dan, untuk mesin, di port **`8888`** (K-060, karena tombol 0 keypad rusak).
+1. Jalankan sistem: `docker compose up --build -d`. Mesin masuk lewat port **`8888`** (K-060, karena tombol 0 keypad rusak), yang dilayani Nginx dan hanya meneruskan `/iclock/` dan `/device/` ke backend (K-144). Port `8080` backend hanya terbuka untuk laptop itu sendiri.
 2. Login web sebagai Owner → **Mesin Absensi** → tambah mesin dengan **serial number persis** `BRYV181860187` dan cabang uji. Biarkan **Terima scan sejak** kosong agar riwayat lama mesin (data dosen) tidak disimpan (K-057). Bila mesin sudah mencoba terhubung sebelum didaftarkan, serial number-nya tampil di banner "Mesin belum terdaftar mencoba terhubung".
 3. Di **Karyawan**, isi **PIN mesin** karyawan uji sama dengan User ID di mesin (mis. `9001`).
 4. Di mesin: `Comm. → ADMS`, alamat server **`172.35.3.55`**, port **`8888`**. Restart mesin bila diminta.
