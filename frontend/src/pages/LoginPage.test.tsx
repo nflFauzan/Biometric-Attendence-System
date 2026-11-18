@@ -118,4 +118,12 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Halaman ganti password')).toBeInTheDocument()
     expect(screen.getByTestId('loc')).toHaveTextContent('/ganti-password?next=%2Fizin%2F123')
   })
+
+  it('menggunakan floating glass panel (gw-panel gw-glass) dan backdrop wallpaper', async () => {
+    mockFetch({ 'GET /api/auth/me': () => ({ status: 401 }) })
+    renderLogin()
+    const formCard = screen.getByRole('heading', { name: 'Masuk' }).closest('.gw-panel')
+    expect(formCard).not.toBeNull()
+    expect(formCard).toHaveClass('gw-glass')
+  })
 })
