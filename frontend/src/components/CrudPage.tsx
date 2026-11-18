@@ -128,9 +128,9 @@ export function CrudPage<T extends { id: number }>(props: CrudPageProps<T>) {
 
       {error && <ErrorAlert message={error.message} />}
 
-      <section className="overflow-hidden rounded-lg border glass-strong">
+      <section className="gw-panel gw-glass overflow-hidden rounded-[24px] border border-white/20 shadow-xl backdrop-blur-xl">
         {data && (
-          <p className="border-b px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{data.length} data</p>
+          <p className="border-b border-white/10 px-4 py-2.5 text-xs text-muted-foreground tabular-nums">{data.length} data</p>
         )}
         {isPending && <SkeletonLines />}
         {data?.length === 0 && (
