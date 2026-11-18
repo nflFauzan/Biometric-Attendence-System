@@ -49,10 +49,11 @@ interface FormDialogProps {
 }
 
 /** Tinggi 44px di HP agar mudah disentuh, 40px di desktop (docs/design-system.md §6.2). */
-export const fieldClass = 'h-11 rounded-md border-input bg-card px-3 text-base md:h-10 md:text-sm'
+export const fieldClass =
+  'h-11 rounded-xl border border-white/20 bg-white/10 dark:bg-white/5 backdrop-blur-sm px-3 text-base text-foreground transition-all focus-visible:border-white/40 focus-visible:ring-[3px] focus-visible:ring-gold-400/40 md:h-10 md:text-sm'
 
 export const selectClass =
-  'h-11 w-full rounded-md border border-input bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/25 md:h-10 md:text-sm'
+  'h-11 w-full rounded-xl border border-white/20 bg-white/10 dark:bg-white/5 backdrop-blur-sm px-3 text-base text-foreground outline-none transition-all focus-visible:border-white/40 focus-visible:ring-[3px] focus-visible:ring-gold-400/40 md:h-10 md:text-sm'
 
 /**
  * Field tanggal/jam memakai pemilih sheet (DatePickers). Field tidak wajib bisa dikosongkan;
