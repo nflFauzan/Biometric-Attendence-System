@@ -27,6 +27,8 @@ describe('Glass Theme State Manager', () => {
   })
 
   it('menyimpan dan memuat preferensi wallpaper', () => {
+    saveGlassSettings({ blur: 15, opacity: 0.25, saturation: 1.2, tint: '#ffffff', edge: 0.7 })
+    expect(loadGlassSettings().blur).toBe(15)
     saveWallpaper('https://example.com/custom.jpg')
     expect(loadWallpaper()).toBe('https://example.com/custom.jpg')
   })

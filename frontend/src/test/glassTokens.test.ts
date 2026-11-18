@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import fs from 'node:fs'
-import path from 'node:path'
+import css from '../index.css?raw'
 
 describe('Glassmorphism CSS Tokens (21st.dev)', () => {
-  const css = fs.readFileSync(path.resolve(__dirname, '../index.css'), 'utf-8')
-
   it('mendefinisikan variabel materi kaca 21st.dev', () => {
     expect(css).toContain('--gw-blur')
     expect(css).toContain('--gw-opacity')

@@ -1,4 +1,4 @@
-import { Check, Image as ImageIcon, Layers, RotateCcw, Settings2, X } from 'lucide-react'
+import { Check, Image as ImageIcon, RotateCcw, Settings2, X } from 'lucide-react'
 import { useState } from 'react'
 
 import {

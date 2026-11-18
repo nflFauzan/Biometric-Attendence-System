@@ -11,8 +11,8 @@ export function DesignPreviewPage() {
         userName="Admin Takka"
         backgroundImage={currentBg}
         balance={142}
-        balanceChange="+94.7% hadir hari ini"
-        account="Pabrik Utama & Cabang"
+        balanceChange={{ percent: 94.7, label: 'hadir hari ini' }}
+        account={{ name: 'Pabrik Utama & Cabang', lastFour: 'X401' }}
         periodLabel="November 2026"
         footerNote="* Data absensi & penggajian sinkron otomatis dari mesin X401"
         savingsNote="Target Kehadiran Bulanan"
@@ -47,15 +47,13 @@ export function DesignPreviewPage() {
             id: 'g-1',
             name: 'Target Kehadiran Pabrik',
             target: 150,
-            current: 142,
-            date: 'Nov 2026',
+            saved: 142,
           },
           {
             id: 'g-2',
             name: 'Penyelesaian Klaim Lembur',
             target: 10,
-            current: 8,
-            date: 'Bulan Ini',
+            saved: 8,
           },
         ]}
       />
