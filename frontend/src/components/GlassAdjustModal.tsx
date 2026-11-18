@@ -50,9 +50,11 @@ export function GlassAdjustModal({ open, onClose }: GlassAdjustModalProps) {
   ]
 
   return (
-    <aside
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Sesuaikan Efek Kaca"
       className="fixed top-20 right-4 z-50 flex max-h-[calc(100dvh-6rem)] w-[320px] flex-col overflow-y-auto rounded-3xl border border-white/20 bg-card/85 p-5 text-foreground shadow-2xl backdrop-blur-2xl sm:right-6 md:w-[350px]"
-      aria-label="Pengaturan Tampilan Kaca dan Wallpaper"
     >
       <div className="flex items-center justify-between pb-3 border-b border-white/10">
         <div className="flex items-center gap-2">
@@ -216,6 +218,6 @@ export function GlassAdjustModal({ open, onClose }: GlassAdjustModalProps) {
           <span>Kembalikan Setelan Kaca Bawaan</span>
         </button>
       </div>
-    </aside>
+    </div>
   )
 }
