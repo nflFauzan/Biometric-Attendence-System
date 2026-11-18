@@ -1,25 +1,29 @@
 import { describe, expect, it } from 'vitest'
 
-import { homePathFor, menuFor } from '@/navigation'
+import type { Role } from '@/lib/types'
+import { homePathFor, menuFor, settingsPageFor, SETTINGS_PAGES } from '@/navigation'
 
 const labels = (role: Parameters<typeof menuFor>[0]) => menuFor(role).map((item) => item.label)
 
 describe('menu per role', () => {
-  it('Owner melihat master data, akun, dan audit log', () => {
-    expect(labels('OWNER')).toEqual(
-      expect.arrayContaining(['Dashboard', 'Karyawan', 'Cabang', 'Mesin Absensi', 'Akun', 'Audit Log']),
-    )
-    expect(labels('OWNER')).not.toContain('Rekan')
-    expect(labels('OWNER')).toEqual(expect.arrayContaining(['Izin & Cuti', 'Jenis Izin/Cuti']))
+  it('Owner dan Finance & Accounting punya 6 menu utama yang sama, berurutan (K-145)', () => {
+    for (const role of ['OWNER', 'HR_FINANCE'] as const) {
+      const sidebar = menuFor(role).filter((item) => !item.mobileOnly)
+      expect(sidebar.map((item) => item.label)).toEqual(['Beranda', 'Absensi', 'Izin & Cuti', 'Gaji & Laporan', 'Karyawan', 'Pengaturan'])
+    }
+    expect(labels('EMPLOYEE')).not.toContain('Gaji & Laporan')
+    expect(labels('EMPLOYEE')).not.toContain('Pengaturan')
   })
 
-  it('Finance & Accounting sama seperti Owner kecuali audit log', () => {
-    expect(labels('HR_FINANCE')).toContain('Karyawan')
-    expect(labels('HR_FINANCE')).toContain('Akun')
-    expect(labels('HR_FINANCE')).not.toContain('Audit Log')
-    expect(labels('HR_FINANCE')).toContain('Izin & Cuti')
-    // Jenis izin hanya diatur Owner (K-070).
-    expect(labels('HR_FINANCE')).not.toContain('Jenis Izin/Cuti')
+  it('kartu Pengaturan: Jenis Izin/Cuti dan Audit Log hanya Owner, Aturan Kerja hanya lihat untuk Finance', () => {
+    const forRole = (role: Role) => SETTINGS_PAGES.filter((page) => page.roles.includes(role)).map((page) => page.slug)
+    expect(forRole('OWNER')).toHaveLength(9)
+    expect(forRole('HR_FINANCE')).not.toContain('jenis-izin')
+    expect(forRole('HR_FINANCE')).not.toContain('audit-log')
+    expect(forRole('HR_FINANCE')).toContain('akun')
+    expect(SETTINGS_PAGES.find((page) => page.slug === 'aturan-kerja')?.readOnlyFor).toEqual(['HR_FINANCE'])
+    expect(settingsPageFor('/pengaturan/mesin')?.label).toBe('Mesin Absensi')
+    expect(settingsPageFor('/pengaturan')).toBeUndefined()
   })
 
   it('Owner dan HR punya Profil untuk tanda tangan (K-115), lewat menu Lainnya di HP', () => {
@@ -30,34 +34,12 @@ describe('menu per role', () => {
     }
   })
 
-  it('Owner dan Finance & Accounting punya Perlu Ditinjau tepat setelah Absensi Harian', () => {
-    for (const role of ['OWNER', 'HR_FINANCE'] as const) {
-      const all = labels(role)
-      expect(all[all.indexOf('Absensi Harian') + 1]).toBe('Perlu Ditinjau')
-    }
-    expect(labels('EMPLOYEE')).not.toContain('Perlu Ditinjau')
-  })
-
-  it('Owner dan Finance & Accounting punya Validasi Lembur tepat setelah Perlu Ditinjau (K-140)', () => {
-    for (const role of ['OWNER', 'HR_FINANCE'] as const) {
-      const all = labels(role)
-      expect(all[all.indexOf('Perlu Ditinjau') + 1]).toBe('Validasi Lembur')
-    }
-    expect(labels('EMPLOYEE')).not.toContain('Validasi Lembur')
-  })
-
-  it('Owner dan Finance & Accounting punya tepat 4 menu operasional di bottom nav HP', () => {
+  it('Owner dan Finance & Accounting punya tepat 4 menu di bottom nav HP', () => {
     for (const role of ['OWNER', 'HR_FINANCE'] as const) {
       const mobileItems = menuFor(role).filter((item) => item.mobile)
-      expect(mobileItems.map((item) => item.path)).toEqual(['/', '/absensi', '/izin', '/laporan'])
-      expect(mobileItems.map((item) => item.label)).toEqual(['Dashboard', 'Absensi Harian', 'Izin & Cuti', 'Laporan'])
+      expect(mobileItems.map((item) => item.path)).toEqual(['/', '/absensi', '/izin', '/gaji'])
+      expect(mobileItems.map((item) => item.label)).toEqual(['Beranda', 'Absensi', 'Izin & Cuti', 'Gaji & Laporan'])
     }
-  })
-
-  it('Owner dan Finance & Accounting melihat menu Laporan, karyawan tidak', () => {
-    expect(labels('OWNER')).toContain('Laporan')
-    expect(labels('HR_FINANCE')).toContain('Laporan')
-    expect(labels('EMPLOYEE')).not.toContain('Laporan')
   })
 
   it('Karyawan punya tepat 4 menu berurutan, semuanya tampil di bottom nav', () => {

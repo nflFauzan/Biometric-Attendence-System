@@ -152,7 +152,7 @@ describe('Sidik jari di detail karyawan', () => {
         return { status: 200, body: overview() }
       },
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     expect(await screen.findByRole('heading', { name: 'Sidik Jari' }, LOAD)).toBeInTheDocument()
     const row = await fingerRow(1)
@@ -173,7 +173,7 @@ describe('Sidik jari di detail karyawan', () => {
 
   it('missing PIN blocks enroll with reason', async () => {
     mockFetch(routes({ emp: employee({ devicePin: null }) }))
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     expect((await fingerRow(1)).getByRole('button', { name: 'Daftarkan' })).toBeDisabled()
     expect(await screen.findByText('Isi PIN mesin karyawan dulu.')).toBeInTheDocument()
@@ -188,7 +188,7 @@ describe('Sidik jari di detail karyawan', () => {
         ],
       }),
     )
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     fireEvent.click((await fingerRow(1)).getByRole('button', { name: 'Daftarkan' }))
     const dialog = await screen.findByRole('dialog')
@@ -209,7 +209,7 @@ describe('Sidik jari di detail karyawan', () => {
       ...routes(),
       [`GET /api/device-commands/${CMD}`]: () => ({ status: 200, body: replies.length > 1 ? replies.shift() : replies[0] }),
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     fireEvent.click((await fingerRow(1)).getByRole('button', { name: 'Daftarkan' }))
     const dialog = await screen.findByRole('dialog')
@@ -233,7 +233,7 @@ describe('Sidik jari di detail karyawan', () => {
         body: command({ status: 'DIBATALKAN', message: 'Pendaftaran dibatalkan.' }),
       }),
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     fireEvent.click((await fingerRow(1)).getByRole('button', { name: 'Daftarkan' }))
     const dialog = await screen.findByRole('dialog')
@@ -255,7 +255,7 @@ describe('Sidik jari di detail karyawan', () => {
         body: command({ status: 'GAGAL', errorCode: 'TIDAK_ADA_HASIL', message: 'Mesin tidak merespons. Periksa koneksi mesin.' }),
       }),
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     fireEvent.click((await fingerRow(1)).getByRole('button', { name: 'Daftarkan' }))
     const dialog = await screen.findByRole('dialog')
@@ -273,7 +273,7 @@ describe('Sidik jari di detail karyawan', () => {
         body: { status: 409, detail: 'Mesin sedang dipakai untuk pendaftaran.' },
       }),
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     fireEvent.click((await fingerRow(1)).getByRole('button', { name: 'Daftarkan' }))
     const dialog = await screen.findByRole('dialog')
@@ -290,7 +290,7 @@ describe('Sidik jari di detail karyawan', () => {
         }),
       }),
     )
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     const row = await fingerRow(1)
     expect(await row.findByText(/Terdaftar di Rakitan Pusat/)).toBeInTheDocument()
@@ -310,7 +310,7 @@ describe('Sidik jari di detail karyawan', () => {
       }),
       'DELETE /api/employees/12/fingerprints/1': () => ({ status: 200, body: overview({ deletions: [deletion()] }) }),
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     const row = await fingerRow(1)
     expect((await fingerRow(2)).queryByRole('button', { name: 'Hapus jari ke-2' })).not.toBeInTheDocument()
@@ -346,7 +346,7 @@ describe('Sidik jari di detail karyawan', () => {
       }),
       [`POST /api/device-commands/${CMD2}/retry`]: () => ({ status: 200, body: command({ id: CMD2, type: 'DELETE_TEMPLATE' }) }),
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     const list = within(await screen.findByRole('region', { name: 'Penghapusan di mesin' }, LOAD))
     expect(list.getByText('Rakitan Pusat')).toBeInTheDocument()
@@ -365,18 +365,18 @@ describe('Sidik jari di detail karyawan', () => {
 
   it('X401 note shows only with pending deletions or inactive employee', async () => {
     mockFetch(routes({ fp: overview({ zkPushDeviceActive: true }) }))
-    const first = renderAt('/karyawan/12')
+    const first = renderAt('/karyawan/12?tab=akun')
     await fingerRow(1)
     expect(screen.queryByText(X401_NOTE)).not.toBeInTheDocument()
     first.unmount()
 
     mockFetch(routes({ fp: overview({ zkPushDeviceActive: true, deletions: [deletion()] }) }))
-    const second = renderAt('/karyawan/12')
+    const second = renderAt('/karyawan/12?tab=akun')
     expect(await screen.findByText(X401_NOTE, {}, LOAD)).toBeInTheDocument()
     second.unmount()
 
     mockFetch(routes({ emp: employee({ active: false }), fp: overview({ zkPushDeviceActive: true }) }))
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
     expect(await screen.findByText(X401_NOTE, {}, LOAD)).toBeInTheDocument()
   })
 })

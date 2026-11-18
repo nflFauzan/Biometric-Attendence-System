@@ -123,6 +123,21 @@ describe('Daftar karyawan', () => {
     expect(screen.getByLabelText(/Password sementara/)).toHaveValue('eni.d-006-takka')
   })
 
+  it('kolom Akun menandai karyawan yang sudah punya akun web (K-145)', async () => {
+    mockFetch(
+      routes(hr, {
+        'GET /api/users': () => ({
+          status: 200,
+          body: [{ id: 30, username: 'budi', role: 'EMPLOYEE', employeeId: 12, employeeName: 'Budi Santoso', active: true, mustChangePassword: false, lastLoginAt: null }],
+        }),
+      }),
+    )
+    renderAt('/karyawan')
+    expect(await screen.findByRole('columnheader', { name: 'Akun' }, LOAD)).toBeInTheDocument()
+    expect((await screen.findAllByText('Punya akun')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Belum').length).toBeGreaterThan(0)
+  })
+
   it('menyimpan karyawan dengan akun lalu menampilkan pesan', async () => {
     const fetch = await openCreate(owner)
     fillIdentity()

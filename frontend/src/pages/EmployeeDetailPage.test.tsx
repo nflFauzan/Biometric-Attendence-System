@@ -1,11 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '@/App'
 import { AuthProvider } from '@/auth/AuthContext'
-import type { Employee, Me, UserAccount } from '@/lib/types'
+import type { Employee, EmployeeLoan, Me, UserAccount } from '@/lib/types'
 import { mockFetch } from '@/test/fetchMock'
 
 function renderAt(path: string) {
@@ -74,6 +74,10 @@ describe('EmployeeDetailPage', () => {
     expect(await screen.findByRole('heading', { name: 'Budi Santoso', level: 1 }, LOAD)).toBeInTheDocument()
     expect(screen.getByText('K-012')).toBeInTheDocument()
     expect(screen.getByText('Cabang Pusat')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Profil' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.queryByText('budi')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Akun & Sidik jari' }))
     expect(await screen.findByText('budi')).toBeInTheDocument()
     expect(screen.getByText('Wajib ganti password saat login')).toBeInTheDocument()
   })
@@ -102,7 +106,7 @@ describe('EmployeeDetailPage', () => {
       'GET /api/users': () => ({ status: 200, body: [account({ employeeId: 99 })] }),
       'POST /api/users': () => ({ status: 201, body: account({ id: 31, username: 'budi@takka.id' }) }),
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     expect(await screen.findByText('Karyawan ini belum punya akun web.', {}, LOAD)).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Buat di menu Akun' })).not.toBeInTheDocument()
@@ -130,7 +134,7 @@ describe('EmployeeDetailPage', () => {
       'GET /api/users': () => ({ status: 200, body: [account({ username: 'budi@takka.id' })] }),
       'POST /api/users/30/reset-password': () => ({ status: 204 }),
     })
-    renderAt('/karyawan/12')
+    renderAt('/karyawan/12?tab=akun')
 
     fireEvent.click(await screen.findByRole('button', { name: 'Reset password' }, LOAD))
     expect(await screen.findByLabelText(/Password sementara/)).toHaveValue('budi-K-012-takka')
@@ -178,5 +182,71 @@ describe('EmployeeDetailPage', () => {
 
     expect(await screen.findByText('Halo, Siti', {}, LOAD)).toBeInTheDocument()
     expect(screen.queryByText('Data kepegawaian')).not.toBeInTheDocument()
+  })
+
+  const loan = (overrides: Partial<EmployeeLoan> = {}): EmployeeLoan => ({
+    id: 5,
+    employeeId: 12,
+    employeeName: 'Budi Santoso',
+    branchName: 'Cabang Pusat',
+    loanNumber: 'KSB-0005',
+    loanDate: '2026-10-01',
+    totalAmount: 1500000,
+    installmentAmount: 250000,
+    remainingAmount: 1000000,
+    status: 'AKTIF',
+    notes: null,
+    createdAt: '2026-10-01T02:00:00Z',
+    repayments: [],
+    ...overrides,
+  })
+
+  it('tab Kasbon menampilkan kasbon karyawan dan tautan ke menu Gaji & Laporan (K-145)', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/employees/12': () => ({ status: 200, body: employee() }),
+      'GET /api/users': () => ({ status: 200, body: [] }),
+      'GET /api/loans?employeeId=12': () => ({ status: 200, body: [loan()] }),
+    })
+    renderAt('/karyawan/12?tab=kasbon')
+
+    expect(await screen.findByText('KSB-0005', {}, LOAD)).toBeInTheDocument()
+    expect(within(screen.getByRole('table')).getByText('Aktif')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Kasbon' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('link', { name: /Kelola kasbon/ })).toHaveAttribute('href', '/gaji?tab=kasbon')
+  })
+
+  it('tab Kasbon kosong memberi tahu belum ada kasbon', async () => {
+    mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/employees/12': () => ({ status: 200, body: employee() }),
+      'GET /api/users': () => ({ status: 200, body: [] }),
+      'GET /api/loans?employeeId=12': () => ({ status: 200, body: [] }),
+    })
+    renderAt('/karyawan/12?tab=kasbon')
+
+    expect(await screen.findByText('Belum ada kasbon.', {}, LOAD)).toBeInTheDocument()
+  })
+
+  it('alamat lama rincian absensi membuka tab Absensi dengan tanggal yang sama (K-145)', async () => {
+    const fetch = mockFetch({
+      'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/employees/12': () => ({ status: 200, body: employee() }),
+      'GET /api/users': () => ({ status: 200, body: [] }),
+      'GET /api/attendance/employees/12?from=2026-10-27&to=2026-11-02': () => ({
+        status: 200,
+        body: {
+          employeeId: 12, employeeNumber: 'K-012', fullName: 'Budi Santoso', branchName: 'Cabang Pusat',
+          timezone: 'Asia/Jakarta', devicePin: '12', from: '2026-10-27', to: '2026-11-02', days: [], corrections: [],
+        },
+      }),
+    })
+    renderAt('/absensi/karyawan/12?tanggal=2026-11-02')
+
+    expect(await screen.findByRole('tab', { name: 'Absensi' }, LOAD)).toHaveAttribute('aria-selected', 'true')
+    await waitFor(() =>
+      expect(fetch.mock.calls.some(([url]) => url === '/api/attendance/employees/12?from=2026-10-27&to=2026-11-02')).toBe(true),
+    )
+    expect(await screen.findByText(/PIN mesin 12/)).toBeInTheDocument()
   })
 })

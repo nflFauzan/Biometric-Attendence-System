@@ -88,7 +88,7 @@ const device: Device = {
 }
 
 describe('Halaman absensi Fase 3', () => {
-  it('menampilkan sub-navigasi tab terpadu untuk absensi dan masalah scan', async () => {
+  it('Absensi bertab: Harian terpilih secara bawaan (K-145)', async () => {
     const date = localDateIso()
     const daily: DailyAttendance = { date, branchId: null, rows: [] }
     mockFetch({
@@ -98,13 +98,11 @@ describe('Halaman absensi Fase 3', () => {
     })
     renderAt('/absensi')
 
-    const subNav = await screen.findByRole('navigation', { name: 'Sub menu absensi' })
-    expect(subNav).toBeInTheDocument()
-    expect(within(subNav).getByRole('link', { name: 'Absensi Harian' })).toHaveAttribute('href', '/absensi')
-    expect(within(subNav).getByRole('link', { name: 'Perlu Ditinjau' })).toHaveAttribute('href', '/absensi/perlu-ditinjau')
-    expect(within(subNav).getByRole('link', { name: 'Scan Tertahan' })).toHaveAttribute('href', '/absensi/scan-tertahan')
-    expect(within(subNav).getByRole('link', { name: 'Scan Tak Dikenal' })).toHaveAttribute('href', '/absensi/scan-tak-dikenal')
-    expect(within(subNav).getByRole('link', { name: 'Validasi Lembur' })).toHaveAttribute('href', '/absensi/lembur')
+    const tabs = await screen.findByRole('tablist', { name: 'Sub menu absensi' })
+    expect(screen.getByRole('heading', { level: 1, name: 'Absensi' })).toBeInTheDocument()
+    expect(within(tabs).getByRole('tab', { name: 'Harian' })).toHaveAttribute('aria-selected', 'true')
+    expect(within(tabs).getByRole('tab', { name: /Perlu Dibereskan/ })).toHaveAttribute('href', '/absensi?tab=bereskan')
+    expect(within(tabs).getByRole('tab', { name: /Lembur/ })).toHaveAttribute('href', '/absensi?tab=lembur')
   })
 
   afterEach(() => vi.unstubAllGlobals())
@@ -143,7 +141,7 @@ describe('Halaman absensi Fase 3', () => {
     expect(screen.getByText('Budi Santoso')).toBeInTheDocument()
     expect(screen.getByText('PIN 1696 (belum dipetakan)')).toBeInTheDocument()
     expect(screen.getByText('Online')).toBeInTheDocument()
-    expect(screen.getByText('Scan dengan PIN tak dikenal').closest('a')).toHaveAttribute('href', '/absensi/scan-tak-dikenal')
+    expect(screen.getByText('Scan dengan PIN tak dikenal').closest('a')).toHaveAttribute('href', '/absensi?tab=bereskan')
   })
 
   it('absensi harian menampilkan status dan pesan aturan yang belum diatur', async () => {
@@ -178,7 +176,7 @@ describe('Halaman absensi Fase 3', () => {
     expect(screen.getByRole('columnheader', { name: 'Jam lembur' })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: 'Budi Santoso' })[0]).toHaveAttribute(
       'href',
-      `/absensi/karyawan/12?tanggal=${date}`,
+      `/karyawan/12?tab=absensi&tanggal=${date}`,
     )
   })
 
@@ -241,6 +239,8 @@ describe('Halaman absensi Fase 3', () => {
     const fetchMock = mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
       'GET /api/attendance/employees/12?from=2026-09-29&to=2026-10-05': () => ({ status: 200, body: current }),
+      'GET /api/employees/12': () => ({ status: 200, body: { id: 12, employeeNumber: 'K-012', fullName: 'Budi Santoso', active: true, joinDate: '2026-01-01' } }),
+      'GET /api/users': () => ({ status: 200, body: [] }),
       'GET /api/auth/csrf': () => ({ status: 204 }),
       'POST /api/attendance/corrections': () => {
         current = { ...current, days: [corrected], corrections: [corrected.correction!] }
@@ -270,6 +270,8 @@ describe('Halaman absensi Fase 3', () => {
   it('halaman karyawan membaca rentang from dan to dari alamat (tautan Perlu Ditinjau)', async () => {
     const fetchFn = mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/employees/12': () => ({ status: 200, body: { id: 12, employeeNumber: 'K-012', fullName: 'Budi Santoso', active: true, joinDate: '2026-01-01' } }),
+      'GET /api/users': () => ({ status: 200, body: [] }),
       'GET /api/attendance/employees/12?from=2026-10-03&to=2026-10-05': () => ({
         status: 200,
         body: {

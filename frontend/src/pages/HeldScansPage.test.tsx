@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '@/App'
 import { AuthProvider } from '@/auth/AuthContext'
 import { dayStatus, reviewNotes } from '@/lib/attendance'
-import { addDays, localDateIso } from '@/lib/format'
+import { localDateIso } from '@/lib/format'
 import type { DashboardSummary, DayRecord, HeldScan, Me, Scan } from '@/lib/types'
 import { mockFetch } from '@/test/fetchMock'
 
@@ -54,9 +54,9 @@ const held = (id: number, name: string): HeldScan => ({
 describe('Halaman Scan Tertahan (K-103)', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('memuat 30 hari terakhir berstatus belum ditinjau, meninjau dua baris dengan alasan wajib, lalu memuat ulang', async () => {
+  it('memuat semua tanggal berstatus belum ditinjau (K-145), meninjau dua baris dengan alasan wajib, lalu memuat ulang', async () => {
     const to = localDateIso()
-    const from = addDays(to, -29)
+    const from = '2000-01-01' // tanpa "Dari" pilihan pengguna: semua tanggal (K-145)
     const listKey = `GET /api/attendance/held-scans?from=${from}&to=${to}&status=BELUM_DITINJAU`
     let rows = [held(1, 'Budi Santoso'), held(2, 'Siti Aminah')]
     let posted: unknown = null
@@ -98,7 +98,7 @@ describe('Halaman Scan Tertahan (K-103)', () => {
 
   it('memilih lebih dari 200 scan menonaktifkan aksi massal dan menampilkan petunjuk', async () => {
     const to = localDateIso()
-    const from = addDays(to, -29)
+    const from = '2000-01-01' // tanpa "Dari" pilihan pengguna: semua tanggal (K-145)
     const rows = Array.from({ length: 201 }, (_, i) => held(i + 1, `Karyawan ${i + 1}`))
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
@@ -120,7 +120,7 @@ describe('Halaman Scan Tertahan (K-103)', () => {
 
   it('status Semua tidak mengirim parameter status', async () => {
     const to = localDateIso()
-    const from = addDays(to, -29)
+    const from = '2000-01-01' // tanpa "Dari" pilihan pengguna: semua tanggal (K-145)
     const fetchMock = mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
       [`GET /api/attendance/held-scans?from=${from}&to=${to}&status=BELUM_DITINJAU`]: () => ({ status: 200, body: [] }),
@@ -149,7 +149,7 @@ describe('Kartu dashboard dan label scan tertahan', () => {
       'GET /api/dashboard/summary': () => ({ status: 200, body: summary }),
     })
     renderAt('/')
-    expect((await screen.findByText('Scan tertahan')).closest('a')).toHaveAttribute('href', '/absensi/scan-tertahan')
+    expect((await screen.findByText('Scan tertahan')).closest('a')).toHaveAttribute('href', '/absensi?tab=bereskan')
   })
 
   it('scan counted=false tampil "Tertahan" atau "Diabaikan" di detail karyawan', async () => {
@@ -164,6 +164,8 @@ describe('Kartu dashboard dan label scan tertahan', () => {
     }
     mockFetch({
       'GET /api/auth/me': () => ({ status: 200, body: hr }),
+      'GET /api/employees/12': () => ({ status: 200, body: { id: 12, employeeNumber: 'K-012', fullName: 'Budi Santoso', active: true, joinDate: '2026-01-01' } }),
+      'GET /api/users': () => ({ status: 200, body: [] }),
       'GET /api/attendance/employees/12?from=2026-09-29&to=2026-10-05': () => ({
         status: 200,
         body: {

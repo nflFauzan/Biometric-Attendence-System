@@ -60,7 +60,7 @@ describe('Halaman Perlu Ditinjau (FR-REV-001)', () => {
     expect(screen.getByText('Ada scan tertahan')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Tinjau Budi Santoso' })).toHaveAttribute(
       'href',
-      '/absensi/karyawan/12?from=2026-10-05&to=2026-10-05',
+      '/karyawan/12?tab=absensi&from=2026-10-05&to=2026-10-05',
     )
   })
 
